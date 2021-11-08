@@ -1,0 +1,24 @@
+---
+---
+<style>
+  .content {
+    padding: 0;
+    max-width: 75ch;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .content > section {
+    margin-bottom: 4rem;
+  }
+  .block {
+    display: block;
+  }
+</style>
+
+<article id="article" class="content">
+    <section class="main-section">
+        <slot />
+    </section>
+</article>

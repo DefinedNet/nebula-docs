@@ -1,0 +1,150 @@
+// Color system
+
+$white: #fff;
+$gray: hsl(214, 15%, 50%);
+$black: #000000;
+
+$gray-50: lighten($gray, 45%);
+$gray-100: lighten($gray, 40%);
+$gray-200: lighten($gray, 30%);
+$gray-300: lighten($gray, 20%);
+$gray-400: lighten($gray, 10%);
+$gray-500: $gray;
+$gray-600: darken($gray, 10%);
+$gray-700: darken($gray, 20%);
+$gray-800: darken($gray, 30%);
+$gray-900: darken($gray, 40%);
+$gray-950: darken($gray, 45%);
+
+$grays: ();
+// stylelint-disable-next-line scss/dollar-variable-default
+$grays: map-merge(
+  (
+    "50": $gray-50,
+    "100": $gray-100,
+    "200": $gray-200,
+    "300": $gray-300,
+    "400": $gray-400,
+    "500": $gray-500,
+    "600": $gray-600,
+    "700": $gray-700,
+    "800": $gray-800,
+    "900": $gray-900,
+    "950": $gray-950,
+  ),
+  $grays
+);
+
+$red: hsl(11, 77%, 50%);
+$orange: hsl(29, 97%, 50%);
+$yellow: hsl(47, 90%, 50%);
+$purple: hsl(259, 73%, 50%);
+$blue: hsl(209, 71%, 50%);
+$cyan: hsl(169, 73%, 50%);
+$green: hsl(135, 64%, 50%);
+
+$colors: ();
+// stylelint-disable-next-line scss/dollar-variable-default
+$colors: map-merge(
+  (
+    "blue": $blue,
+    "purple": $purple,
+    "red": $red,
+    "orange": $orange,
+    "yellow": $yellow,
+    "green": $green,
+    "cyan": $cyan,
+    "white": $white,
+    "gray": $gray-600,
+    "gray-dark": $gray-800,
+  ),
+  $colors
+);
+
+:root {
+  --font-fallback: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif,
+    Apple Color Emoji, Segoe UI Emoji;
+  --font-sans-serif: inter, var(--font-fallback);
+  --font-mono: "Space Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New";
+  --font-headings: brandon-grotesque, "Inter", -apple-system, blinkmacsystemfont, "Segoe UI", roboto,
+    "Helvetica Neue", arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+:root {
+  color-scheme: dark;
+  --theme-accent: #{$purple};
+  --theme-accent-text: #{lighten($purple, 30%)};
+  --theme-accent-text-dim: #{lighten($purple, 20%)};
+  --theme-accent-opacity: 0.3;
+  --theme-divider: #{$gray-800};
+  --theme-text: #{$gray-200};
+  --theme-text-dim: #{$gray-300};
+  --theme-text-dimmer: #{$gray-400};
+  --theme-text-disabled: #{$gray-600};
+  --theme-text-secondary: #{lighten($yellow, 30%)};
+  --theme-bg: #{$gray-950};
+  --theme-bg-offset: #{$gray-900};
+  --theme-button: #{$gray-700};
+  --theme-button-dim: #{$gray-800};
+  --theme-input-border: #{$gray-700};
+  --theme-code-inline-bg: #{$gray-800};
+  --theme-code-text: #{$gray-200};
+  --theme-code-bg: #{$gray-900};
+
+  --size-focus-ring-offset: -6px;
+  --size-focus-ring-radius: 12px;
+  --size-focus-ring-width: 2px;
+}
+
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text-dim);
+}
+
+::selection {
+  color: $white;
+  background-color: var(--theme-accent);
+}
+
+.bg-gradient-1 {
+  background: linear-gradient(180deg, rgba(11, 13, 15, 0.25) 0%, var(--theme-bg) 100%);
+}
+.bg-gradient-2 {
+  background: linear-gradient(180deg, #0b0c0f 0%, rgba(11, 13, 15, 0.25) 52.6%, #0b0c0f 98.96%);
+}
+
+.bg-gray-50 {
+  background-color: $gray-50;
+}
+.bg-gray-100 {
+  background-color: $gray-100;
+}
+.bg-gray-200 {
+  background-color: $gray-200;
+}
+.bg-gray-300 {
+  background-color: $gray-300;
+}
+.bg-gray-400 {
+  background-color: $gray-400;
+}
+.bg-gray-500 {
+  background-color: $gray-500;
+}
+.bg-gray-600 {
+  background-color: $gray-600;
+}
+.bg-gray-700 {
+  background-color: $gray-700;
+}
+.bg-gray-800 {
+  background-color: $gray-800;
+}
+.bg-gray-900 {
+  background-color: $gray-900;
+}
+.bg-gray-950 {
+  background-color: $gray-950;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@example/docs",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@astrojs/renderer-react": "^0.2.2",
+    "@snowpack/plugin-dotenv": "^2.1.0",
+    "astro": "^0.20.12"
+  }
+}

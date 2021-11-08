@@ -1,0 +1,44 @@
+---
+import { getLanguageFromURL, KNOWN_LANGUAGE_CODES } from '../../languages.ts';
+import SkipToContent from './SkipToContent.astro';
+import LanguageSelect from './LanguageSelect.tsx';
+
+const {currentPage} = Astro.props;
+const lang = currentPage && getLanguageFromURL(currentPage);
+
+---
+<style lang="scss">
+    header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1;
+      background-color: var(--theme-bg);
+
+      & :global(> *) {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+</style>
+
+<header class="border-bottom">
+    <SkipToContent />
+    <nav class="pady-12" title="Top Navigation">
+      <a id="site-title" href="/" aria-label="Homepage">
+        <img src="/images/logo.svg" height="40" class="navbar-brand-img" alt="" />
+      </a>
+      <div style="flex-grow: 1;"></div>
+      {KNOWN_LANGUAGE_CODES.length > 1 && <LanguageSelect lang={lang} client:idle />}
+    </nav>
+</header>

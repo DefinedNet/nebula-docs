@@ -1,0 +1,119 @@
+---
+import HeadCommon from "../components/HeadCommon.astro";
+import Header from '../components/Header/Header.astro';
+import PageContent from '../components/PageContent/PageContent.astro';
+import LeftSidebar from '../components/LeftSidebar/LeftSidebar.astro';
+import MobileNav from '../components/MobileNav.astro'
+import * as CONFIG from "../config";
+
+const { content = {} } = Astro.props;
+const currentPage = Astro.request.url.pathname;
+---
+
+<html dir={content.dir ?? 'ltr'} lang={content.lang ?? 'en-us'} class="initial">
+  <head>
+    <HeadCommon />
+    <title>{content.title ? `${content.title} - ${CONFIG.SITE.title}` : CONFIG.SITE.title}</title>
+    
+    <style lang="scss">
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        width: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        --gutter: 0.5rem;
+        --doc-padding: 5rem;
+      }
+      main {
+        
+
+        & :global(> *) {
+          max-width: var(--max-width);
+          margin: 0 auto;
+          width: 100%;
+          height: 100%;
+        }
+
+        & :global(> :first-child) {
+          grid-column: 1;
+        }
+      }
+
+      #article {
+        padding: 32px 0;
+        height: 100%;
+      }
+
+      .layout :global(> *) {
+        width: 100%;
+        height: 100%;
+      }
+      .grid-sidebar {
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        padding: 0;
+      }
+      #grid-left {
+        max-height: 100vh;
+        position: sticky;
+        top: 24px;
+        display: none;
+      }
+      #grid-main {
+        padding: var(--doc-padding) var(--gutter);
+        grid-column: 2;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+      }
+      @media (min-width: 992px) {
+        #article {
+          padding: var(--doc-padding) 0;
+          display: grid;
+          gap: 2rem;
+          grid-template-columns: 18rem minmax(0, 1fr);
+        }
+        #grid-left {
+          display: block;
+          display: flex;
+          flex-direction: column;
+          height: calc(100vh - 200px);
+          // Account for focus ring
+          padding: 8px;
+          margin-left: -8px;
+        }
+        .mobile-nav {
+          display: none;
+        }
+      }
+
+      @media (min-width: 1200px) {
+        #article {
+          grid-template-columns: 22rem minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <Header currentPage={currentPage} />
+    <main>
+      <div id='article'>
+        <aside id="grid-left" class="grid-sidebar" title="Site Navigation">
+          <LeftSidebar currentPage={currentPage} />
+        </aside>
+        <div class="mobile-nav">
+          <MobileNav />
+        </div>
+        <PageContent id="grid-main" content={content}>
+          <slot />
+        </PageContent>
+      </div>
+    </main>
+  </body>
+</html>
