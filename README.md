@@ -11,10 +11,16 @@ All commands are run from the root of the project, from a terminal:
 | Command          | Action                                       |
 |:-----------------|:---------------------------------------------|
 | `npm install`    | Installs dependencies                        |
-| `npm run dev`    | Starts local dev server at `localhost:3000`  |
-| `npm run build`  | Build your production site to `./dist/`      |
-| `npm run preview`| Preview your build locally, before deploying |
+| `npm start`      | Starts local dev server at `localhost:3000`  |
 
+
+## CMS
+
+The content for this site is managed by netlify cms.  To make changes, visit `localhost:3000/admin`.  When you run `npm start`, a proxy server that does not attempt to authenticate with GitHub will also be started, allowing changes to be made to the repo your filesystem, which should then be pushed up and submitted as a pull request.
+
+## Internationalization (i18n)
+
+To add a non-English translation of the docs, open the CMS and add a new locale in Settings -> Locales.  After that is added, you'll be able to edit each Page and change the locale at the top of the right hand side ("Writing in EN").
 
 ## New to Astro?
 
