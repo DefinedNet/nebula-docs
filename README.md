@@ -1,6 +1,8 @@
 # Nebula documentation
 
-This is the official documentation for the [nebula open source project](https://github.com/slackhq/nebula).
+This is the documentation for the [nebula open source project](https://github.com/slackhq/nebula).
+
+Status: Currently work-in-progress and not yet published, but the content matches https://www.defined.net/nebula/.
 
 ## Commands Cheatsheet
 
