@@ -1,13 +1,40 @@
 ---
 import Layout from '../../layouts/MainLayout.astro';
+import {getLanguageFromFilename, getSlugFromFilename} from '../../languages';
 
 export async function getStaticPaths() {
-  const allPages = Astro.fetchContent('../../data/**/*.md');
+  /**
+   * This builds up a set of params using the filename (which is always in english) as the slug,
+   * and adds a redirect prop to the proper internationalized slug.
+   */
+  function getRedirects(allPages) {
+    return allPages
+      .map(({ astro, url, file, ...page }) => {
+        const slug = getSlugFromFilename(file.pathname);
+        const locale = getLanguageFromFilename(file.pathname);
+
+        return {
+          params: {
+            locale,
+            slug
+          },
+          props: {
+            redirect: `/${locale}/${page.slug}`,
+          }
+        }
+      })
+  }
+
+  const allPages = Astro.fetchContent('../../data/docs/**/*.md');
+
+  const redirects = getRedirects(allPages);
 
   const paths = allPages.map(({ astro, url, file, ...page }) => {
+    const locale = getLanguageFromFilename(file.pathname);
+    
     return {
       params: {
-        locale: page.locale,
+        locale: locale,
         slug: page.slug
       },
       props: {
@@ -19,12 +46,15 @@ export async function getStaticPaths() {
     }
   })
 
-  return paths.filter(({ params, props }) => !!params.slug && !props.page.hide)
+  return [...paths, ...redirects].filter(({ params }) => !!params.slug);
 }
 
-const { page } = Astro.props
+const { page, redirect } = Astro.props
 ---
 
-<Layout content={page}>
-  {page.html}
-</Layout>
+{redirect 
+  ? <head><meta http-equiv="refresh" content={`0; url=${redirect}`}></head>
+  : <Layout content={page}>
+      {page.html}
+    </Layout>
+}

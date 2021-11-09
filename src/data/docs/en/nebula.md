@@ -1,9 +1,15 @@
 ---
-title: "Nebula Overlay Networking Tool"
-description: "Learn about the Nebula open-source project from its creators. Find tutorials, videos, and reference guides explaining how overlay networks can help you securely connect Linux, Mac, Windows, iOS, and Android hosts located on any network."
-images: ["/images/www/nebula-docs-og.png"]
-slug: 'nebula'
-locale: 'en'
+title: Nebula Overlay Networking Tool
+description: Learn about the Nebula open-source project from its creators. Find
+  tutorials, videos, and reference guides explaining how overlay networks can
+  help you securely connect Linux, Mac, Windows, iOS, and Android hosts located
+  on any network.
+images:
+  - /images/www/nebula-docs-og.png
+slug: nebula
+summary: Here is where you’ll find detail about each of the major components in
+  Nebula’s architecture, how they fit together, and how to make them work best
+  in a variety of environments and use cases.
 ---
 
 # The Open Source Overlay Networking Tool

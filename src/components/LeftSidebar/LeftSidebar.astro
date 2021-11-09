@@ -1,12 +1,23 @@
 ---
-import { getLanguageFromURL } from '../../languages.ts';
+import { getLanguageFromURL, getLanguageFromFilename, getSlugFromFilename } from '../../languages.ts';
+import sidebarConfig from '../../data/settings/sidebar.json';
+
 const {currentPage} = Astro.props;
 const langCode = getLanguageFromURL(currentPage);
 
 const allPages = Astro.fetchContent('../../data/**/*.md');
-const links = allPages
-  .filter(page => page.locale === langCode)
-  .map(page => ({title: page.title, href: `/${page.locale}/${page.slug}`}));
+
+const orderedPageSlugs = sidebarConfig.sidebar.map(s => s.page);
+
+// Build an array of objects for our links, in the order specified in the sidebar settings file.
+const links = orderedPageSlugs.map(pageSlug => {
+  // Find the right file and the right language
+  const page = allPages.find(p => 
+    getSlugFromFilename(p.file.pathname) === pageSlug && getLanguageFromFilename(p.file.pathname) === langCode
+  );
+
+  return {title: page.title, href: `/${langCode}/${page.slug}` }
+});
 
 ---
 

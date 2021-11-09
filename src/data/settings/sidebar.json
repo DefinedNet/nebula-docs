@@ -1,0 +1,16 @@
+{
+  "sidebar": [
+    {
+      "page": "introduction"
+    },
+    {
+      "page": "nebula"
+    },
+    {
+      "page": "quick-start"
+    },
+    {
+      "page": "config"
+    }
+  ]
+}

@@ -1,8 +1,11 @@
 ---
-title: "Quick Start"
-description: "Nebula Docs: How to create your first overlay network using a Certificate Authority, Lighthouse, and Hosts"
-slug: 'quick-start'
-locale: 'en'
+title: Quick Start
+description: "Nebula Docs: How to create your first overlay network using a
+  Certificate Authority, Lighthouse, and Hosts"
+slug: quick-start
+summary: This section will walk you through setting up a simple nebula network
+  for testing. The examples will need to be modified to suit your particular
+  environment.
 ---
 
 # How to create your first overlay network

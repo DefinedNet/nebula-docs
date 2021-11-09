@@ -3,6 +3,8 @@
     "target": "es2020",
     "module": "esnext",
     "jsx": "react",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
   }
 }

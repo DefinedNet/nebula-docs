@@ -1,10 +1,19 @@
 ---
-import { getLanguageFromURL, KNOWN_LANGUAGE_CODES } from '../../languages.ts';
+import { getLanguageFromURL, getLanguageFromFilename, getSlugFromFilename, KNOWN_LANGUAGE_CODES } from '../../languages.ts';
 import SkipToContent from './SkipToContent.astro';
 import LanguageSelect from './LanguageSelect.tsx';
 
-const {currentPage} = Astro.props;
-const lang = currentPage && getLanguageFromURL(currentPage);
+const currentPath = Astro.request.url.pathname;
+const lang = currentPath && getLanguageFromURL(currentPath);
+
+const allPages = Astro.fetchContent('../../data/**/*.md');
+
+const currentPage = allPages.find(page => {
+  const pageLang = getLanguageFromFilename(page.file.pathname);
+  return `/${pageLang}/${page.slug}` === currentPath
+});
+
+const normalizedSlug = getSlugFromFilename(currentPage.file.pathname)
 
 ---
 <style lang="scss">
@@ -39,6 +48,6 @@ const lang = currentPage && getLanguageFromURL(currentPage);
         <img src="/images/logo.svg" height="40" class="navbar-brand-img" alt="" />
       </a>
       <div style="flex-grow: 1;"></div>
-      {KNOWN_LANGUAGE_CODES.length > 1 && <LanguageSelect lang={lang} client:idle />}
+      {KNOWN_LANGUAGE_CODES.length > 1 && <LanguageSelect lang={lang} slug={normalizedSlug} client:idle />}
     </nav>
 </header>

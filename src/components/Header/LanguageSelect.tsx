@@ -4,9 +4,11 @@ import { KNOWN_LANGUAGES, langPathRegex } from '../../languages';
 
 type Props = {
   lang: string;
+  /* The English slug for the current page.  Rely on redirects when changing to non-english languages. */
+  slug: string;
 }
 
-const LanguageSelect = ({lang}: Props) => {
+const LanguageSelect = ({lang, slug = 'nebula'}: Props) => {
   return (
     <div className="language-select-wrapper">
       <svg aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88.6 77.3" height="1.2em" width="1.2em">
@@ -21,9 +23,7 @@ const LanguageSelect = ({lang}: Props) => {
         value={lang}
         onChange={(e) => {
           const newLang = e.target.value;
-          let actualDest = window.location.pathname.replace(langPathRegex, '/');
-          if (actualDest == '/') actualDest = `/introduction`;
-          window.location.pathname = '/' + newLang + actualDest;
+          window.location.pathname = `/${newLang}/${slug}`;
         }}
       >
         {Object.keys(KNOWN_LANGUAGES).map((key) => {

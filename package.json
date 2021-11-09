@@ -5,16 +5,19 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "start-admin": "netlify-cms-proxy-server",
     "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
+    "netlify-cms-app": "^2.15.58",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@astrojs/renderer-react": "^0.2.2",
     "@snowpack/plugin-dotenv": "^2.1.0",
-    "astro": "^0.20.12"
+    "astro": "^0.20.12",
+    "netlify-cms-proxy-server": "^1.3.22"
   }
 }

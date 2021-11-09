@@ -3,7 +3,3 @@ export const SITE = {
   description: 'Documentation for the nebula open source project.',
   defaultLanguage: 'en_US',
 };
-
-export const KNOWN_LANGUAGES = {
-  English: 'en',
-};
