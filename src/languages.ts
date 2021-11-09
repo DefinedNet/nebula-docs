@@ -1,10 +1,11 @@
 import localeSettings from './data/settings/locales.json';
 const {locales} = localeSettings;
 
-const DEFAULT_LOCALE = 'en';
+export const DEFAULT_LOCALE = 'en';
 const PLACEHOLDER_LOCALE = 'xx';
 
 export const KNOWN_LANGUAGES = locales
+  // Remove this filter to treat placeholder locale as a real locale
   .filter(l => l.locale !== PLACEHOLDER_LOCALE)
   .reduce((accum, l) => {
     accum[l.language] =  l.locale;

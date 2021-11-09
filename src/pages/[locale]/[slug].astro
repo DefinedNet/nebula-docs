@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/MainLayout.astro';
-import {getLanguageFromFilename, getSlugFromFilename} from '../../languages';
+import {getLanguageFromFilename, getSlugFromFilename, DEFAULT_LOCALE, KNOWN_LANGUAGE_CODES} from '../../languages';
 
 export async function getStaticPaths() {
   /**
@@ -19,18 +19,50 @@ export async function getStaticPaths() {
             slug
           },
           props: {
+            locale,
             redirect: `/${locale}/${page.slug}`,
+            canonicalSlug: slug,
           }
         }
       })
   }
 
+  /** 
+   * Add fallback page content to show if there is not a localized version.
+   */
+  function getFallbacks(allPages) {
+    return allPages
+      .filter(p => getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE)
+      .map(({ astro, url, file, ...page }) => {
+        const slug = getSlugFromFilename(file.pathname);
+        return KNOWN_LANGUAGE_CODES
+          .filter(locale => locale !== DEFAULT_LOCALE)
+          .map(locale => ({
+          params: {
+            locale,
+            slug
+          },
+          props: {
+            locale,
+            page: {
+              ...page,
+              canonicalSlug: slug,
+              html: astro.html
+            }
+          }
+        }))
+      })
+      .flat();
+  }
+
   const allPages = Astro.fetchContent('../../data/docs/**/*.md');
 
   const redirects = getRedirects(allPages);
+  const fallbacks = getFallbacks(allPages);
 
   const paths = allPages.map(({ astro, url, file, ...page }) => {
     const locale = getLanguageFromFilename(file.pathname);
+    const canonicalSlug = getSlugFromFilename(file.pathname);
     
     return {
       params: {
@@ -38,15 +70,17 @@ export async function getStaticPaths() {
         slug: page.slug
       },
       props: {
+        locale,
         page: {
           ...page,
+          canonicalSlug,
           html: astro.html
         }
       }
     }
   })
 
-  return [...paths, ...redirects].filter(({ params }) => !!params.slug);
+  return [...paths, ...redirects, ...fallbacks].filter(({ params }) => !!params.slug);
 }
 
 const { page, redirect } = Astro.props

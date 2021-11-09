@@ -101,7 +101,7 @@ const currentPage = Astro.request.url.pathname;
   </head>
 
   <body>
-    <Header />
+    <Header canonicalSlug={content.canonicalSlug}/>
     <main>
       <div id='article'>
         <aside id="grid-left" class="grid-sidebar" title="Site Navigation">
