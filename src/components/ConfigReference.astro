@@ -4,10 +4,16 @@ import {DEFAULT_LOCALE} from '../languages';
 const [options] = Astro.fetchContent('../data/config-reference.md');
 
 const {locale} = Astro.props;
+
+// Default locale options, for use as fallback if localization is not available
+const fallbackOptions = options[DEFAULT_LOCALE].options;
+// config options for locale
+const configOptions = options[locale] ? options[locale].options : fallbackOptions
+
 ---
 
-{options[locale].options.map((option, optionIndex) => {
-  const fallbackOption = options[DEFAULT_LOCALE].options[optionIndex];
+{configOptions.map((option, optionIndex) => {
+  const fallbackOption = fallbackOptions[optionIndex];
   
   return (
     <div>
