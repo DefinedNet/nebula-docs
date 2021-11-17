@@ -26,33 +26,44 @@ export async function getStaticPaths() {
           }
         }
       })
+      // Don't need redirects for the English (default) locale
+      .filter(p => p.params.locale !== DEFAULT_LOCALE)
   }
 
-  /** 
-   * Add fallback page content to show if there is not a localized version.
-   */
-  function getFallbacks(allPages) {
-    return allPages
+  function getFallbacks(data) {
+    return data
+      // Loop over the English (default) locale files 
       .filter(p => getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE)
       .map(({ astro, url, file, ...page }) => {
-        const slug = getSlugFromFilename(file.pathname);
+        const canonicalSlug = getSlugFromFilename(file.pathname);
+        
+        // Create any missing fallbacks
         return KNOWN_LANGUAGE_CODES
-          .filter(locale => locale !== DEFAULT_LOCALE)
+          .filter(
+            // limit to non-default locales...
+            locale => locale !== DEFAULT_LOCALE
+            // ...which do not already have a file for this slug in this locale
+            && !data.find(d => 
+              getLanguageFromFilename(d.file.pathname) === locale 
+              && d.file.pathname.endsWith(`${canonicalSlug}.md`)
+            )
+          )
           .map(locale => ({
-          params: {
-            locale,
-            slug
-          },
-          props: {
-            locale,
-            page: {
-              ...page,
-              canonicalSlug: slug,
-              html: astro.html
+            params: {
+              locale,
+              slug: canonicalSlug,
+            },
+            props: {
+              locale,
+              page: {
+                ...page,
+                canonicalSlug,
+                html: astro.html
+              }
             }
-          }
-        }))
+          }))
       })
+      // Flatten array of arrays into a single array
       .flat();
   }
 
@@ -63,6 +74,7 @@ export async function getStaticPaths() {
 
   const paths = allPages.map(({ astro, url, file, ...page }) => {
     const locale = getLanguageFromFilename(file.pathname);
+    // This is the English version of the slug
     const canonicalSlug = getSlugFromFilename(file.pathname);
     
     return {
@@ -81,7 +93,8 @@ export async function getStaticPaths() {
     }
   })
 
-  return [...paths, ...redirects, ...fallbacks].filter(({ params }) => !!params.slug);
+  // Filter out any paths with an undefined locale or slug.
+  return [...paths, ...redirects, ...fallbacks].filter(({ params }) => !!params.locale && !!params.slug);
 }
 
 const { 
