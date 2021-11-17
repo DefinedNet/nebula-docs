@@ -35,7 +35,8 @@ export function getLanguageFromFilename(filename: string) {
 }
 
 export function getSlugFromFilename(filename: string) {
-  const fileName = filename.split('/').at(-1);
+  const filenameParts = filename.split('/');
+  const fileName = filenameParts[filenameParts.length - 1];
   const [slug] = fileName.split('.');
   return slug;
 }
