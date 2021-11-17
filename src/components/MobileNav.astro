@@ -1,11 +1,7 @@
 ---
-import {getLanguageFromURL} from '../languages';
-const langCode = getLanguageFromURL(Astro.request.url.pathname);
+import {getPageLinks} from '../get-page-links'
 const allPages = Astro.fetchContent('../data/**/*.md');
-
-const links = allPages
-  .filter(page => page.locale === langCode)
-  .map(page => ({title: page.title, href: `/${page.locale}/${page.slug}`}));
+const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
 ---
 
 <style lang="scss">
