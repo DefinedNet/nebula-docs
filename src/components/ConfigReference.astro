@@ -1,0 +1,43 @@
+---
+import ConfigOption from './ConfigOption.astro';
+import {DEFAULT_LOCALE} from '../languages';
+const [options] = Astro.fetchContent('../data/config-reference.md');
+
+const {locale} = Astro.props;
+
+// Default locale options, for use as fallback if localization is not available
+const fallbackOptions = options[DEFAULT_LOCALE].options;
+// config options for locale
+const configOptions = options[locale] ? options[locale].options : fallbackOptions
+
+---
+
+{configOptions.map((option, optionIndex) => {
+  const fallbackOption = fallbackOptions[optionIndex];
+  
+  return (
+    <div>
+      <ConfigOption 
+        isRequired={option.required}
+        description={option.description ?? fallbackOption.description}
+        example={option.example ?? fallbackOption.example}
+      >
+        <h2>{option.name}</h2>
+      </ConfigOption>
+      {option.suboptions && option.suboptions.map((suboption, subIndex) => {
+        const fallbackSuboption = fallbackOption.suboptions[subIndex];
+        
+        return (<ConfigOption
+          isRequired={suboption.required}
+          description={suboption.description ?? fallbackSuboption.description}
+          example={suboption.example ?? fallbackSuboption.example}
+        >
+          <h3>{option.name}.{suboption.name}</h3>
+        </ConfigOption>)
+      })}
+    </div>
+  )
+})}
+
+
+

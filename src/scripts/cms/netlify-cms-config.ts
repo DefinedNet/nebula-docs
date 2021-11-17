@@ -31,6 +31,45 @@ export const config: CmsConfig = {
       ]
     },
     {
+      name: "nebulaConfig",
+      label: "Nebula Config Options",
+      label_singular: "Nebula Config Option",
+      i18n: {
+        structure: 'single_file',
+        locales: ALL_LOCALES
+      },
+      delete: false,
+      create: false,
+      files: [
+        {
+          name: "options",
+          label: "Config Options",
+          file: "src/data/config-reference.md",
+          description: "Available options to set in nebula config file",
+          fields: [
+            {
+              name: "options",
+              label: "Options",
+              label_singular: "Option",
+              widget: "list",
+              fields: [
+                {name: "name", label: "Option name", widget: "string"},
+                {name: "required", label: "Required?", widget: "boolean", required: false},
+                {name: "description", label: "Description", widget: "markdown", i18n: true},
+                {name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false},
+                {name: "suboptions", label: "Sub-options", label_singular: "Sub-option", summary: "{{fields.name}}", widget: "list", fields: [
+                  {name: "name", label: "Option name", widget: "string"},
+                  {name: "required", label: "Required?", widget: "boolean", required: false},
+                  {name: "description", label: "Description", widget: "markdown", i18n: true},
+                  {name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false},
+                ]}
+              ]
+            }
+          ],
+        }
+      ],
+    },
+    {
       name: "settings",
       label: "Settings",
       delete: false,
