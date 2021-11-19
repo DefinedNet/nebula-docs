@@ -1,7 +1,9 @@
 ---
 import {getPageLinks} from '../get-page-links'
 const allPages = Astro.fetchContent('../data/**/*.md');
-const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
+const currentPage = Astro.request.url.pathname;
+const sections = getPageLinks({currentPage, allPages});
+
 ---
 
 <style lang="scss">
@@ -14,10 +16,29 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
   ul {
     list-style-type: none;
     padding-left: 0;
+
+    & li ul {
+      margin-left: 16px;
+    }
   }
 
   li:not(:last-child) {
     margin-bottom: 8px;
+  }
+
+  .docs-page-link {
+    font-family: var(--font-headings);
+    color: var(--theme-text-dim);
+    font-weight: 500;
+    line-height: 1.5;
+    font-size: 1.25rem;
+
+    &.is-active {
+      color: var(--theme-text);
+    }
+    &:hover {
+      color: var(--theme-text-dimmer);
+    }
   }
 
 </style>
@@ -32,7 +53,6 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
   window.addEventListener('load', addToggler);
 </script>
 
-
 <div class="mb-32">
   <button 
     id="docs-toggle" 
@@ -46,11 +66,29 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
   </button>
   <nav class="collapse mt-16" id='docs-nav'>
     <ul>
-      {links.map(link => (
-        <li>
-          <a href={link.href} class='docs-page-link' >{link.title}</a>
-        </li>
-      ))}
+      {sections.map(section => (
+      <li>
+        <a 
+          class='docs-page-link'
+          href={section.root.href} 
+          aria-current={`${currentPage === section.root.href ? 'page' : 'false'}`} 
+        >
+          {section.root.title}
+        </a>
+        {
+          section.children && 
+            <ul>
+              {section.children.map(child => (
+                <li>
+                  <a class='docs-page-link' href={child.href} aria-current={`${currentPage.replace(/\/$/, '') === child.href ? 'page' : 'false'}`}>
+                    {child.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+        }
+      </li>
+    ))}
     </ul>
   </nav>
 </div>

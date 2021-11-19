@@ -146,21 +146,6 @@ a:focus-visible {
   outline-offset: 0.25em;
 }
 
-.docs-page-link {
-  font-family: var(--font-headings);
-  color: var(--theme-text-dim);
-  font-weight: 500;
-  line-height: 1.5;
-  font-size: 1.25rem;
-
-  &.is-active {
-    color: var(--theme-text);
-  }
-  &:hover {
-    color: var(--theme-text-dimmer);
-  }
-}
-
 strong {
   font-weight: 600;
   color: inherit;

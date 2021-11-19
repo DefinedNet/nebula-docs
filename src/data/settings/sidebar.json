@@ -1,16 +1,27 @@
 {
   "sidebar": [
     {
-      "page": "introduction"
+      "rootPage": "overview"
     },
     {
-      "page": "nebula"
+      "rootPage": "guides",
+      "pages": [
+        {
+          "page": "quick-start"
+        },
+        {
+          "page": "run-as-service"
+        },
+        {
+          "page": "cli"
+        },
+        {
+          "page": "unsafe_routes"
+        }
+      ]
     },
     {
-      "page": "quick-start"
-    },
-    {
-      "page": "config"
+      "rootPage": "config"
     }
   ]
 }
