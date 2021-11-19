@@ -22,8 +22,8 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
 
 </style>
 
-<script type="module">
-  import {Toggler} from '/toggler.js';
+<script type="module" hoist>
+  import {Toggler} from '/src/scripts/toggler.js';
 
   function addToggler() {
     new Toggler('#docs-toggle');

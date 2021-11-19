@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './LanguageSelect.css';
-import { KNOWN_LANGUAGES, langPathRegex } from '../../languages';
+import { KNOWN_LANGUAGES, DEFAULT_LOCALE } from '../../languages';
 
 type Props = {
   lang: string;
