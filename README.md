@@ -16,12 +16,18 @@ All commands are run from the root of the project, from a terminal:
 
 ## CMS
 
-The content for this site is managed by netlify cms.  To make changes, visit `localhost:3000/admin`.  When you run `npm start`, a proxy server that does not attempt to authenticate with GitHub will also be started, allowing changes to be made to the repo your filesystem, which should then be pushed up and submitted as a pull request.
+The content for this site is managed by Netlify CMS, a git-based content management system.  To add new content, visit `localhost:3000/admin` after starting the dev server locally.  When you run `npm start`, a proxy server that does not attempt to authenticate with GitHub will also be started, allowing changes to be made to the repo on your filesystem, which should then be pushed up and submitted as a pull request.
+
+If you prefer working in your editor, we suggest creating new files through the cms so that the proper frontmatter is created, and then you're free to edit files directly on disk.
 
 ## Internationalization (i18n)
 
 To add a non-English translation of the docs, open the CMS and add a new locale in Settings -> Locales.  After that is added, you'll be able to edit each Page and change the locale at the top of the right hand side ("Writing in EN").
 
-## New to Astro?
+## Architecture
 
-Welcome! Check out [the documentation](https://github.com/snowpackjs/astro) or jump into the [Discord server](https://astro.build/chat).
+This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of www.defined.net.  The other components, styles, and layout in `/src` are a close copy of what is used on the defined website, in order to allow running the development server in this repo and previewing documentation changes.  
+
+### Config Reference
+
+The configuration reference is constructed differently from the other pages.  It is composed of the `config.md` file which provides the top of the page, and `config-reference.md` which contains the actual configuration option documentation.  This separation was done to support internationalization.
