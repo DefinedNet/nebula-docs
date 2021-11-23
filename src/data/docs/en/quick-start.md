@@ -18,7 +18,7 @@ This section will walk you through setting up a simple nebula network for testin
 
 To start, you'll need to download Nebula for your specific platform(s). Specifically you'll need `nebula-cert` and the specific `nebula` binary for each platform you use.
 
-##### Desktop and Server
+#### Desktop and Server
 
 Check the [releases](https://github.com/slackhq/nebula/releases/latest) page for downloads
 
@@ -27,16 +27,16 @@ Check the [releases](https://github.com/slackhq/nebula/releases/latest) page for
 - MacOS
 - Freebsd
 
-##### Mobile
+#### Mobile
 
 - [iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936)
 - [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula)
 
-##### From source
+#### From source
 
 You can also compile nebula from source using instructions provided [on GitHub.](https://github.com/slackhq/nebula/)
 
-##### Extracting the binaries
+#### Extracting the binaries
 
 Once you have downloaded Nebula for your specific platform, you'll need to extract the `nebula` and `nebula-cert` files.
 
@@ -76,7 +76,7 @@ This assumes you have three hosts, which we will name `lighthouse1, laptop, serv
 
 _Note: For the following examples, we use the address 198.51.100.1 as the routable ip for a fictional lighthouse. You'll need to substitute the routable IP of your own lighthouse when creating your Nebula configuration files._
 
-##### Configuration files
+#### Configuration files
 
 Download a copy of the nebula [example configuration](https://github.com/slackhq/nebula/blob/master/examples/config.yml). Make two separate copies of the example configuration file, one for your lighthouse named `config-lighthouse.yaml`, and one that for every non-lighthouse host, called `config.yaml`.
 
@@ -86,7 +86,7 @@ cp config.yml config-lighthouse.yaml
 cp config.yml config.yaml
 ```
 
-##### Lighthouse configuration (`config-lighthouse.yaml`)
+#### Lighthouse configuration (`config-lighthouse.yaml`)
 
 On the lighthouse host, you'll need to ensure `am_lighthouse: true` is set. Generally, a lighthouse will not have any entries in its `static_host_map`, because all hosts will report themselves to a lighthouse. If you use multiple lighthouses, they do not generally need to know about each other.
 
@@ -97,7 +97,7 @@ lighthouse:
   am_lighthouse: true
 ```
 
-##### Host configuration (`config.yaml`)
+#### Host configuration (`config.yaml`)
 
 On the individual hosts, ensure the lighthouse is defined properly in the `static_host_map` section, and is added to the lighthouse `hosts` section.
 
@@ -112,7 +112,7 @@ lighthouse:
     - "192.168.100.1"
 ```
 
-##### Firewall settings
+#### Firewall settings
 
 The example configuration file allows all outbound traffic but only allows specific connections in to each Nebula host. You should modify these settings to allow traffic to/from hosts within your network.
 
@@ -135,7 +135,7 @@ firewall:
 
 With the configuration, certificate, and key files created, the last step is copying the appropriate files to each host and starting your Nebula network.
 
-##### Lighthouse
+#### Lighthouse
 
 1. Copy the `nebula` binary, along with the `config-lighthouse.yaml`, `ca.crt`, `lighthouse1.crt`, and `lighthouse1.key` to your lighthouse. **DO NOT COPY `ca.key` TO YOUR LIGHTHOUSE.**
 
@@ -162,7 +162,7 @@ With the configuration, certificate, and key files created, the last step is cop
    ./nebula -config /etc/nebula/config.yaml
    ```
 
-##### Hosts
+#### Hosts
 
 _For this example, we are configuring the host created above, named `server`. Please substitute the correct file names as appropriate._
 
@@ -191,7 +191,7 @@ _For this example, we are configuring the host created above, named `server`. Pl
    ./nebula -config /etc/nebula/config.yaml
    ```
 
-##### Verifying it all works
+#### Verifying it all works
 
 You should now be able to ping other hosts running nebula (assuming ICMP is allowed). To ping the example lighthouse, run:
 
