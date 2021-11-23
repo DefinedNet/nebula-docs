@@ -112,6 +112,22 @@ a.btn {
   }
 }
 
+.btn-select {
+  border: 1px solid theme.$gray-700;
+  transition: color 150ms ease-in-out, border 150ms ease-in-out;
+  background-color: transparent;
+
+  &[disabled] {
+    border: 1px solid theme.$gray-800;
+    color: theme.$gray-600;
+  }
+
+  &:hover:not([disabled]):not(:active) {
+    color: white;
+    border: 1px solid theme.$gray-600;
+  }
+}
+
 .btn-xsmall {
   height: 36px;
   font-size: var(--font-size-m);
