@@ -5,14 +5,14 @@ description: Learn about the Nebula open-source project from its creators. Find
   help you securely connect Linux, Mac, Windows, iOS, and Android hosts located
   on any network.
 slug: nebula
-summary: Here is where you’ll find detail about each of the major components in
-  Nebula’s architecture, how they fit together, and how to make them work best
+summary: Here is where you'll find detail about each of the major components in
+  Nebula's architecture, how they fit together, and how to make them work best
   in a variety of environments and use cases.
 ---
 
 # The Open Source Overlay Networking Tool
 
-Interested in creating an overlay network of your own? You’re in the right place. Welcome!
+Interested in creating an overlay network of your own? You're in the right place. Welcome!
 
 When Nebula was open sourced, we did our best to include clear and concise documentation within the README and configuration files published along with the source code.
 
@@ -20,7 +20,7 @@ When Nebula was open sourced, we did our best to include clear and concise docum
 
 After a few months of fielding questions about how to get Nebula working it became clear that we needed to expand the official documentation for the project.
 
-Here is where you’ll find detail about each of the major components in Nebula’s architecture, how they fit together, and how to make them work best in a variety of environments and use cases.
+Here is where you'll find detail about each of the major components in Nebula's architecture, how they fit together, and how to make them work best in a variety of environments and use cases.
 
 ## Learning about Nebula
 
