@@ -26,7 +26,9 @@ To add a non-English translation of the docs, open the CMS and add a new locale 
 
 ## Architecture
 
-This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of (defined.net/nebula)[https://www.defined.net/nebula/]. The other components, styles, and layout in `/src` are very similar to what is published in /nebula/* on the Defined Networking website. This repo has a few additional files to make it easy for contributors to run a standalone server and preview their changes before submitting a pull request.
+This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of [defined.net/nebula](https://www.defined.net/nebula/).
+
+The other components, styles, and layout in `/src` are very similar to what is published under `/nebula/` on the Defined Networking website. This repo contains a few additional files to make it easier for contributors to run a standalone Nebula Docs server and to preview rendered changes locally before submitting a pull request.
 
 ### Config Reference
 
