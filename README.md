@@ -44,5 +44,4 @@ When viewing the localhost site for the first time, you may see the following di
 >
 > The current page should have reloaded by now
 
-Refresh your browser to work around this warning. The correctly rendered page will display after one or two refreshes.
-
+Refresh your browser to work around this warning. The correctly rendered page will display after one or two refreshes.  Upstream issue: https://github.com/withastro/astro/issues/1803
