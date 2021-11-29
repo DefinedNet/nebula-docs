@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/MainLayout.astro';
 import ConfigReference from '../../components/ConfigReference.astro';
+import Redirect from '../../components/Redirect.astro';
 import {getLanguageFromFilename, getSlugFromFilename, DEFAULT_LOCALE, KNOWN_LANGUAGE_CODES} from '../../languages';
 
 export async function getStaticPaths() {
@@ -111,7 +112,7 @@ const isConfigRefPage = !redirect && page.canonicalSlug === 'config';
 ---
 
 {redirect 
-  ? <head><meta http-equiv="refresh" content={`0; url=${redirect}`}></head>
+  ? <Redirect target={redirect} />
   : <Layout content={page}>
       {page.html}
       {isConfigRefPage && <ConfigReference locale={locale}/>}
