@@ -44,10 +44,4 @@ When viewing the localhost site for the first time, you may see the following di
 >
 > The current page should have reloaded by now
 
-Refresh your browser to work around this warning. The correctly rendered page will display after one or two refreshes.
-
-### Extended Unicode characters not rendering correctly
-
-Characters outside of the Basic Latin script do not render correctly. This should be resolved soon.
-
-e.g. _Latin Small Letter N with tilde_, ñ
+Refresh your browser to work around this warning. The correctly rendered page will display after one or two refreshes.  Upstream issue: https://github.com/withastro/astro/issues/1803

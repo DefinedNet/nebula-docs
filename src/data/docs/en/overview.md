@@ -19,13 +19,13 @@ What makes Nebula different to existing offerings is that it brings all of these
 
 Our primary goal when creating Nebula was to allow seamless connectivity between any set of computers, regardless of where they are in the world. When enabling such connectivity, it is very important that users have the tooling to separate those computers from each other.
 
-### What's an overlay network?
+### What’s an overlay network?
 
 Put simply, an overlay network is a virtual network that runs on top of another network. A virtual Private Network (VPN) is an overlay network. A SSH tunnel is an overlay network. A SOCKS proxy is an overlay network. A Virtual Private Cloud (VPC) is an overlay network.
 
 Nebula was designed to be extensible: You can use it to secure traffic between two sites
 
-### So, it's a VPN?
+### So, it’s a VPN?
 
 You can use Nebula to replace an existing VPN, but it has features not present in most other solutions:
 
