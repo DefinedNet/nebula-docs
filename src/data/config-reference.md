@@ -3,9 +3,11 @@ en:
   options:
     - name: pki
       required: true
-      description: "PKI defines the location of credentials for this node. Each of
-        these can also be inlined by using the yaml ”: |” syntax."
-      example: |-
+      description: >
+        Defines the path of each file required for a Nebula host: CA certificate,
+        host certificate, and host key. Each of these files can also be stored
+        inline as YAML multiline strings.
+      example: |
         pki:
           ca: /etc/nebula/ca.crt
           cert: /etc/nebula/host.crt
@@ -18,7 +20,16 @@ en:
           description: The ca is a collection of one or more certificate authorities this
             host should trust. In the above example, `/etc/nebula/ca.crt`
             contains PEM-encoded data for each CA we should trust, concatenated
-            into a single file.
+            into a single file. The following example shows a CA cert inlined
+            as a YAML multiline string.
+          example: |
+            pki:
+              ca: |
+                -----BEGIN NEBULA CERTIFICATE-----
+                CkgKFlRoZSBPbmUtSG91ciBOZWJ1bGEgQ0Eo/pL7jAYwjq/7jAY6IDIi7yqkRV9F
+                1+tozxvnHCmuuuwdArt7YbMMdCR4AYm/QAESQHBitbcetbJ06RQckqGi+hXJXd/U
+                TXKEul4TxP4Qxmd7g+cHDE6oYZhRwup+1xg/Sv9bMg2E2/LNXKV3rNf1Yw8=
+                -----END NEBULA CERTIFICATE-----
         - name: cert
           required: true
           description: >

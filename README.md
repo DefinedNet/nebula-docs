@@ -26,8 +26,28 @@ To add a non-English translation of the docs, open the CMS and add a new locale 
 
 ## Architecture
 
-This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of www.defined.net.  The other components, styles, and layout in `/src` are a close copy of what is used on the defined website, in order to allow running the development server in this repo and previewing documentation changes.  
+This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of [defined.net/nebula](https://www.defined.net/nebula/).
+
+The other components, styles, and layout in `/src` are very similar to what is published under `/nebula/` on the Defined Networking website. This repo contains a few additional files to make it easier for contributors to run a standalone Nebula Docs server and to preview rendered changes locally before submitting a pull request.
 
 ### Config Reference
 
 The configuration reference is constructed differently from the other pages.  It is composed of the `config.md` file which provides the top of the page, and `config-reference.md` which contains the actual configuration option documentation.  This separation was done to support internationalization.
+
+## Known Issues
+
+### Optimizing warning
+
+When viewing the localhost site for the first time, you may see the following displayed in your browser.
+
+> [vite] Something unexpected happened while optimizing "/en/overview"
+>
+> The current page should have reloaded by now
+
+Refresh your browser to work around this warning. The correctly rendered page will display after one or two refreshes.
+
+### Extended Unicode characters not rendering correctly
+
+Characters outside of the Basic Latin script do not render correctly. This should be resolved soon.
+
+e.g. _Latin Small Letter N with tilde_, ñ

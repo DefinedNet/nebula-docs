@@ -1,5 +1,5 @@
-import type {CmsConfig} from "netlify-cms-core";
-import {ALL_LOCALES} from '../../languages';
+import type { CmsConfig } from "netlify-cms-core";
+import { ALL_LOCALES } from '../../languages';
 
 export const config: CmsConfig = {
   load_config_file: false,
@@ -53,16 +53,18 @@ export const config: CmsConfig = {
               label_singular: "Option",
               widget: "list",
               fields: [
-                {name: "name", label: "Option name", widget: "string"},
-                {name: "required", label: "Required?", widget: "boolean", required: false},
-                {name: "description", label: "Description", widget: "markdown", i18n: true},
-                {name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false},
-                {name: "suboptions", label: "Sub-options", label_singular: "Sub-option", summary: "{{fields.name}}", widget: "list", fields: [
-                  {name: "name", label: "Option name", widget: "string"},
-                  {name: "required", label: "Required?", widget: "boolean", required: false},
-                  {name: "description", label: "Description", widget: "markdown", i18n: true},
-                  {name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false},
-                ]}
+                { name: "name", label: "Option name", widget: "string" },
+                { name: "required", label: "Required?", widget: "boolean", required: false },
+                { name: "description", label: "Description", widget: "markdown", i18n: true },
+                { name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false },
+                {
+                  name: "suboptions", label: "Sub-options", label_singular: "Sub-option", summary: "{{fields.name}}", widget: "list", fields: [
+                    { name: "name", label: "Option name", widget: "string" },
+                    { name: "required", label: "Required?", widget: "boolean", required: false },
+                    { name: "description", label: "Description", widget: "markdown", i18n: true },
+                    { name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false },
+                  ]
+                }
               ]
             }
           ],
@@ -87,10 +89,10 @@ export const config: CmsConfig = {
               label_singular: "Locale",
               widget: "list",
               fields: [
-                { 
-                  name: "language", 
-                  label: "Language", 
-                  widget: "string", 
+                {
+                  name: "language",
+                  label: "Language",
+                  widget: "string",
                   hint: "Native name of the language, endonym (e.g. Español)",
                 },
                 {
@@ -112,20 +114,39 @@ export const config: CmsConfig = {
           fields: [
             {
               name: "sidebar",
-              label: "Docs pages",
-              label_singular: "Docs page",
+              label: "Sections",
+              label_singular: "Section",
               widget: "list",
+              summary: "{{fields.rootPage}}",
               fields: [
                 {
-                  name: "page",
-                  label: "Page",
-                  widget: "relation",
-                  collection: "pages",
+                  name: "rootPage", 
+                  label: "Root page", 
+                  widget: "relation", 
+                  collection: "pages", 
                   search_fields: ["title"],
                   value_field: "{{slug}}",
                   display_fields: ["title"],
                 },
+                {
+                  name: "pages",
+                  label: "Docs pages",
+                  label_singular: "Docs page",
+                  widget: "list",
+                  fields: [
+                    {
+                      name: "page",
+                      label: "Page",
+                      widget: "relation",
+                      collection: "pages",
+                      search_fields: ["title"],
+                      value_field: "{{slug}}",
+                      display_fields: ["title"],
+                    },
+                  ],
+                },
               ],
+
             },
           ],
         }

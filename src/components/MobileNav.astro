@@ -1,7 +1,10 @@
 ---
 import {getPageLinks} from '../get-page-links'
 const allPages = Astro.fetchContent('../data/**/*.md');
-const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
+const currentPage = Astro.request.url.pathname.replace(/\/$/, '');
+const pages = getPageLinks({currentPage, allPages});
+
+const currentPageTitle = pages.find(p => p.href === currentPage)?.title
 ---
 
 <style lang="scss">
@@ -14,10 +17,29 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
   ul {
     list-style-type: none;
     padding-left: 0;
+
+    & li ul {
+      margin-left: 16px;
+    }
   }
 
   li:not(:last-child) {
     margin-bottom: 8px;
+  }
+
+  .docs-page-link {
+    font-family: var(--font-headings);
+    color: var(--theme-text-dim);
+    font-weight: 500;
+    line-height: 1.5;
+    font-size: 1.25rem;
+
+    &.is-active {
+      color: var(--theme-text);
+    }
+    &:hover {
+      color: var(--theme-text-dimmer);
+    }
   }
 
 </style>
@@ -32,25 +54,31 @@ const links = getPageLinks({currentPage: Astro.request.url.pathname, allPages});
   window.addEventListener('load', addToggler);
 </script>
 
-
 <div class="mb-32">
   <button 
     id="docs-toggle" 
-    class="btn btn-secondary btn-medium"
+    class="btn btn-select btn-medium"
     type="button"
     aria-controls="docs-nav" 
     aria-expanded="false" 
     aria-label="Toggle navigation"
   >
-    <span>Menu</span>
+    <span>{currentPageTitle || 'Menu'}</span>
+    <svg aria-hidden="true" width="10" height="6" viewBox="0 0 10 6" fill="#586474"><path d="M0.677774 0C0.0723255 0 -0.230399 0.739992 0.20687 1.17726L4.51228 5.48267C4.78137 5.75176 5.21863 5.75176 5.48772 5.48267L9.79313 1.17726C10.2304 0.739992 9.92767 0 9.32223 0H0.677774Z"></path></svg>
   </button>
   <nav class="collapse mt-16" id='docs-nav'>
     <ul>
-      {links.map(link => (
-        <li>
-          <a href={link.href} class='docs-page-link' >{link.title}</a>
-        </li>
-      ))}
+      {pages.map(page => (
+      <li>
+        <a 
+          class='docs-page-link'
+          href={page.href} 
+          aria-current={`${currentPage === page.href ? 'page' : 'false'}`} 
+        >
+          {page.title}
+        </a>
+      </li>
+    ))}
     </ul>
   </nav>
 </div>
