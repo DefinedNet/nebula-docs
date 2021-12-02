@@ -29,33 +29,29 @@ _The following IP addresses and subnets are used in this guide._
 
 This is the subnet that we want to be able to access remotely over our Nebula overlay.
 
-- `192.168.86.0/24` (192.168.86.1 → 192.168.86.254)
+- `192.168.86.0/24` (192.168.86.1–192.168.86.254)
 - The Linux host routing traffic from Nebula using `unsafe_routes` is connected to this network
 
 **Hosts on the Home network**
 
-| Home LAN Host IP | Hostname      | Overlay host name | Description                                    |
-| ---------------- | ------------- | ----------------- | ---------------------------------------------- |
-| `192.168.86.10`  | `raspi.lan`   | `home-raspi`      | Linux host running Nebula and routing traffic  |
-| `192.168.86.5`   | `printer.lan` | (none)            | Printer on Home network that cannot run Nebula |
-
----
+| LAN Host IP     | LAN Hostname  | Overlay Hostname | Description                                    |
+| --------------- | ------------- | ---------------- | ---------------------------------------------- |
+| `192.168.86.10` | `raspi.lan`   | `home-raspi`     | Linux host running Nebula and routing traffic  |
+| `192.168.86.5`  | `printer.lan` | (none)           | Printer on Home network that cannot run Nebula |
 
 ### Overlay network
 
 This is the overlay network that will be used by hosts running Nebula.
 
-- `192.168.100.0/24` (192.168.100.1 → 192.168.86.254)
+- `192.168.100.0/24` (192.168.100.1–192.168.86.254)
 - The macOS host in this example has Internet access but it not on the same, physical LAN as the Linux host.
 
 **Hosts on the Nebula overlay network**
 
-| Overlay Host IP  | Overlay host name | Description                                             |
-| ---------------- | ----------------- | ------------------------------------------------------- |
-| `192.168.100.10` | `home-raspi`      | Linux host on Home network                              |
-| `192.168.100.11` | `laptop-mac`      | Mac host that will access printer using `unsafe_routes` |
-
----
+| Overlay Host IP  | Overlay Hostname | Description                                             |
+| ---------------- | ---------------- | ------------------------------------------------------- |
+| `192.168.100.10` | `home-raspi`     | Linux host on Home network                              |
+| `192.168.100.11` | `laptop-mac`     | Mac host that will access printer using `unsafe_routes` |
 
 The following steps explain how to configure the Linux host (`home-raspi`, `192.168.100.10`) and macOS host (`laptop-mac`, `192.168.100.11`) so that the macOS host can access the home printer from anywhere.
 
