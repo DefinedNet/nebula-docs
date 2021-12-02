@@ -137,6 +137,20 @@ h6 {
   }
 }
 
+table,
+th,
+td {
+  border: 1px solid var(--theme-table-border);
+  border-collapse: collapse;
+  padding: 10px 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+th {
+  background-color: var(--theme-th-bg);
+}
+
 /* Scrollbar */
 
 /* Firefox */
@@ -172,7 +186,6 @@ body {
   display: none;
 }
 /* Scrollbar - End */
-
 
 /* Screenreader Only Text */
 .sr-only {

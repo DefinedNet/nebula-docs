@@ -88,6 +88,15 @@ p:last-child {
   margin-bottom: 0;
 }
 
+table {
+  line-height: 1.3;
+}
+
+th {
+  color: var(--theme-th-text);
+  font-weight: 600;
+}
+
 small,
 .text_small {
   font-size: 0.833rem;
