@@ -1,12 +1,12 @@
 ---
-title: Extend access to any host with unsafe_routes
+title: Extend access beyond overlay network hosts with unsafe_routes
 slug: unsafe_routes
-summary: This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific host, which is useful for accessing hosts that cannot be modified to run Nebula.
+summary: This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific overlay network host, which is useful for accessing hosts that cannot be modified to run Nebula.
 ---
 
-# Extend access to any host with unsafe_routes
+# Extend access beyond overlay network hosts with unsafe_routes
 
-This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific host.
+This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific overlay network host.
 
 This is especially useful for accessing hosts that cannot be modified to run Nebula, such as printers, physical access control systems, and other proprietary devices on which you cannot install arbitrary software.
 
@@ -19,11 +19,40 @@ You will need a working overlay network with at least one lighthouse and the fol
 1.  `nebula-cert` binary to sign host certificates
 1.  The ca.key and ca.crt files for the working overlay network
 1.  Root access to a Linux host on the network that will route traffic using `unsafe_routes`
-1.  Root access to a Linux, macOS, or Windows host on a different network than the Linux host that will route traffic.
+1.  Root access to a Linux, macOS, or Windows host on a different network than the Linux host that will route traffic.`
+
+This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
+
+You will also need to confirm that your CA is able to sign host certificates with the metadata required to route traffic using `unsafe_routes`. If you didn't specify `-subnets` when creating your CA you're good to go. To confirm, run the following from the directory containing your CA cert.
+
+```shell
+nebula-cert print -path ca.crt
+```
+
+If _Subnets_ is an empty set or if it contains the CIDR that you want to access, you are good to go.
+
+Here's an example of a CA generated without specifying any subnets.
+
+_Tip: Add a `-json` flag to the `nebula-cert print` command and pipe the output to `jq`._
+
+```json
+nebula-cert print -json -path ca.crt | jq .details
+{
+  "groups": [],
+  "ips": [],
+  "isCa": true,
+  "issuer": "",
+  "name": "BK Labs",
+  "notAfter": "2022-12-02T19:21:05-05:00",
+  "notBefore": "2021-12-02T19:21:05-05:00",
+  "publicKey": "50dd6fb1d2c02f17ddfeb017fe1bf16cf69d42ec28e8a2e02fde5ad2f944f136",
+  "subnets": []
+}
+```
 
 ## Example Network
 
-_The following IP addresses and subnets are used in this guide._
+The following IP addresses, hostnames, and subnets are used throughout this guide to illustate a valid configuration for our use case.
 
 ### Home network
 
@@ -31,8 +60,6 @@ This is the subnet that we want to be able to access remotely over our Nebula ov
 
 - `192.168.86.0/24` (192.168.86.1–192.168.86.254)
 - The Linux host routing traffic from Nebula using `unsafe_routes` is connected to this network
-
-**Hosts on the Home network**
 
 | LAN Host IP     | LAN Hostname  | Overlay Hostname | Description                                    |
 | --------------- | ------------- | ---------------- | ---------------------------------------------- |
@@ -46,31 +73,31 @@ This is the overlay network that will be used by hosts running Nebula.
 - `192.168.100.0/24` (192.168.100.1–192.168.86.254)
 - The macOS host in this example has Internet access but it not on the same, physical LAN as the Linux host.
 
-**Hosts on the Nebula overlay network**
-
 | Overlay Host IP  | Overlay Hostname | Description                                             |
 | ---------------- | ---------------- | ------------------------------------------------------- |
 | `192.168.100.10` | `home-raspi`     | Linux host on Home network                              |
 | `192.168.100.11` | `laptop-mac`     | Mac host that will access printer using `unsafe_routes` |
 
-The following steps explain how to configure the Linux host (`home-raspi`, `192.168.100.10`) and macOS host (`laptop-mac`, `192.168.100.11`) so that the macOS host can access the home printer from anywhere.
+## Steps to configure Nebula hosts to work with unsafe_routes
 
-## Step 1. Sign cert with subnets you want to route
+Using the example network and hosts referenced above, the following steps explain how to configure the macOS host (`laptop-mac`, `192.168.100.11`) to route traffic through the Linux host (`home-raspi`, `192.168.100.10`) in order to reach home printer from anywhere.
 
-..
-
-## Step 2. Enable ip forwarding on via host
+### Step 1. Sign cert with subnets you want to route
 
 ..
 
-## Step 3. Set up via host
+### Step 2. Enable ip forwarding on via host
 
 ..
 
-## Step 4. Edit config on other nodes to tell them where to route
+### Step 3. Set up via host
 
 ..
 
-# Notes and related guides
+### Step 4. Edit config on other nodes to tell them where to route
+
+..
+
+## Notes and related guides
 
 ..
