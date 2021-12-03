@@ -139,9 +139,55 @@ net.ipv4.ip_forward = 1
 
 Note: This change is only persistent until you reboot. To make it permanent, add a new line with `net.ipv4.ip_forward = 1` to the end of the `/etc/sysctl.conf` file.
 
-### Step 3. Set up via host
+### Step 3. Configure iptables on Linux host on home LAN
 
-..
+Now that IP forwarding is enabled, we need to add a few iptables rules so that our Linux host running Nebula will be able to act as a NAT and masquerade as the other Nebula nodes that are using `unsafe_routes` to connect through the Linux host to any host on the local LAN.
+
+Run the following commands to add the rules specific to our example networks.
+
+```shell
+sudo iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -d 192.168.86.0/24 -j MASQUERADE
+sudo iptables -I FORWARD 1 -s 192.168.100.0/24 -d 192.168.86.0/24 -j ACCEPT
+sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+```
+
+Once complete, you can confirm that the new rules are active by running the following.
+
+This first list shows the second and third rule.
+```shell
+sudo iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination
+ACCEPT     all  --  192.168.100.0/24     192.168.86.0/24
+ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+```
+
+And this command shows the first rule, specific to the NAT table.
+
+```shell
+sudo iptables -t nat -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  192.168.100.0/24     192.168.86.0/24
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+```
+You may see additional rules listed depending on your host and whether or not you've modified it.
+
+Note: These rules will only be persistent until you reboot the host. Depending on your distribution, you need to run additional commands to save these rules to disk and load them at boot.
 
 ### Step 4. Edit config on other nodes to tell them where to route
 
