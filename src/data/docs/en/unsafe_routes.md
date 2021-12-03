@@ -84,11 +84,38 @@ Using the example network and hosts referenced above, the following steps explai
 
 ### Step 1. Sign cert with subnets you want to route
 
-..
+From the same directory containing our CA cert (ca.crt) and key (ca.key), run the following command to sign a new cert for our Linux host that will be routing traffic to the home network.
 
-### Step 2. Enable ip forwarding on via host
+```shell
+nebula-cert sign -name 'home-raspi' -ip '192.168.100.10/24' -subnets '192.168.86.0/24'
+```
 
-..
+Inspect the new certificate to confirm that `subnets` is now correctly set to the Home LAN CIDR.
+
+```shell
+nebula-cert print -json -path home-raspi.crt | jq .details
+{
+  "groups": [],
+  "ips": [
+    "192.168.100.10/24"
+  ],
+  "isCa": false,
+  "issuer": "57903a07e52a8f5464636aeccb1942560324dcd1f6c4f0457d77b00372b5d9f2",
+  "name": "home-raspi",
+  "notAfter": "2022-12-02T19:21:04-05:00",
+  "notBefore": "2021-12-03T11:19:38-05:00",
+  "publicKey": "defd2478b4818659d21d862a7dc51a6630fce8fc1fafdec1026c6552f01c0655",
+  "subnets": [
+    "192.168.86.0/24"
+  ]
+}
+```
+
+Next, move the new host key and cert files over to the Linux host that will handle the routing.
+
+### Step 2. Enable ip forwarding on Linux host on home LAN
+
+
 
 ### Step 3. Set up via host
 
