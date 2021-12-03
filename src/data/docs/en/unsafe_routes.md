@@ -111,11 +111,33 @@ nebula-cert print -json -path home-raspi.crt | jq .details
 }
 ```
 
-Next, move the new host key and cert files over to the Linux host that will handle the routing.
+Next, copy the new host certificate and key over to the Linux host that will handle the routing.
 
-### Step 2. Enable ip forwarding on Linux host on home LAN
+```shell
+scp home-raspi.crt home-raspi.key raspi.lan:
+home-raspi.crt                 100%  320    12.9KB/s   00:00
+home-raspi.key                 100%  127     4.5KB/s   00:00
+```
 
+We'll get to the config file that will reference that host and key file shortly.
 
+### Step 2. Enable IP forwarding on Linux host on home LAN
+
+Linux hosts need a kernel parameter set in order to allow packet forwarding. This is not typically enabled by default as shown in the following read example.
+
+```shell
+sysctl net.ipv4.ip_forward
+net.ipv4.ip_forward = 0
+```
+
+Here's how you update that variable at runtime.
+
+```shell
+sudo sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+```
+
+Note: This change is only persistent until you reboot. To make it permanent, add a new line with `net.ipv4.ip_forward = 1` to the end of the `/etc/sysctl.conf` file.
 
 ### Step 3. Set up via host
 
