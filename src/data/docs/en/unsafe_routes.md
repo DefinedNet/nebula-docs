@@ -54,7 +54,7 @@ nebula-cert print -json -path ca.crt | jq .details
 
 The following IP addresses, hostnames, and subnets are used throughout this guide to illustate a valid configuration for our use case.
 
-### Home network
+### Home network (LAN)
 
 This is the subnet that we want to be able to access remotely over our Nebula overlay.
 
@@ -66,7 +66,7 @@ This is the subnet that we want to be able to access remotely over our Nebula ov
 | `192.168.86.10` | `raspi.lan`   | `home-raspi`     | Linux host running Nebula and routing traffic  |
 | `192.168.86.5`  | `printer.lan` | (none)           | Printer on Home network that cannot run Nebula |
 
-### Overlay network
+### Overlay network (Nebula)
 
 This is the overlay network that will be used by hosts running Nebula.
 
@@ -111,17 +111,61 @@ nebula-cert print -json -path home-raspi.crt | jq .details
 }
 ```
 
+### Step 2. Copy cert to Linux host (LAN)
+
 Next, copy the new host certificate and key over to the Linux host that will handle the routing.
 
 ```shell
-scp home-raspi.crt home-raspi.key raspi.lan:
-home-raspi.crt                 100%  320    12.9KB/s   00:00
-home-raspi.key                 100%  127     4.5KB/s   00:00
+scp home-raspi.crt home-raspi.key root@raspi.lan:/etc/nebula
 ```
 
-We'll get to the config file that will reference that host and key file shortly.
+After copying these files, login to this host and replace your existing key and cert with these files. This is commonly `/etc/nebula`. It's also a best practice to make sure that the key file is only readable by root. If you keep the same file paths as the old key and cert you won't need to make any changes to your Nebula config.yml file.
 
-### Step 2. Enable IP forwarding on Linux host on home LAN
+### Step 3. Configure Nebula firewall on Linux host (LAN)
+
+In addition to adding a CIDR to the `subnets` field of our new cert, you also need to add inbound firewall rules to the Linux host in this example for any port that you want to access _through this host._
+
+For example, if you want to access a printer on the LAN, you will need to add a rule to allow TCP port 631. Edit the Linux host's Nebula configuration file (commonly located at `/etc/nebula/config.yml`).
+
+```yaml
+firewall:
+  inbound:
+    - port: 631
+      host: any
+      proto: tcp
+```
+
+You may need to add additional ports depending on your printer. The easiest way to make sure you can fully access any host on your network is to add a rule to allow any port/protocol on this host. The entire `firewall` section should look like the following.
+
+```yaml
+firewall:
+  inbound:
+    - port: any
+      host: any
+      proto: any
+  outbound:
+    - host: any
+      port: any
+      proto: any
+```
+
+At this point we're finished configuring the Nebula-specific components on our Linux host. If Nebula is already running, go ahead and stop it. It's a good idea to start it again to validate that the configuration file, cert, and key are set up properly.
+
+```shell
+sudo nebula -config /etc/nebula/config.yml
+INFO[0000] Firewall rule added              firewallRule="map[caName: caSha: direction:outgoing endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
+INFO[0000] Firewall rule added              firewallRule="map[caName: caSha: direction:incoming endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
+INFO[0000] Firewall started                 firewallHash=21716b47a7a140e448077fe66c31b4b42f232e996818d7dd1c6c4991e066dbdb
+INFO[0000] Main HostMap created             network=192.168.100.10/24 preferredRanges="[]"
+INFO[0000] UDP hole punching enabled
+INFO[0000] Nebula interface is active       build=1.5.0 interface=nebula network=192.168.100.10/24 udpAddr="[::]:43068"
+```
+
+If you see a `Handshake message sent` to your lighthouse followed by a corresponding _recevied_ message after a similar set of lines shown above you are good to go.
+
+You can either leave Nebula running in the background or stop it while completing the next steps specific to this host.
+
+### Step 4. Enable IP forwarding on Linux host (LAN)
 
 Linux hosts need a kernel parameter set in order to allow packet forwarding. This is not typically enabled by default as shown in the following read example.
 
@@ -139,7 +183,7 @@ net.ipv4.ip_forward = 1
 
 Note: This change is only persistent until you reboot. To make it permanent, add a new line with `net.ipv4.ip_forward = 1` to the end of the `/etc/sysctl.conf` file.
 
-### Step 3. Configure iptables on Linux host on home LAN
+### Step 5. Configure iptables on Linux host (LAN)
 
 Now that IP forwarding is enabled, we need to add a few iptables rules so that our Linux host running Nebula will be able to act as a NAT and masquerade as the other Nebula nodes that are using `unsafe_routes` to connect through the Linux host to any host on the local LAN.
 
@@ -154,6 +198,7 @@ sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 Once complete, you can confirm that the new rules are active by running the following.
 
 This first list shows the second and third rule.
+
 ```shell
 sudo iptables -L
 Chain INPUT (policy ACCEPT)
@@ -185,13 +230,16 @@ MASQUERADE  all  --  192.168.100.0/24     192.168.86.0/24
 Chain OUTPUT (policy ACCEPT)
 target     prot opt source               destination
 ```
+
 You may see additional rules listed depending on your host and whether or not you've modified it.
 
 Note: These rules will only be persistent until you reboot the host. Depending on your distribution, you need to run additional commands to save these rules to disk and load them at boot.
 
-### Step 4. Edit config on other nodes to tell them where to route
+### Step 6. Edit Nebula config on the overlay hosts that need to access the home LAN
 
-..
+_We're almost there!_
+
+The final step in this process is to configure the overlay network hosts to use `unsafe_routes` and route traffic destined for our home LAN through the Linux host that we just configured.
 
 ## Notes and related guides
 
