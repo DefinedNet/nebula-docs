@@ -271,6 +271,8 @@ You should see a `WARN` line above indicating that we have an UNSAFE route being
 
 Ping working? Great! Go ahead and add that printer, map file shares, and VNC to any host on that LAN.
 
-## Notes and related guides
+Add the same `unsafe_routes` section to any other Nebula host that needs to access hosts on the Home LAN that aren't running Nebula.
 
-..
+## Tips
+
+When you are running Nebula with `unsafe_routes` the OS of the host will forward all traffic destined for the route specified to Nebula. Keep in mind that this could cause a local IP conflict if your underlay network happens to use the same subnet as the subnet specified in your `unsafe_routes` configuration.
