@@ -241,6 +241,36 @@ _We're almost there!_
 
 The final step in this process is to configure the overlay network hosts to use `unsafe_routes` and route traffic destined for our home LAN through the Linux host that we just configured.
 
+Keeping with the [example Overlay network](#overlay-network-nebula) in this guide, we will add the `unsafe_routes` details to the `tun` section of the Nebula config.yml file on `laptop-mac`.
+
+```yaml
+tun:
+  dev: utun10
+  drop_local_broadcast: true
+  drop_multicast: true
+  mtu: 1300
+  unsafe_routes:
+    - route: 192.168.86.0/24
+      via: 192.168.100.10
+```
+
+Run Nebula with the new configuration:
+
+```shell
+sudo nebula -config config.yml
+INFO[0000] Firewall rule added           firewallRule="map[caName: caSha: direction:outgoing endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
+INFO[0000] Firewall rule added           firewallRule="map[caName: caSha: direction:incoming endPort:0 groups:[] host:any ip: proto:1 startPort:0]"
+INFO[0000] Firewall started              firewallHash=570dd0546e17b139da845c05717d6dc2005fa7083292e1e8f797affab434c4f4
+WARN[0000] Adding UNSAFE Route           route=192.168.86.0/24 via=192.168.100.10
+INFO[0000] Main HostMap created          network=192.168.100.11/24 preferredRanges="[]"
+INFO[0000] UDP hole punching enabled
+INFO[0000] Nebula interface is active    build=1.5.0 interface=utun10 network=192.168.100.11/24 udpAddr="[::]:57027"
+```
+
+You should see a `WARN` line above indicating that we have an UNSAFE route being used. And now... you should be able to successfully ping any host on the `192.168.86.0/24` Home LAN.
+
+Ping working? Great! Go ahead and add that printer, map file shares, and VNC to any host on that LAN.
+
 ## Notes and related guides
 
 ..
