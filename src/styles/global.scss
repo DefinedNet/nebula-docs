@@ -147,6 +147,14 @@ td {
   margin-bottom: 20px;
 }
 
+table {
+  display: block;
+  max-width: fit-content;
+  overflow-x: auto;
+  padding: 0;
+  border: none;
+}
+
 th {
   background-color: var(--theme-th-bg);
 }
