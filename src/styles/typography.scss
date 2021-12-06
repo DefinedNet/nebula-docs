@@ -102,6 +102,12 @@ small,
   font-size: 0.833rem;
 }
 
+blockquote {
+  padding: 8px 48px;
+  border-left: 6px solid var(--theme-divider);
+  margin-bottom: 1.5rem;
+}
+
 a {
   color: var(--theme-accent-text);
   font-weight: 400;
