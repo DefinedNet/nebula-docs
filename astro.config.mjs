@@ -8,6 +8,9 @@
 
 // @ts-check
 export default /** @type {import('astro').AstroUserConfig} */ ({
+// uncomment to run the server on all local network interfaces,
+// which can be useful for previewing the site on mobile devices
+//  devOptions: { hostname: '0.0.0.0'},
   renderers: [
     // Enable the React renderer, for the Algolia search component
     '@astrojs/renderer-react',
