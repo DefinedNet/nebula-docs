@@ -275,4 +275,25 @@ Add the same `unsafe_routes` section to any other Nebula host that needs to acce
 
 ## Tips
 
+### Avoid IP conflicts with underlay networks
+
 When you are running Nebula with `unsafe_routes` the OS of the host will forward all traffic destined for the route specified to Nebula. Keep in mind that this could cause a local IP conflict if your underlay network happens to use the same subnet as the subnet specified in your `unsafe_routes` configuration.
+
+### Works with Mobile Nebula
+
+After you've successfully completed the steps above, you can also access your extended networks from a device running Mobile Nebula on [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) or [iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) by launching the app and configuring it as follows:
+
+1. Tap the site you'd like to configure
+1. Then tap _Configuration_ → _Advanced_ → _Unsafe routes_
+1. Tap _Add a new route_ and enter the same information you used in Step 6:
+   - Route: `192.168.86.0/24`
+   - Via: `192.168.100.10`
+1. Tap _Save_
+
+![Screenshot of editing an Unsafe Route in Mobile Nebula](/images/mobile_nebula-unsafe_routes.png)
+
+If already connected to the site, disconnect.
+
+Connect and try to access one of the hosts only accessible using `unsafe_routes`. You should see a new line in your Mobile Nebula logs.
+
+`level=warning msg="Adding UNSAFE Route" route=192.168.86.0/24 via=192.168.100.10`
