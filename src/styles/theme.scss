@@ -73,7 +73,7 @@ $colors: map-merge(
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: auto;
   --theme-accent: #{$purple};
   --theme-accent-text: #{lighten($purple, 30%)};
   --theme-accent-text-dim: #{lighten($purple, 20%)};
