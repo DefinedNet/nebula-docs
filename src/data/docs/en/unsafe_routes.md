@@ -1,12 +1,12 @@
 ---
-title: Extend access beyond overlay network hosts with unsafe_routes
+title: Extend network access beyond overlay hosts
 slug: unsafe_routes
 summary: This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific overlay network host, which is useful for accessing hosts that cannot be modified to run Nebula.
 ---
 
-# Extend access beyond overlay network hosts with unsafe_routes
+# Extend network access beyond overlay hosts
 
-This guide explains how to configure Nebula to route traffic destined for a specific subnet through a specific overlay network host.
+This guide explains how to configure Nebula to route traffic destined for a specific subnet _through_ a specific overlay network host using Nebula's `unsafe_routes` feature.
 
 This is especially useful for accessing hosts that cannot be modified to run Nebula, such as printers, physical access control systems, and other proprietary devices on which you cannot install arbitrary software.
 
