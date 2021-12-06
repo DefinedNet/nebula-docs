@@ -1,5 +1,6 @@
 ---
 import {getSections} from '../../get-page-links'
+import NavLink from '../Nav/NavLink.astro';
 
 const {currentPage} = Astro.props;
 const allPages = Astro.fetchContent('../../data/**/*.md');
@@ -10,7 +11,7 @@ const sections = getSections({currentPage, allPages})
 <nav aria-labelledby="grid-left">
   <ul class="nav-groups"> 
     {sections.map(section => (
-      <li class='nav-link section-header'>
+      <NavLink class="section-header">
         <a 
           href={section.root.href} 
           aria-current={`${currentPage === section.root.href ? 'page' : 'false'}`} 
@@ -21,15 +22,15 @@ const sections = getSections({currentPage, allPages})
           section.children && 
             <ul>
               {section.children.map(child => (
-                <li class="nav-link">
+                <NavLink>
                   <a href={child.href} aria-current={`${currentPage.replace(/\/$/, '') === child.href ? 'page' : 'false'}`}>
                     {child.title}
                   </a>
-                </li>
+                </NavLink>
               ))}
             </ul>
         }
-      </li>
+      </NavLink>
     ))}
   </ul>
 </nav>
@@ -52,23 +53,17 @@ const sections = getSections({currentPage, allPages})
   }
   .nav-groups {
     height: 100%;
-    padding: 2rem 0;
+    padding: 8px;
     overflow-x: visible;
     overflow-y: auto;
     max-height: 100vh;
+    // left-align with logo
+    margin-left: -24px;
   }
 
   .nav-groups > :last-child {
     padding-bottom: 2rem;
     margin-bottom: var(--theme-navbar-height);
-  }
-
-  .nav-link a {
-    font-size: 14px;
-    margin: 1px;
-    padding: 0.3rem 1rem;
-    color: inherit;
-    display: block;
   }
 
   .section-header > a {
@@ -77,22 +72,8 @@ const sections = getSections({currentPage, allPages})
     color: theme.$gray-200;
   }
 
-  .nav-link a[aria-current="page"],
   .section-header a[aria-current="page"] {
     color: var(--theme-accent-text);
-  }
-
-  .nav-link a:hover,
-  .nav-link a:focus {
-    color: white;
-  }
-
-  
-
-  @media (min-width: 992px) {
-    .nav-groups {
-      padding: 0;
-    }
   }
 
 </style>

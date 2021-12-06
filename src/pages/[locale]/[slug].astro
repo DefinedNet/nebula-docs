@@ -109,6 +109,16 @@ const {
 
 const isConfigRefPage = !redirect && page.canonicalSlug === 'config';
 
+if (isConfigRefPage) {
+  const [options] = Astro.fetchContent('../../data/config-reference.md');
+  // Default locale options, for use as fallback if localization is not available
+  const fallbackOptions = options[DEFAULT_LOCALE].options;
+  // config options for locale
+  const configOptions = options[locale] ? options[locale].options : fallbackOptions
+  const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
+  page.content.headers = optionHeaders;
+}
+
 ---
 
 {redirect 

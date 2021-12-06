@@ -1,0 +1,23 @@
+---
+import TOC from './TOC.astro';
+const {content} = Astro.props;
+const headers = content.content.headers;
+
+---
+<style>
+  .sidebar-nav {
+    width: 100%;
+    position: sticky;
+    top: 0;
+  }
+  .sidebar-nav-inner {
+    height: 100%;
+    padding: 0;
+    overflow: auto;
+  }
+</style>
+<nav class="sidebar-nav" aria-labelledby="grid-right">
+  <div class="sidebar-nav-inner">
+    {headers && <TOC headers={headers} />}
+  </div>
+</nav>

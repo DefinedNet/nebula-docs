@@ -38,6 +38,12 @@
   }
 }
 
+@media (min-width: 1400px) {
+  :root {
+    --max-width: 1370px;
+  }
+}
+
 body {
   display: flex;
   flex-direction: column;

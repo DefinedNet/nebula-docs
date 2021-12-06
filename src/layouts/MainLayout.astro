@@ -3,6 +3,7 @@ import HeadCommon from "../components/HeadCommon.astro";
 import Header from '../components/Header/Header.astro';
 import PageContent from '../components/PageContent/PageContent.astro';
 import LeftSidebar from '../components/LeftSidebar/LeftSidebar.astro';
+import RightSidebar from '../components/RightSidebar/RightSidebar.astro';
 import MobileNav from '../components/MobileNav.astro'
 import * as CONFIG from "../config";
 
@@ -57,11 +58,17 @@ const currentPage = Astro.request.url.pathname;
         top: 0;
         padding: 0;
       }
-      #grid-left {
+      #grid-left,
+      #grid-right {
+        height: calc(100vh - 200px);
         max-height: 100vh;
         position: sticky;
         top: 24px;
         display: none;
+        flex-direction: column;
+        // Account for focus rings
+        padding: 8px;
+        margin-left: -8px;
       }
       #grid-main {
         padding: var(--doc-padding) var(--gutter);
@@ -71,6 +78,7 @@ const currentPage = Astro.request.url.pathname;
         height: 100%;
         width: 100%;
       }
+
       @media (min-width: 992px) {
         #article {
           padding: var(--doc-padding) 0;
@@ -79,13 +87,7 @@ const currentPage = Astro.request.url.pathname;
           grid-template-columns: 18rem minmax(0, 1fr);
         }
         #grid-left {
-          display: block;
           display: flex;
-          flex-direction: column;
-          height: calc(100vh - 200px);
-          // Account for focus ring
-          padding: 8px;
-          margin-left: -8px;
         }
         .mobile-nav {
           display: none;
@@ -95,6 +97,16 @@ const currentPage = Astro.request.url.pathname;
       @media (min-width: 1200px) {
         #article {
           grid-template-columns: 22rem minmax(0, 1fr);
+        }
+      }
+
+      @media (min-width: 1300px) {
+        #article {
+          grid-template-columns: 18rem minmax(0, 1fr) 18rem;
+        }
+        #grid-right {
+          grid-column: 3;
+          display: flex;
         }
       }
     </style>
@@ -113,6 +125,9 @@ const currentPage = Astro.request.url.pathname;
         <PageContent id="grid-main" content={content}>
           <slot />
         </PageContent>
+        <div id="grid-right">
+          <RightSidebar content={content}/>
+        </div>
       </div>
     </main>
   </body>
