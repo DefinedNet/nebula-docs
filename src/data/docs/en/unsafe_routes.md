@@ -10,7 +10,7 @@ This guide explains how to configure Nebula to route traffic destined for a spec
 
 This is especially useful for accessing hosts that cannot be modified to run Nebula, such as printers, physical access control systems, and other proprietary devices on which you cannot install arbitrary software.
 
-![Network diagram showing connectivity between Nebula hosts using unsafe_routes feature](/images/network_diagram-unsafe_routes.png)
+![Network diagram showing connectivity between Nebula hosts using unsafe_routes feature](/images/docs/network_diagram-unsafe_routes.png)
 
 ## Prerequisites
 
@@ -295,7 +295,7 @@ After you've successfully completed the steps above, you can also access your ex
    - Via: `192.168.100.10`
 1. Tap _Save_
 
-![Screenshot of editing an Unsafe Route in Mobile Nebula](/images/mobile_nebula-unsafe_routes.png)
+![Screenshot of editing an Unsafe Route in Mobile Nebula](/images/docs/mobile_nebula-unsafe_routes.png)
 
 If already connected to the site, disconnect.
 
