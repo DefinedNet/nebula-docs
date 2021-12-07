@@ -10,18 +10,23 @@ This guide explains how to configure Nebula to route traffic destined for a spec
 
 This is especially useful for accessing hosts that cannot be modified to run Nebula, such as printers, physical access control systems, and other proprietary devices on which you cannot install arbitrary software.
 
+![Network diagram showing connectivity between Nebula hosts using unsafe_routes feature](/images/network_diagram-unsafe_routes.png)
+
 ## Prerequisites
 
 _Read the [Quick Start](quick-start) guide to learn how to create your first overlay network._
 
-You will need a working overlay network with at least one lighthouse and the following to complete this guide.
+You'll need the following to complete this guide.
 
+1.  A working overlay network with a lighthouse and at least two hosts:
+    - Linux host that will act as the router between the overlay network and local network
+    - Linux, macOS, or Windows host that wants to access the local network **via an overlay network connection to the "Linux router" host**
 1.  `nebula-cert` binary to sign host certificates
 1.  The ca.key and ca.crt files for the working overlay network
 1.  Root access to a Linux host on the network that will route traffic using `unsafe_routes`
-1.  Root access to a Linux, macOS, or Windows host on a different network than the Linux host that will route traffic.`
+1.  Root access to a Linux, macOS, or Windows host on a different network than the Linux host that will route traffic.
 
-This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
+> This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
 
 You will also need to confirm that your CA is able to sign host certificates with the metadata required to route traffic using `unsafe_routes`. If you didn't specify `-subnets` when creating your CA you're good to go. To confirm, run the following from the directory containing your CA cert.
 
@@ -78,7 +83,7 @@ This is the overlay network that will be used by hosts running Nebula.
 | `192.168.100.10` | `home-raspi`     | Linux host on Home network                              |
 | `192.168.100.11` | `laptop-mac`     | Mac host that will access printer using `unsafe_routes` |
 
-## Steps to configure Nebula hosts to work with unsafe_routes
+## Configuration Steps
 
 Using the example network and hosts referenced above, the following steps explain how to configure the macOS host (`laptop-mac`, `192.168.100.11`) to route traffic through the Linux host (`home-raspi`, `192.168.100.10`) in order to reach home printer from anywhere.
 
