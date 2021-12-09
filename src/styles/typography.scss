@@ -172,12 +172,3 @@ strong {
 .text-secondary {
   color: var(--theme-text-secondary);
 }
-
-@font-face {
-  font-family: "inter";
-  src: url("/webfonts/Inter-variable-english-minimal.woff2");
-  font-weight: 100 900;
-  font-style: oblique –90 90;
-  font-stretch: 50% 200%;
-  font-display: swap;
-}
