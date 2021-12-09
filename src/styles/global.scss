@@ -159,6 +159,10 @@ th {
   background-color: var(--theme-th-bg);
 }
 
+td {
+  white-space: nowrap;
+}
+
 /* Scrollbar */
 
 /* Firefox */
