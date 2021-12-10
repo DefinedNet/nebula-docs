@@ -55,6 +55,12 @@
   width: 100%;
 }
 
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .pad-12 {
   padding: 12px;
 }
