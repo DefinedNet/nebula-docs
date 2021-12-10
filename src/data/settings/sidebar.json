@@ -10,12 +10,6 @@
           "page": "quick-start"
         },
         {
-          "page": "run-as-service"
-        },
-        {
-          "page": "cli"
-        },
-        {
           "page": "unsafe_routes"
         }
       ]
