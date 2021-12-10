@@ -3,27 +3,37 @@ title: Overview
 slug: overview
 summary: Nebula is a scalable overlay networking tool with a focus on
   performance, simplicity and security. It enables you to seamlessly connect
-  computers **anywhere** in the world. Nebula is portable, and runs on Linux,
+  computers anywhere in the world. Nebula is portable, and runs on Linux,
   MacOS, Windows, iOS, and Android.
 ---
 
-# Introduction to Nebula
+# The Open Source Overlay Networking Tool
 
 ## What is Nebula?
 
-Nebula is a scalable overlay networking tool with a focus on performance, simplicity and security. It enables you to seamlessly connect computers **anywhere** in the world. Nebula is portable, and runs on Linux, MacOS, Windows, iOS, and Android.
+Nebula is a scalable overlay networking tool with a focus on performance, simplicity and security. It enables you to seamlessly connect computers anywhere in the world. Nebula is portable, and runs on Linux, MacOS, Windows, iOS, and Android.
 
-It can be used to connect a small number of computers, but was built to connect tens of thousands of computers. Nebula incorporates a number of existing concepts like encryption, security groups, certificates, and tunneling, and each of those individual pieces existed before Nebula in various forms.
+Nebula was open-sourced by Slack, and it continues to power their overlay network for over 50,000 production hosts. Check it out on GitHub. [slackhq/nebula](https://github.com/slackhq/nebula)
 
-What makes Nebula different to existing offerings is that it brings all of these ideas together, resulting in a sum that is greater than its individual parts.
+Nebula incorporates a number of existing concepts like encryption, security groups, certificates, and tunneling, and each of those individual pieces existed before Nebula in various forms. What makes Nebula different from existing offerings is that it brings all of these ideas together, resulting in a sum that is greater than its individual parts.
 
-Our primary goal when creating Nebula was to allow seamless connectivity between any set of computers, regardless of where they are in the world. When enabling such connectivity, it is very important that users have the tooling to separate those computers from each other.
+Our primary goal when creating Nebula was to allow seamless connectivity between any computer independent of location or network. When enabling such connectivity, it is very important that users have the tooling to logically separate those computers from each other.
+
+## Getting Started
+
+"[How to create your first overlay network](quick-start)" is a step-by-step walkthrough that explains how to deploy Nebula.
+
+Prefer video? [Watch](https://www.youtube.com/watch?v=qy2cgqglt3o) a 90-minute deep-dive on Nebula from the 2020 All Things Open conference.
+
+<div width="100%" height="0" style="padding-bottom: 56.25%; overflow: hidden; position: relative; margin-bottom: 16px;">
+  <iframe width="100%" height="100%" style="position: absolute;" src="https://www.youtube.com/embed/qy2cgqglt3o" title="All Things Open YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
 
 ### What’s an overlay network?
 
 Put simply, an overlay network is a virtual network that runs on top of another network. A virtual Private Network (VPN) is an overlay network. A SSH tunnel is an overlay network. A SOCKS proxy is an overlay network. A Virtual Private Cloud (VPC) is an overlay network.
 
-Nebula was designed to be extensible: You can use it to secure traffic between two sites
+Nebula was designed to be extensible: You can use it to secure traffic between two sites.
 
 ### So, it’s a VPN?
 
@@ -57,3 +67,19 @@ In its simplest form, a Nebula Certificate Authority (CA) consists of two files,
 ### Hosts
 
 A Nebula host is simply any single node in the network, e.g. a server, laptop, phone, tablet. The Certificate Authority is used to sign keys for each host added to a Nebula network. A host certificate contains the name, IP address, group membership, and a number of other details about a host. Individual hosts cannot modify their own certificate, because doing so will invalidate it. This allows us to trust that a host cannot impersonate another host within a Nebula network. Each host will have its own private key, which is used to validate the identity of that host when Nebula tunnels are created.
+
+## News & Press
+
+[Listen](https://techsnap.systems/419) a discussion Nebula on TechSNAP Episode 419.
+
+[Read](https://arstechnica.com/gadgets/2019/12/nebula-vpn-routes-between-hosts-privately-flexibly-and-efficiently/) "Nebula VPN routes between hosts privately, flexibly, and efficiently" at ArsTechnica
+
+## About Defined Networking
+
+Nebula was originally created at Slack Technologies, Inc. by Nate Brown and Ryan Huber, with contributions by a number of their colleagues. Slack open sourced Nebula in November 2019.
+
+[Slack Engineering blog post announcing Nebula](https://slack.engineering/introducing-nebula-the-open-source-global-overlay-network-from-slack/)
+
+In 2020, Nate and Ryan left Slack and founded Defined Networking together. Defined is focused on making Nebula useful to organizations of all sizes.
+
+As of early 2021, Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is publishing this official documentation with their support.
