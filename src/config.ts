@@ -1,5 +1,5 @@
 export const SITE = {
-  title: 'Nebula docs',
+  title: 'Nebula Project',
   description: 'Documentation for the nebula open source project.',
   defaultLanguage: 'en_US',
 };

@@ -10,6 +10,20 @@ summary: This section will walk you through setting up a simple nebula network
 
 # How to create your first overlay network
 
+## Components of a Nebula network
+
+### Lighthouse
+
+In Nebula, a lighthouse is a Nebula host that is responsible for keeping track of all of the other Nebula hosts, and helping them find each other within a Nebula network.
+
+### Certificate Authority
+
+In its simplest form, a Nebula Certificate Authority (CA) consists of two files, a CA certificate, and an associated private key. A CA certificate is distributed to, and trusted by, every host on the network. The CA private key should not be distributed, and can be kept offline when not being used to add hosts to a Nebula network.
+
+### Hosts
+
+A Nebula host is simply any single node in the network, e.g. a server, laptop, phone, tablet. The Certificate Authority is used to sign keys for each host added to a Nebula network. A host certificate contains the name, IP address, group membership, and a number of other details about a host. Individual hosts cannot modify their own certificate, because doing so will invalidate it. This allows us to trust that a host cannot impersonate another host within a Nebula network. Each host will have its own private key, which is used to validate the identity of that host when Nebula tunnels are created.
+
 ## Prerequisites
 
 This section will walk you through setting up a simple nebula network for testing. The examples will need to be modified to suit your particular environment.
@@ -46,7 +60,7 @@ tar -xzf nebula-linux-amd64.tar.gz
 
 ### Creating your first certificate authority
 
-Nebula uses certificate authorities to identify inividual hosts within a Nebula network. The very first step in creating your own Nebula network is to create a certificate authority for your organization. As you add new hosts to your Nebula network, your certificate authority is used to create credentials that prove a host should be trusted by your organization.
+Nebula uses certificate authorities to identify individual hosts within a Nebula network. The very first step in creating your own Nebula network is to create a certificate authority for your organization. As you add new hosts to your Nebula network, your certificate authority is used to create credentials that prove a host should be trusted by your organization.
 
 ```shell
 ./nebula-cert ca -name "Myorganization, Inc"
@@ -60,7 +74,7 @@ This will create files named `ca.key` and `ca.cert` in the current directory. Th
 
 Nebula lighthouses allow hosts to find each other, anywhere in the world. Lighthouses are the only hosts in a Nebula network whose IP addresses should not change. Running a lighthouse requires very few compute resources, and you can easily use the least expensive option from a cloud hosting provider. If you're not sure which provider to use, a number of us have used $5/mo [DigitalOcean](https://digitalocean.com) droplets as lighthouses.
 
-Once you have launched an instance, ensure that Nebula udp traffic (default port udp/4242) can reach it over the internet and is not blocked by any inbound firewall.
+Once you have launched an instance, ensure that Nebula UDP traffic (default port udp/4242) can reach it over the internet and is not blocked by any inbound firewall.
 
 ### Creating Keys and Certificates
 
