@@ -10,6 +10,20 @@ summary: This section will walk you through setting up a simple nebula network
 
 # How to create your first overlay network
 
+## Components of a Nebula network
+
+### Lighthouse
+
+In Nebula, a lighthouse is a Nebula host that is responsible for keeping track of all of the other Nebula hosts, and helping them find each other within a Nebula network.
+
+### Certificate Authority
+
+In its simplest form, a Nebula Certificate Authority (CA) consists of two files, a CA certificate, and an associated private key. A CA certificate is distributed to, and trusted by, every host on the network. The CA private key should not be distributed, and can be kept offline when not being used to add hosts to a Nebula network.
+
+### Hosts
+
+A Nebula host is simply any single node in the network, e.g. a server, laptop, phone, tablet. The Certificate Authority is used to sign keys for each host added to a Nebula network. A host certificate contains the name, IP address, group membership, and a number of other details about a host. Individual hosts cannot modify their own certificate, because doing so will invalidate it. This allows us to trust that a host cannot impersonate another host within a Nebula network. Each host will have its own private key, which is used to validate the identity of that host when Nebula tunnels are created.
+
 ## Prerequisites
 
 This section will walk you through setting up a simple nebula network for testing. The examples will need to be modified to suit your particular environment.
