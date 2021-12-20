@@ -10,7 +10,7 @@ summary: Nebula is an open-source overlay networking tool designed
 
 Nebula is an overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
 
-[Download Nebula on GitHub [slackhq/nebula]](https://github.com/slackhq/nebula)
+[Download Nebula on GitHub](https://github.com/slackhq/nebula)
 
 ## Core features
 
@@ -41,7 +41,9 @@ Nebula is written in Go and is designed for portability.
 
 ## Getting Started
 
-[How to create your first overlay network](/nebula/quick-start) is a step-by-step guide that explains how to deploy Nebula. It's a great place to get started and learn how to connect a few hosts.
+_How to create your first overlay network_ is a step-by-step guide that explains how to deploy Nebula. It's a great place to get started and learn how to connect a few hosts.
+
+[Nebula Quick Start guide](/nebula/quick-start)
 
 ### Overview presentation
 
