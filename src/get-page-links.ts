@@ -1,5 +1,6 @@
 import sidebarConfig from './data/settings/sidebar.json';
 import {getLanguageFromURL, getSlugFromFilename, getLanguageFromFilename, DEFAULT_LOCALE} from './languages';
+import {SITE} from './config';
 
 export function getSections({currentPage, allPages}) {
   const langCode = getLanguageFromURL(currentPage);
@@ -36,5 +37,5 @@ function buildPageObj(slug: string, langCode: string, allPages: any) {
     page = allPages.find(p => getSlugFromFilename(p.file.pathname) === slug && getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE);
   }
 
-  return {title: page.title, href: `/${langCode}/${page.slug}` }
+  return {title: page.title, href: `${SITE.root}/${langCode}/${page.slug}` }
 }

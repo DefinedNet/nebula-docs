@@ -1,8 +1,8 @@
 ---
-import Layout from '../../layouts/MainLayout.astro';
-import ConfigReference from '../../components/ConfigReference.astro';
-import Redirect from '../../components/Redirect.astro';
-import {getLanguageFromFilename, getSlugFromFilename, DEFAULT_LOCALE, KNOWN_LANGUAGE_CODES} from '../../languages';
+import Layout from '../../../layouts/MainLayout.astro';
+import ConfigReference from '../../../components/ConfigReference.astro';
+import Redirect from '../../../components/Redirect.astro';
+import {getLanguageFromFilename, getSlugFromFilename, DEFAULT_LOCALE, KNOWN_LANGUAGE_CODES} from '../../../languages';
 
 export async function getStaticPaths() {
   /**
@@ -68,7 +68,7 @@ export async function getStaticPaths() {
       .flat();
   }
 
-  const allPages = Astro.fetchContent('../../data/docs/**/*.md');
+  const allPages = Astro.fetchContent('../../../data/docs/**/*.md');
 
   const redirects = getRedirects(allPages);
   const fallbacks = getFallbacks(allPages);
