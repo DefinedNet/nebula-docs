@@ -36,6 +36,5 @@ function buildPageObj(slug: string, langCode: string, allPages: any) {
   if (!page) {
     page = allPages.find(p => getSlugFromFilename(p.file.pathname) === slug && getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE);
   }
-
-  return {title: page.title, href: `${SITE.root}/${langCode}/${page.slug}` }
+  return {title: page.title, href: `${SITE.root}/${langCode}/${page.slug}/` }
 }
