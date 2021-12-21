@@ -10,10 +10,10 @@ Here's where you'll find a list of how-to guides for Nebula. These guides provid
 
 ## Index
 
-[Quick Start](/nebula/quick-start)  
+[Quick Start](/nebula/quick-start/)  
 This guide explains the core components of Nebula and provides instructions for how to download, configure, and run an overlay network.
 
-[Extend network access beyond overlay hosts](/nebula/unsafe_routes)  
+[Extend network access beyond overlay hosts](/nebula/unsafe_routes/)  
 Interested in using Nebula to create a site-to-site VPN? This guide explains how to use Nebula's `unsafe_routes` feature to route traffic _through_ Nebula hosts and remotely connect to devices like printers.
 
 ## How to contribute
