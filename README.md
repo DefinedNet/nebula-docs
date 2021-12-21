@@ -2,7 +2,7 @@
 
 This is the documentation for the [nebula open source project](https://github.com/slackhq/nebula).
 
-Status: Currently work-in-progress and not yet published, but the content matches https://www.defined.net/nebula/.
+Status: Currently a work-in-progress. Content matches what is published at https://www.defined.net/nebula/.
 
 ## Commands Cheatsheet
 
@@ -23,18 +23,9 @@ If you prefer working in your editor, we suggest creating new files through the 
 
 To add a non-English translation of the docs, open the CMS and add a new locale in Settings -> Locales. After that is added, you'll be able to edit each Page and change the locale at the top of the right hand side ("Writing in EN").
 
-## URI formatting
-
-⚠️ Always use absolute paths and trailing slashes when linking to other pages in this repo.
-
-All internal page links should begin with `/nebula/`.
-
-    e.g. Check out the [Nebula Getting Started Guide](/nebula/quick-start/).
-         https://www.defined.net/nebula/quick-start/
-
 ## Architecture
 
-This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of [defined.net/nebula](https://www.defined.net/nebula/).
+This project is not published directly to the web, but the files in `/src/data` are pulled in to the build process of [www.defined.net/nebula/](https://www.defined.net/nebula/).
 
 The other components, styles, and layout in `/src` are very similar to what is published under `/nebula/` on the Defined Networking website. This repo contains a few additional files to make it easier for contributors to run a standalone Nebula Docs server and to preview rendered changes locally before submitting a pull request.
 
