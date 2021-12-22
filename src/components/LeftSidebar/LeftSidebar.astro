@@ -23,7 +23,7 @@ const sections = getSections({currentPage, allPages})
             <ul>
               {section.children.map(child => (
                 <NavLink>
-                  <a href={child.href} aria-current={`${currentPage.replace(/\/$/, '') === child.href ? 'page' : 'false'}`}>
+                  <a href={child.href} aria-current={`${currentPage === child.href ? 'page' : 'false'}`}>
                     {child.title}
                   </a>
                 </NavLink>
