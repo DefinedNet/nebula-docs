@@ -3,7 +3,7 @@ import { getLanguageFromURL, getLanguageFromFilename, getSlugFromFilename, KNOWN
 import SkipToContent from './SkipToContent.astro';
 import LanguageSelect from './LanguageSelect.tsx';
 
-const currentPath = Astro.request.url.pathname;
+const currentPath = Astro.request.canonicalURL.pathname;
 const lang = currentPath && getLanguageFromURL(currentPath);
 const {canonicalSlug} = Astro.props;
 ---

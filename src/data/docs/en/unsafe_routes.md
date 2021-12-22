@@ -14,7 +14,7 @@ This is especially useful for accessing hosts that cannot be modified to run Neb
 
 ## Prerequisites
 
-_Read the [Quick Start](/nebula/quick-start) guide to learn how to create your first overlay network._
+_Read the [Quick Start](/nebula/quick-start/) guide to learn how to create your first overlay network._
 
 You'll need the following to complete this guide.
 

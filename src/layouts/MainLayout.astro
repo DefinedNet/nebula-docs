@@ -8,7 +8,6 @@ import MobileNav from '../components/MobileNav.astro'
 import * as CONFIG from "../config";
 
 const { content = {} } = Astro.props;
-const currentPage = Astro.request.url.pathname;
 ---
 
 <html dir={content.dir ?? 'ltr'} lang={content.lang ?? 'en-us'} class="initial">
@@ -117,7 +116,7 @@ const currentPage = Astro.request.url.pathname;
     <main>
       <div id='article'>
         <aside id="grid-left" class="grid-sidebar" title="Site Navigation">
-          <LeftSidebar currentPage={currentPage} />
+          <LeftSidebar />
         </aside>
         <div class="mobile-nav">
           <MobileNav />
