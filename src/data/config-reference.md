@@ -146,7 +146,7 @@ en:
             reach the host to make queries.
 
 
-            See the [serve_dns](#serve_dns) docs for more information, or the [example Lighthouse config](#lighthouse) for syntax.
+            See the [serve_dns](#lighthouse-serve_dns) docs for more information, or the [example Lighthouse config](#lighthouse) for syntax.
         - name: interval
           description: interval specifies how often a nebula host should report itself to
             a lighthouse. By default, hosts report themselves to lighthouses
