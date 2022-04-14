@@ -5,7 +5,9 @@
 <html dir='ltr' lang='en-us'>
   <head>
     <title>Edit docs</title>
-    <script type="module" src={Astro.resolve('../scripts/cms/index')}></script>
+    <script type="module" hoist>
+      import "../scripts/cms/index.js";
+    </script>
   </head>
   <body>
     <div></div>
