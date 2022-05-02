@@ -2,8 +2,8 @@
 import {getSections} from '../../get-page-links'
 import NavLink from '../Nav/NavLink.astro';
 
-const currentPage = Astro.request.canonicalURL.pathname;
-const allPages = Astro.fetchContent('../../data/**/*.md');
+const currentPage = Astro.canonicalURL.pathname;
+const allPages = await Astro.glob('../../data/**/*.md');
 const sections = getSections({currentPage, allPages})
 
 ---
