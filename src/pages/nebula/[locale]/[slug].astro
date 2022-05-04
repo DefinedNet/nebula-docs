@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../layouts/MainLayout.astro';
 import ConfigReference from '../../../components/ConfigReference.astro';
+import {frontmatter as configRef} from '../../../data/config-reference.md'
 import Redirect from '../../../components/Redirect.astro';
 import {getLanguageFromFilename, getSlugFromFilename, DEFAULT_LOCALE, KNOWN_LANGUAGE_CODES} from '../../../languages';
 
@@ -11,9 +12,9 @@ export async function getStaticPaths() {
    */
   function getRedirects(allPages) {
     return allPages
-      .map(({ astro, url, file, ...page }) => {
-        const slug = getSlugFromFilename(file.pathname);
-        const locale = getLanguageFromFilename(file.pathname);
+      .map(({ file, frontmatter }) => {
+        const slug = getSlugFromFilename(file);
+        const locale = getLanguageFromFilename(file);
 
         return {
           params: {
@@ -22,7 +23,7 @@ export async function getStaticPaths() {
           },
           props: {
             locale,
-            redirect: `/${locale}/${page.slug}`,
+            redirect: `/${locale}/${frontmatter.slug}`,
             canonicalSlug: slug,
           }
         }
@@ -34,9 +35,9 @@ export async function getStaticPaths() {
   function getFallbacks(data) {
     return data
       // Loop over the English (default) locale files 
-      .filter(p => getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE)
-      .map(({ astro, url, file, ...page }) => {
-        const canonicalSlug = getSlugFromFilename(file.pathname);
+      .filter(p => getLanguageFromFilename(p.file) === DEFAULT_LOCALE)
+      .map(({ Content, file, frontmatter }) => {
+        const canonicalSlug = getSlugFromFilename(file);
         
         // Create any missing fallbacks
         return KNOWN_LANGUAGE_CODES
@@ -45,8 +46,8 @@ export async function getStaticPaths() {
             locale => locale !== DEFAULT_LOCALE
             // ...which do not already have a file for this slug in this locale
             && !data.find(d => 
-              getLanguageFromFilename(d.file.pathname) === locale 
-              && d.file.pathname.endsWith(`${canonicalSlug}.md`)
+              getLanguageFromFilename(d.file) === locale 
+              && d.file.endsWith(`${canonicalSlug}.md`)
             )
           )
           .map(locale => ({
@@ -57,9 +58,9 @@ export async function getStaticPaths() {
             props: {
               locale,
               page: {
-                ...page,
+                ...frontmatter,
                 canonicalSlug,
-                html: astro.html
+                Content
               }
             }
           }))
@@ -68,27 +69,27 @@ export async function getStaticPaths() {
       .flat();
   }
 
-  const allPages = Astro.fetchContent('../../../data/docs/**/*.md');
+  const allPages = await Astro.glob('../../../data/docs/**/*.md');
 
   const redirects = getRedirects(allPages);
   const fallbacks = getFallbacks(allPages);
 
-  const paths = allPages.map(({ astro, url, file, ...page }) => {
-    const locale = getLanguageFromFilename(file.pathname);
+  const paths = allPages.map(({ Content, file, frontmatter }) => {
+    const locale = getLanguageFromFilename(file);
     // This is the English version of the slug
-    const canonicalSlug = getSlugFromFilename(file.pathname);
+    const canonicalSlug = getSlugFromFilename(file);
     
     return {
       params: {
         locale: locale,
-        slug: page.slug
+        slug: frontmatter.slug
       },
       props: {
         locale,
         page: {
-          ...page,
+          ...frontmatter,
           canonicalSlug,
-          html: astro.html
+          Content
         }
       }
     }
@@ -110,13 +111,12 @@ const {
 const isConfigRefPage = !redirect && page.canonicalSlug === 'config';
 
 if (isConfigRefPage) {
-  const [options] = Astro.fetchContent('../../../data/config-reference.md');
   // Default locale options, for use as fallback if localization is not available
-  const fallbackOptions = options[DEFAULT_LOCALE].options;
+  const fallbackOptions = configRef[DEFAULT_LOCALE].options;
   // config options for locale
-  const configOptions = options[locale] ? options[locale].options : fallbackOptions
+  const configOptions = configRef[locale] ? configRef[locale].options : fallbackOptions
   const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
-  page.content.headers = optionHeaders;
+  page.headers = optionHeaders;
 }
 
 ---
@@ -124,7 +124,7 @@ if (isConfigRefPage) {
 {redirect 
   ? <Redirect target={redirect} />
   : <Layout content={page}>
-      {page.html}
+      <page.Content />
       {isConfigRefPage && <ConfigReference locale={locale}/>}
     </Layout>
 }

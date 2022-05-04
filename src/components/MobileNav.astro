@@ -1,7 +1,7 @@
 ---
 import {getPageLinks} from '../get-page-links'
-const allPages = Astro.fetchContent('../data/**/*.md');
-const currentPage = Astro.request.canonicalURL.pathname;
+const allPages = await Astro.glob('../data/**/*.md');
+const currentPage = Astro.canonicalURL.pathname;
 const pages = getPageLinks({currentPage, allPages});
 
 const currentPageTitle = pages.find(p => p.href === currentPage)?.title
@@ -44,7 +44,7 @@ const currentPageTitle = pages.find(p => p.href === currentPage)?.title
 
 </style>
 
-<script type="module" hoist>
+<script type="module">
   import {Toggler} from '/src/scripts/toggler.js';
 
   function addToggler() {

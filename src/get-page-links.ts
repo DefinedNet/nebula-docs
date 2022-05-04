@@ -30,11 +30,11 @@ export function getPageLinks({currentPage, allPages}) {
 function buildPageObj(slug: string, langCode: string, allPages: any) {
   // Find the right file and the right language
   let page = allPages.find(p => 
-    getSlugFromFilename(p.file.pathname) === slug && getLanguageFromFilename(p.file.pathname) === langCode
+    getSlugFromFilename(p.file) === slug && getLanguageFromFilename(p.file) === langCode
   );
   // If there wasn't a translated version, fall back to default.
   if (!page) {
-    page = allPages.find(p => getSlugFromFilename(p.file.pathname) === slug && getLanguageFromFilename(p.file.pathname) === DEFAULT_LOCALE);
+    page = allPages.find(p => getSlugFromFilename(p.file) === slug && getLanguageFromFilename(p.file) === DEFAULT_LOCALE);
   }
-  return {title: page.title, href: `${SITE.root}/${langCode}/${page.slug}/` }
+  return {title: page.frontmatter.title, href: `${SITE.root}/${langCode}/${page.frontmatter.slug}/` }
 }

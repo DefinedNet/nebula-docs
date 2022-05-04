@@ -2,23 +2,24 @@
 import Layout from '../../layouts/MainLayout.astro';
 import ConfigReference from '../../components/ConfigReference.astro';
 import {DEFAULT_LOCALE} from '../../languages';
+import {frontmatter as configRef} from '../../data/config-reference.md';
 
 /**
  * This file is used for urls without a locale, which means they are for the default language.
  */
 
 export async function getStaticPaths() {
-  const allPages = Astro.fetchContent('../../data/docs/en/**/*.md');
+  const allPages = await Astro.glob('../../data/docs/en/**/*.md');
 
-  const paths = allPages.map(({ astro, url, file, ...page }) => {
+  const paths = allPages.map(({ Content, frontmatter }) => {
     return {
       params: {
-        slug: page.slug
+        slug: frontmatter.slug
       },
       props: {
         page: {
-          ...page,
-          html: astro.html
+          ...frontmatter,
+          Content,
         }
       }
     }
@@ -36,14 +37,13 @@ const {
 const isConfigRefPage = page.slug === 'config';
 
 if (isConfigRefPage) {
-  const [options] = Astro.fetchContent('../../data/config-reference.md');
-  const configOptions = options[DEFAULT_LOCALE].options;
+  const configOptions = configRef[DEFAULT_LOCALE].options;
   const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
-  page.content.headers = optionHeaders;
+  page.headers = optionHeaders;
 }
 ---
 
 <Layout content={page}>
-    {page.html}
+    <page.Content />
     {isConfigRefPage && <ConfigReference locale={DEFAULT_LOCALE}/>}
 </Layout>
