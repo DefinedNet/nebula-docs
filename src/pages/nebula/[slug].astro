@@ -11,7 +11,7 @@ import {frontmatter as configRef} from '../../data/config-reference.md';
 export async function getStaticPaths() {
   const allPages = await Astro.glob('../../data/docs/en/**/*.md');
 
-  const paths = allPages.map(({ Content, frontmatter }) => {
+  const paths = allPages.map(({ frontmatter, ...page }) => {
     return {
       params: {
         slug: frontmatter.slug
@@ -19,7 +19,7 @@ export async function getStaticPaths() {
       props: {
         page: {
           ...frontmatter,
-          Content,
+          ...page,
         }
       }
     }
@@ -34,16 +34,20 @@ const {
   page, 
 } = Astro.props
 
+let headers;
+
 const isConfigRefPage = page.slug === 'config';
 
 if (isConfigRefPage) {
   const configOptions = configRef[DEFAULT_LOCALE].options;
   const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
-  page.headers = optionHeaders;
+  headers = optionHeaders;
+} else {
+  headers = await page.getHeaders();
 }
 ---
 
-<Layout content={page}>
+<Layout content={page} headers={headers}>
     <page.Content />
     {isConfigRefPage && <ConfigReference locale={DEFAULT_LOCALE}/>}
 </Layout>

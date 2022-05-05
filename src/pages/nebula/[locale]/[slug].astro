@@ -36,8 +36,8 @@ export async function getStaticPaths() {
     return data
       // Loop over the English (default) locale files 
       .filter(p => getLanguageFromFilename(p.file) === DEFAULT_LOCALE)
-      .map(({ Content, file, frontmatter }) => {
-        const canonicalSlug = getSlugFromFilename(file);
+      .map(({ frontmatter, ...page }) => {
+        const canonicalSlug = getSlugFromFilename(page.file);
         
         // Create any missing fallbacks
         return KNOWN_LANGUAGE_CODES
@@ -60,7 +60,7 @@ export async function getStaticPaths() {
               page: {
                 ...frontmatter,
                 canonicalSlug,
-                Content
+                ...page,
               }
             }
           }))
@@ -74,10 +74,10 @@ export async function getStaticPaths() {
   const redirects = getRedirects(allPages);
   const fallbacks = getFallbacks(allPages);
 
-  const paths = allPages.map(({ Content, file, frontmatter }) => {
-    const locale = getLanguageFromFilename(file);
+  const paths = allPages.map(({ frontmatter, ...page }) => {
+    const locale = getLanguageFromFilename(page.file);
     // This is the English version of the slug
-    const canonicalSlug = getSlugFromFilename(file);
+    const canonicalSlug = getSlugFromFilename(page.file);
     
     return {
       params: {
@@ -89,7 +89,7 @@ export async function getStaticPaths() {
         page: {
           ...frontmatter,
           canonicalSlug,
-          Content
+          ...page,
         }
       }
     }
@@ -108,6 +108,8 @@ const {
   locale,
 } = Astro.props
 
+let headers;
+
 const isConfigRefPage = !redirect && page.canonicalSlug === 'config';
 
 if (isConfigRefPage) {
@@ -116,14 +118,16 @@ if (isConfigRefPage) {
   // config options for locale
   const configOptions = configRef[locale] ? configRef[locale].options : fallbackOptions
   const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
-  page.headers = optionHeaders;
+  headers = optionHeaders;
+} else {
+  headers = await page.getHeaders();
 }
 
 ---
 
 {redirect 
   ? <Redirect target={redirect} />
-  : <Layout content={page}>
+  : <Layout content={page} headers={headers}>
       <page.Content />
       {isConfigRefPage && <ConfigReference locale={locale}/>}
     </Layout>

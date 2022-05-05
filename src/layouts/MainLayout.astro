@@ -7,7 +7,7 @@ import RightSidebar from '../components/RightSidebar/RightSidebar.astro';
 import MobileNav from '../components/MobileNav.astro'
 import * as CONFIG from "../config";
 
-const { content = {} } = Astro.props;
+const { content, headers } = Astro.props;
 ---
 
 <html dir={content.dir ?? 'ltr'} lang={content.lang ?? 'en-us'} class="initial">
@@ -125,7 +125,7 @@ const { content = {} } = Astro.props;
           <slot />
         </PageContent>
         <div id="grid-right">
-          <RightSidebar content={content}/>
+          <RightSidebar content={content} headers={headers} />
         </div>
       </div>
     </main>

@@ -4,11 +4,6 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
   integrations: [react()],
   markdown: {
-    render: [
-      "@astrojs/markdown-remark",
-      {
-        syntaxHighlight: "prism",
-      },
-    ],
+    syntaxHighlight: "prism",
   },
 });
