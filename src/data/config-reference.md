@@ -3,6 +3,7 @@ en:
   options:
     - name: pki
       required: true
+      reloadable: true
       description: >
         Defines the path of each file required for a Nebula host: CA certificate,
         host certificate, and host key. Each of these files can also be stored
@@ -17,6 +18,7 @@ en:
       suboptions:
         - name: ca
           required: true
+          reloadable: true
           description: The ca is a collection of one or more certificate authorities this
             host should trust. In the above example, `/etc/nebula/ca.crt`
             contains PEM-encoded data for each CA we should trust, concatenated
@@ -32,6 +34,7 @@ en:
                 -----END NEBULA CERTIFICATE-----
         - name: cert
           required: true
+          reloadable: true
           description: >
             The cert is a certificate unique to every host on a Nebula network.
             The certificate identifies a host's IP address, name, and group
@@ -40,11 +43,13 @@ en:
             whether to trust a particular host certificate.
         - name: key
           required: true
+          reloadable: true
           description: The key is a private key unique to every host on a Nebula network.
             It is used in conjunction with the host certificate to prove a
             host's identity to other members of the Nebula network. The private
             key should never be shared with other hosts.
         - name: blocklist
+          reloadable: true 
           description: The blocklist contains a list of individual host certificates to
             ignore. In the case a host's credentials are stolen or compromised,
             this allows us to block connectivity from a host, even if it is
@@ -215,16 +220,19 @@ en:
           delay: 1s
       suboptions:
         - name: punch
+          default: false 
           description: >
             punch enables its functionality, which causes the node to send small
             packets at the regular interval.
-        - description: respond means that a node unable to receive handshakes will attempt
+        - name: respond
+          default: false
+          description: respond means that a node unable to receive handshakes will attempt
             to initiate a handshake to the host attempting to establish a
             tunnel, which can be the case when hole punching fails in one
             direction. This can be extremely useful if one node is behind a
             difficult nat, such as a symmetric NAT.
-          name: respond
         - name: delay
+          default: 1s
           description: delay slows down punch responses, which can be helpful for
             misbehaving NATs or conditions where a NAT router's conntrack map is
             unable to handle a race, default is 1 second, respond must be true
