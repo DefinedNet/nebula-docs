@@ -351,6 +351,7 @@ en:
           #timestamp_format: "2006-01-02T15:04:05.000Z07:00"
       suboptions: []
     - name: firewall
+      reloadable: true 
       description: >-
         The default state of the Nebula interface host firewall is _deny all_
         for all inbound and outbound traffic. Firewall rules can be added to
@@ -439,7 +440,17 @@ en:
                 - laptop
                 - home
       suboptions:
+        - name: conntrack
+          reloadable: true 
+          description: Settings for the Connection Tracker. Currently `max_connections` is ignored in the config.
+          example: |-
+            conntrack:
+              tcp_timeout: 12m
+              udp_timeout: 3m
+              default_timeout: 10m
+              max_connections: 100000
         - name: outbound
+          reloadable: true 
           description: It is quite common to allow any _outbound_ traffic to flow from a
             host. This simply means that the host can use any port or protocol
             to _attempt_ to connect to any other host in the overlay network.
@@ -451,6 +462,7 @@ en:
                 proto: any
                 host: any
         - name: inbound
+          reloadable: true 
           description: At a minimum, it is recommended to enable ICMP so that `ping` can
             be used to verify connectivity. Additionally, if enabling the
             built-in Nebula SSH server, you may wish to grant access over the
