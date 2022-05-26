@@ -258,6 +258,8 @@ en:
                 - "[ssh public key string]"
       suboptions:
         - name: enabled
+          reloadable: true
+          default: false 
           description: |
             enabled toggles this feature globally
         - name: listen
