@@ -3,7 +3,6 @@ en:
   options:
     - name: pki
       required: true
-      reloadable: true
       description: >
         Defines the path of each file required for a Nebula host: CA certificate,
         host certificate, and host key. Each of these files can also be stored
@@ -54,6 +53,9 @@ en:
             ignore. In the case a host's credentials are stolen or compromised,
             this allows us to block connectivity from a host, even if it is
             signed by a certificate authority we trust.
+        - name: disconnect_invalid
+          default: false
+          description: disconnect_invalid is a toggle to force a client to be disconnected if the certificate is expired or invalid.
     - name: static_host_map
       description: >-
         The static host map defines a set of hosts with fixed IP addresses on
