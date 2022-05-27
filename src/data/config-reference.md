@@ -156,6 +156,8 @@ en:
 
             See the [serve_dns](#lighthouse-serve_dns) docs for more information, or the [example Lighthouse config](#lighthouse) for syntax.
         - name: interval
+          reloadable: true
+          default: 10 
           description: interval specifies how often a nebula host should report itself to
             a lighthouse. By default, hosts report themselves to lighthouses
             once every 60 seconds. Use caution when changing this interval, as
@@ -166,6 +168,9 @@ en:
 
 
             hosts is a list of lighthouse hosts this node should report to and query from. The lighthouses listed here should be referenced by their **nebula IP**, not by the IPs of their physical network interfaces.
+          example: |-
+            hosts:
+              - "192.168.100.1"
         - name: remote_allow_list
           description: remote_allow_list allows you to control ip ranges that this node
             will consider when handshaking to another node. By default, any
@@ -174,6 +179,15 @@ en:
             each remote. If all rules are "allow", the default will be "deny",
             and vice-versa. If both "allow" and "deny" rules are present, then
             you MUST set a rule for "0.0.0.0/0" as the default.
+          example: |-
+            remote_allow_list:
+              # Example to block IPs from this subnet from being used for remote IPs.
+              "172.16.0.0/12": false
+
+              # A more complicated example, allow public IPs but only private IPs from a specific subnet
+              "0.0.0.0/0": true
+              "10.0.0.0/8": false
+              "10.42.42.0/24": true
         - name: local_allow_list
           description: local_allow_list allows you to filter which local IP addresses we
             advertise to the lighthouses. This uses the same logic as
@@ -183,6 +197,14 @@ en:
             must be either true or false (and the default will be the inverse).
             CIDR rules are matched after interface name rules. Default is all
             local IP addresses.
+          example: |-
+            local_allow_list:
+              # Example to block tun0 and all docker interfaces.
+              interfaces:
+                tun0: false
+                'docker.*': false
+              # Example to only advertise this subnet to the lighthouse.
+                "10.0.0.0/8": true
     - name: listen
       description: listen sets the UDP port Nebula will use for sending/receiving
         traffic and for handshakes. The default here is 4242. For a lighthouse
