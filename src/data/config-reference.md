@@ -204,8 +204,8 @@ en:
         - name: port
           default: 0
           description: >
-            port is the UDP port nebula should use on a host. setting this to 0
-            will dynamically assign a port number.
+            port is the UDP port nebula should use on a host. setting this to `0`
+            will dynamically assign a port number. This must be set on a lighthouse, conventionally to `4242`
         - name: batch
           default: 64
           description: >
