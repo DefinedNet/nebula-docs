@@ -307,15 +307,19 @@ en:
               via: 192.168.100.99
               mtu: 1300 #mtu will default to tun mtu if this option is not sepcified
       suboptions:
-        - description: >
+        - name: disabled
+          default: false
+          reloadable: true 
+          description: >
             Allows the nebula interface (tun) to be disabled, which lets you run
             a lighthouse without a nebula interface (and therefore without
             root). You will not be able to communiate over IP with a nebula node
             that uses this setting.
-          name: disabled
         - name: dev
           description: |
-            dev sets the interface name for your nebula interface.
+            Name of the device. If not set, a default will be chosen by the OS.
+            For macOS: Not required. If set, must be in the form `utun[0-9]+`.
+            For FreeBSD: Required to be set, must be in the form `tun[0-9]+`.
         - name: drop_local_broadcast
           description: >
             Toggles forwarding of local broadcast packets, the address of which
@@ -324,24 +328,40 @@ en:
           description: |
             Toggles forwarding of multicast packets
         - name: tx_queue
+          default: 500
+          reloadable: true
           description: >
             Sets the transmit queue length, if you notice lots of transmit drops
             on the tun it may help to raise this number. Default is 500.
         - name: mtu
+          default: 1300
+          reloadable: true
           description: >
             Default MTU for every packet, safe setting is (and the default) 1300
             for internet routed packets.
         - name: routes
+          reloadable: true 
           description: >
             Route based MTU overrides, you have known vpn ip paths that can
             support larger MTUs you can increase/decrease them here
+          example: |-
+            routes:
+              - mtu: 8800
+                route: 10.0.0.0/16
         - name: unsafe_routes
+          reloadable: true
           description: >-
             ***IMPORTANT NOTE: The nebula certificate of the "via" node *MUST*
             have the "route" defined as a subnet in its certificate***
 
 
             Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you have hosts/services that cannot run nebula.
+          example: |-
+            unsafe_routes:
+              - route: 172.16.1.0/24
+                via: 192.168.100.99
+                mtu: 1300
+                metric: 100
       description: " "
     - name: logging
       description: " "
