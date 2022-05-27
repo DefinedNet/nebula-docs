@@ -57,6 +57,7 @@ en:
           default: false
           description: disconnect_invalid is a toggle to force a client to be disconnected if the certificate is expired or invalid.
     - name: static_host_map
+      reloadable: true
       description: >-
         The static host map defines a set of hosts with fixed IP addresses on
         the internet (or any network).
