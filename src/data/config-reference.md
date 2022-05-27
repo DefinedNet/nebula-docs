@@ -195,15 +195,24 @@ en:
           read_buffer: 10485760
           write_buffer: 10485760
       suboptions:
-        - description: >
+        - name: host
+          default: 0.0.0.0 
+          description: >
             host is the ip of the interface to use when binding the listener.
             the default is 0.0.0.0, which is what most people should use.
-          name: host
+            To listen on both any ipv4 and ipv6 use `[::]`
         - name: port
+          default: 0
           description: >
             port is the UDP port nebula should use on a host. setting this to 0
             will dynamically assign a port number.
-        - name: batch, read_buffer, write_buffer
+        - name: batch
+          default: 64
+          description: >
+            Sets the max number of packets to pull from the kernel for each syscall (under systems that support recvmmsg)
+            default is 64, does not support reload 
+        - name: read_buffer, write_buffer
+          default: uses system defaults 
           description: Configure socket buffers for the udp side (outside), leave unset to
             use the system defaults. Values will be doubled by the kernel.
             Default is `net.core.rmem_default` and `net.core.wmem_default`
