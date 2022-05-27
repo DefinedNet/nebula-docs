@@ -100,10 +100,13 @@ en:
             "10.0.0.0/8": true
       suboptions:
         - name: am_lighthouse
+          default: false 
           description: am_lighthouse is used to enable lighthouse functionality for a
             node. This should ONLY be `true` on nodes you have configured to be
             lighthouses in your network
         - name: serve_dns
+          default: false
+          reloadable: true
           description: >-
             serve_dns optionally starts a DNS listener that responds to `A` and
             `TXT` queries and can even be delegated to for name resolution by
@@ -146,6 +149,7 @@ en:
 
             _NOTE: To allow hosts to make queries against the DNS server over the Nebula network, don't forget to allow access in the [firewall](#firewall)._
         - name: dns
+          reloadable: true 
           description: >-
             dns is used to configure the address (`host`) and port (`port`) the
             DNS server should listen on. By listening on the host's Nebula IP,
@@ -153,8 +157,14 @@ en:
             Alternatively, listening on `0.0.0.0` will allow anyone that can
             reach the host to make queries.
 
+            The default value for `lighthouse.dns.port` is `53` but you must set an ip address.
 
             See the [serve_dns](#lighthouse-serve_dns) docs for more information, or the [example Lighthouse config](#lighthouse) for syntax.
+          example: |-
+            dns:
+            # The DNS host defines the IP to bind the dns listener to. This also allows binding to the nebula node IP.
+              host: 0.0.0.0
+              port: 53
         - name: interval
           reloadable: true
           default: 10 
@@ -163,6 +173,7 @@ en:
             once every 60 seconds. Use caution when changing this interval, as
             it may affect host discovery times in a large nebula network.
         - name: hosts
+          reloadable: true
           description: >-
             **IMPORTANT: THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES**
 
@@ -172,6 +183,7 @@ en:
             hosts:
               - "192.168.100.1"
         - name: remote_allow_list
+          reloadable: true
           description: remote_allow_list allows you to control ip ranges that this node
             will consider when handshaking to another node. By default, any
             remote IPs are allowed. You can provide CIDRs here with `true` to
@@ -189,6 +201,7 @@ en:
               "10.0.0.0/8": false
               "10.42.42.0/24": true
         - name: local_allow_list
+          reloadable: true
           description: local_allow_list allows you to filter which local IP addresses we
             advertise to the lighthouses. This uses the same logic as
             `remote_allow_list`, but additionally, you can specify an
@@ -245,6 +258,7 @@ en:
             having to raise the system wide max, `net.core.rmem_max` and
             `net.core.wmem_max`
     - name: punchy
+      reloadable: true
       description: punchy configures the sending of inbound/outbound packets at a
         regular interval to avoid expiration of firewall nat mappings.
       example: |-
@@ -254,12 +268,14 @@ en:
           delay: 1s
       suboptions:
         - name: punch
-          default: false 
+          default: false
+          reloadable: true
           description: >
             punch enables its functionality, which causes the node to send small
             packets at the regular interval.
         - name: respond
           default: false
+          reloadable: true
           description: respond means that a node unable to receive handshakes will attempt
             to initiate a handshake to the host attempting to establish a
             tunnel, which can be the case when hole punching fails in one
@@ -267,10 +283,11 @@ en:
             difficult nat, such as a symmetric NAT.
         - name: delay
           default: 1s
+          reloadable: true
           description: delay slows down punch responses, which can be helpful for
             misbehaving NATs or conditions where a NAT router's conntrack map is
             unable to handle a race, default is 1 second, respond must be true
-            to take effect.
+            to take effect. Changing this value while running will not affect any in progress operations, only new ones.
     - name: cipher
       description: >-
         **IMPORTANT: this value must be identical on ALL NODES/LIGHTHOUSES. We
