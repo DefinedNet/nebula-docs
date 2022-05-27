@@ -351,7 +351,31 @@ en:
           format: text
           #disable_timestamp: true
           #timestamp_format: "2006-01-02T15:04:05.000Z07:00"
-      suboptions: []
+      suboptions:
+        - name: level
+          reloadable: true
+          default: info
+          description: options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
+        - name: format
+          reloadable: true
+          default: text
+          description: options are `json` or `text`
+        - name: disable_timestamp
+          reloadable: true
+          default: false
+          description: Disable timestamp logging. useful when output is redirected to logging system that already adds timestamps.
+        - name: timestamp_format
+          reloadable: true
+          example: |-
+            # timestamp format is specified in Go time format, see:
+            #     https://golang.org/pkg/time/#pkg-constants
+            # default when `format: json`: "2006-01-02T15:04:05Z07:00" (RFC3339)
+            # default when `format: text`:
+            #     when TTY attached: seconds since beginning of execution
+            #     otherwise: "2006-01-02T15:04:05Z07:00" (RFC3339)
+            # As an example, to log as RFC3339 with millisecond precision:
+            timestamp_format: "2006-01-02T15:04:05.000Z07:00"
+          
     - name: firewall
       reloadable: true 
       description: >-
@@ -444,13 +468,12 @@ en:
       suboptions:
         - name: conntrack
           reloadable: true 
-          description: Settings for the Connection Tracker. Currently `max_connections` is ignored in the config.
+          description: Settings for the Connection Tracker.
           example: |-
             conntrack:
               tcp_timeout: 12m
               udp_timeout: 3m
               default_timeout: 10m
-              max_connections: 100000
         - name: outbound
           reloadable: true 
           description: It is quite common to allow any _outbound_ traffic to flow from a
