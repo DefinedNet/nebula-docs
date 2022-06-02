@@ -20,6 +20,8 @@ const configOptions = options[locale] ? options[locale].options : fallbackOption
     <div>
       <ConfigOption
         isRequired={option.required}
+        isReloadable={option.reloadable}
+        defaultValue={option.default}
         description={option.description ?? fallbackOption.description}
         example={option.example ?? fallbackOption.example}
       >
@@ -27,7 +29,7 @@ const configOptions = options[locale] ? options[locale].options : fallbackOption
           {option.name}
           <a
             aria-hidden="true"
-            tabindex="-1"
+            tabindex={-1}
             class="heading-link no-underline"
             href={`#${option.name}`}
           >
@@ -42,6 +44,8 @@ const configOptions = options[locale] ? options[locale].options : fallbackOption
           return (
             <ConfigOption
               isRequired={suboption.required}
+              isReloadable={option.reloadable}
+              defaultValue={option.default}
               description={suboption.description ?? fallbackSuboption.description}
               example={suboption.example ?? fallbackSuboption.example}
             >
@@ -49,7 +53,7 @@ const configOptions = options[locale] ? options[locale].options : fallbackOption
                 {option.name}.{suboption.name}
                 <a
                   aria-hidden="true"
-                  tabindex="-1"
+                  tabindex={-1}
                   class="heading-link no-underline"
                   href={`#${option.name}-${suboption.name}`.replace(new RegExp(", ", "g"), "-")}
                 >
