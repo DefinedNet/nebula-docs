@@ -54,8 +54,30 @@ export const config: CmsConfig = {
               widget: "list",
               fields: [
                 { name: "name", label: "Option name", widget: "string" },
-                { name: "required", label: "Required?", widget: "boolean", required: false },
-                { name: "description", label: "Description", widget: "markdown", i18n: true },
+                {
+                  name: "required",
+                  label: "Reloadable?",
+                  widget: "boolean",
+                  required: false,
+                },
+                {
+                  name: "default",
+                  label: "Default Value",
+                  widget: "string",
+                  required: false,
+                },
+                {
+                  name: "reloadable",
+                  label: "Reloadable?",
+                  widget: "boolean",
+                  required: false,
+                },
+                {
+                  name: "description",
+                  label: "Description",
+                  widget: "markdown",
+                  i18n: true,
+                },
                 {
                   name: "example",
                   label: "Example",
@@ -74,8 +96,30 @@ export const config: CmsConfig = {
                   widget: "list",
                   fields: [
                     { name: "name", label: "Option name", widget: "string" },
-                    { name: "required", label: "Required?", widget: "boolean", required: false },
-                    { name: "description", label: "Description", widget: "markdown", i18n: true },
+                    {
+                      name: "required",
+                      label: "Required?",
+                      widget: "boolean",
+                      required: false,
+                    },
+                    {
+                      name: "reloadable",
+                      label: "Reloadable?",
+                      widget: "boolean",
+                      required: false,
+                    },
+                    {
+                      name: "default",
+                      label: "Default Value",
+                      widget: "string",
+                      required: false,
+                    },
+                    {
+                      name: "description",
+                      label: "Description",
+                      widget: "markdown",
+                      i18n: true,
+                    },
                     {
                       name: "example",
                       label: "Example",
