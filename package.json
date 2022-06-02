@@ -2,6 +2,14 @@
   "name": "nebula-docs",
   "version": "0.0.1",
   "private": true,
+  "exports": {
+    "data": {
+      "import": "./src/data",
+    },
+    "components": {
+      "import": "./src/components",
+    }
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "run-p start-admin dev",
