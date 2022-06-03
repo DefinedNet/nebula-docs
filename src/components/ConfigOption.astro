@@ -1,12 +1,27 @@
 ---
 import { Code, Markdown } from "astro/components";
 
-const { isRequired, description, example } = Astro.props;
+const { isRequired, isReloadable, defaultValue, description, example } = Astro.props;
+// Remove the styles below once https://github.com/withastro/compiler/issues/379 is fixed
 ---
 
-<div>
+<style lang="scss">
+  .badge {
+    margin-bottom: 1.5rem;
+  }
+
+  .container :global(.p):last-child {
+    margin-bottom: 1.5rem;
+  }
+</style>
+
+<div class="container">
   <slot></slot>
   {isRequired && <p class="mt-16 badge badge-info">Required</p>}
+  {isReloadable && <p class="mt-16 badge badge-info">Reloadable</p>}
+  {typeof defaultValue !== "undefined" && (
+    <p class="mt-16 badge badge-info" set:text={`Default: ${defaultValue}`} />
+  )}
   {description?.trim() && <Markdown content={description} />}
   {example && <Code code={example} lang="yaml" />}
 </div>
