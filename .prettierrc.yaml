@@ -1,0 +1,9 @@
+printWidth: 100
+astroAllowShorthand: false
+importOrder:
+  [
+    "^(@atoms/|@components/|@data/|@hooks/|@layouts/|@screens/|@scripts/|@styles/|@util/)(.*)$",
+    "^(?!.*[.]css$)[./].*$",
+    ".css$",
+  ]
+importOrderParserPlugins: ["jsx", "typescript"]
