@@ -220,8 +220,8 @@ en:
                 "10.0.0.0/8": true
     - name: listen
       description: listen sets the UDP port Nebula will use for sending/receiving
-        traffic and for handshakes. The default here is 4242. For a lighthouse
-        node, the port should be defined, however using port 0 will dynamically
+        traffic and for handshakes. For a lighthouse
+        node, the port should be defined, conventially to `4242`, however using port 0 will dynamically
         assign a port and is recommended for roaming nodes.
       example: |-
         listen:
@@ -240,7 +240,7 @@ en:
         - name: port
           default: 0
           description: >
-            port is the UDP port nebula should use on a host. setting this to `0`
+            port is the UDP port nebula should use on a host. setting this to `0`, the default,
             will dynamically assign a port number. This must be set on a lighthouse, conventionally to `4242`
         - name: batch
           default: 64
