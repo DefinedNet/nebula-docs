@@ -1,4 +1,4 @@
 import CMS from "netlify-cms-app";
-import { config } from './netlify-cms-config';
+import { config } from "./netlify-cms-config";
 
-CMS.init({config});
+CMS.init({ config });

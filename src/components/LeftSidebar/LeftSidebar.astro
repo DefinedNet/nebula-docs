@@ -1,45 +1,46 @@
 ---
-import {getSections} from '../../get-page-links'
-import NavLink from '../Nav/NavLink.astro';
+import { getSections } from "../../get-page-links";
+import NavLink from "../Nav/NavLink.astro";
 
 const currentPage = Astro.canonicalURL.pathname;
-const allPages = await Astro.glob('../../data/**/*.md');
-const sections = getSections({currentPage, allPages})
-
+const allPages = await Astro.glob("../../data/**/*.md");
+const sections = getSections({ currentPage, allPages });
 ---
 
 <nav aria-labelledby="grid-left">
-  <ul class="nav-groups"> 
-    {sections.map(section => (
+  <ul class="nav-groups">
+    {sections.map((section) => (
       <NavLink class="section-header">
-        <a 
-          href={section.root.href} 
-          aria-current={`${currentPage === section.root.href ? 'page' : 'false'}`} 
+        <a
+          href={section.root.href}
+          aria-current={`${currentPage === section.root.href ? "page" : "false"}`}
         >
           {section.root.title}
         </a>
-        {
-          section.children && 
-            <ul>
-              {section.children.map(child => (
-                <NavLink>
-                  <a href={child.href} aria-current={`${currentPage === child.href ? 'page' : 'false'}`}>
-                    {child.title}
-                  </a>
-                </NavLink>
-              ))}
-            </ul>
-        }
+        {section.children && (
+          <ul>
+            {section.children.map((child) => (
+              <NavLink>
+                <a
+                  href={child.href}
+                  aria-current={`${currentPage === child.href ? "page" : "false"}`}
+                >
+                  {child.title}
+                </a>
+              </NavLink>
+            ))}
+          </ul>
+        )}
       </NavLink>
     ))}
   </ul>
 </nav>
 
 <script>
-  window.addEventListener('DOMContentLoaded', (event) => {
+  window.addEventListener("DOMContentLoaded", (event) => {
     var target = document.querySelector('[aria-current="page"]');
-    if (target && (target.offsetTop > (window.innerHeight - 100))) {
-      document.querySelector('.nav-groups').scrollTop = target.offsetTop;
+    if (target && target.offsetTop > window.innerHeight - 100) {
+      document.querySelector(".nav-groups").scrollTop = target.offsetTop;
     }
   });
 </script>
@@ -75,5 +76,4 @@ const sections = getSections({currentPage, allPages})
   .section-header a[aria-current="page"] {
     color: var(--theme-accent-text);
   }
-
 </style>

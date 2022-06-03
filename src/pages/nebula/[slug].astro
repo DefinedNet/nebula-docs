@@ -1,46 +1,50 @@
 ---
-import Layout from '../../layouts/MainLayout.astro';
-import ConfigReference from '../../components/ConfigReference.astro';
-import {DEFAULT_LOCALE} from '../../languages';
-import {frontmatter as configRef} from '../../data/config-reference.md';
+import ConfigReference from "../../components/ConfigReference.astro";
+import { frontmatter as configRef } from "../../data/config-reference.md";
+import { DEFAULT_LOCALE } from "../../languages";
+import Layout from "../../layouts/MainLayout.astro";
 
 /**
  * This file is used for urls without a locale, which means they are for the default language.
  */
 
 export async function getStaticPaths() {
-  const allPages = await Astro.glob('../../data/docs/en/**/*.md');
+  const allPages = await Astro.glob("../../data/docs/en/**/*.md");
 
   const paths = allPages.map(({ frontmatter, ...page }) => {
     return {
       params: {
-        slug: frontmatter.slug
+        slug: frontmatter.slug,
       },
       props: {
         page: {
           ...frontmatter,
           ...page,
-        }
-      }
-    }
-  })
+        },
+      },
+    };
+  });
 
   // Filter out any paths with an undefined locale or slug.
   return paths.filter(({ params }) => !!params.slug);
 }
 
-const { 
+const {
   /** Contains the frontmatter from the page data, including title, summary, etc. */
-  page, 
-} = Astro.props
+  page,
+} = Astro.props;
 
 let headers;
 
-const isConfigRefPage = page.slug === 'config';
+const isConfigRefPage = page.slug === "config";
 
 if (isConfigRefPage) {
   const configOptions = configRef[DEFAULT_LOCALE].options;
-  const optionHeaders = configOptions.map(option => ({depth: 2, slug: option.name, text: option.name}))
+  const optionHeaders = configOptions.map((option) => ({
+    depth: 2,
+    slug: option.name,
+    text: option.name,
+  }));
   headers = optionHeaders;
 } else {
   headers = await page.getHeaders();
@@ -48,6 +52,6 @@ if (isConfigRefPage) {
 ---
 
 <Layout content={page} headers={headers}>
-    <page.Content />
-    {isConfigRefPage && <ConfigReference locale={DEFAULT_LOCALE}/>}
+  <page.Content />
+  {isConfigRefPage && <ConfigReference locale={DEFAULT_LOCALE} />}
 </Layout>

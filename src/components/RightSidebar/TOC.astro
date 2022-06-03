@@ -1,7 +1,7 @@
 ---
-import NavLink from '../Nav/NavLink.astro';
-const {headers} = Astro.props;
+import NavLink from "../Nav/NavLink.astro";
 
+const { headers } = Astro.props;
 ---
 
 <style lang="scss">
@@ -25,7 +25,7 @@ const {headers} = Astro.props;
   }
 </style>
 
-<h2 class='heading'>On this page</h2>
+<h2 class="heading">On this page</h2>
 <ul>
   {headers
     .filter(({ depth }) => depth === 2)

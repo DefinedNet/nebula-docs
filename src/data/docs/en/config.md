@@ -6,6 +6,7 @@ slug: config
 summary: All available options within the standard Nebula configuration file,
   organized by section.
 ---
+
 # Configuration reference guide for Nebula
 
 This section documents all available options within the standard Nebula configuration file, organized by section.
