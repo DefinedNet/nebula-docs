@@ -44,8 +44,8 @@ const configOptions = options[locale] ? options[locale].options : fallbackOption
           return (
             <ConfigOption
               isRequired={suboption.required}
-              isReloadable={option.reloadable}
-              defaultValue={option.default}
+              isReloadable={suboption.reloadable}
+              defaultValue={suboption.default}
               description={suboption.description ?? fallbackSuboption.description}
               example={suboption.example ?? fallbackSuboption.example}
             >
