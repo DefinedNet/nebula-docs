@@ -1,14 +1,14 @@
 ---
-import {getPageLinks} from '../get-page-links'
-const allPages = await Astro.glob('../data/**/*.md');
-const currentPage = Astro.canonicalURL.pathname;
-const pages = getPageLinks({currentPage, allPages});
+import { getPageLinks } from "../get-page-links";
 
-const currentPageTitle = pages.find(p => p.href === currentPage)?.title
+const allPages = await Astro.glob("../data/**/*.md");
+const currentPage = Astro.canonicalURL.pathname;
+const pages = getPageLinks({ currentPage, allPages });
+
+const currentPageTitle = pages.find((p) => p.href === currentPage)?.title;
 ---
 
 <style lang="scss">
-
   #docs-toggle {
     width: 100%;
     justify-content: space-between;
@@ -41,44 +41,47 @@ const currentPageTitle = pages.find(p => p.href === currentPage)?.title
       color: var(--theme-text-dimmer);
     }
   }
-
 </style>
 
 <script>
-  import {Toggler} from '/src/scripts/toggler.js';
+  import { Toggler } from "/src/scripts/toggler.js";
 
   function addToggler() {
-    new Toggler('#docs-toggle');
+    new Toggler("#docs-toggle");
   }
 
-  window.addEventListener('load', addToggler);
+  window.addEventListener("load", addToggler);
 </script>
 
 <div class="mb-32">
-  <button 
-    id="docs-toggle" 
+  <button
+    id="docs-toggle"
     class="btn btn-select btn-medium"
     type="button"
-    aria-controls="docs-nav" 
-    aria-expanded="false" 
+    aria-controls="docs-nav"
+    aria-expanded="false"
     aria-label="Toggle navigation"
   >
-    <span class='truncate'>{currentPageTitle || 'Menu'}</span>
-    <svg aria-hidden="true" width="10" height="6" viewBox="0 0 10 6" fill="#586474"><path d="M0.677774 0C0.0723255 0 -0.230399 0.739992 0.20687 1.17726L4.51228 5.48267C4.78137 5.75176 5.21863 5.75176 5.48772 5.48267L9.79313 1.17726C10.2304 0.739992 9.92767 0 9.32223 0H0.677774Z"></path></svg>
+    <span class="truncate">{currentPageTitle || "Menu"}</span>
+    <svg aria-hidden="true" width="10" height="6" viewBox="0 0 10 6" fill="#586474"
+      ><path
+        d="M0.677774 0C0.0723255 0 -0.230399 0.739992 0.20687 1.17726L4.51228 5.48267C4.78137 5.75176 5.21863 5.75176 5.48772 5.48267L9.79313 1.17726C10.2304 0.739992 9.92767 0 9.32223 0H0.677774Z"
+      ></path>
+    </svg>
   </button>
-  <nav class="collapse mt-16" id='docs-nav'>
+  <nav class="collapse mt-16" id="docs-nav">
     <ul>
-      {pages.map(page => (
-      <li>
-        <a 
-          class='docs-page-link'
-          href={page.href} 
-          aria-current={`${currentPage === page.href ? 'page' : 'false'}`} 
-        >
-          {page.title}
-        </a>
-      </li>
-    ))}
+      {pages.map((page) => (
+        <li>
+          <a
+            class="docs-page-link"
+            href={page.href}
+            aria-current={`${currentPage === page.href ? "page" : "false"}`}
+          >
+            {page.title}
+          </a>
+        </li>
+      ))}
     </ul>
   </nav>
 </div>

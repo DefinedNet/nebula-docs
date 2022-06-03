@@ -1,5 +1,5 @@
 import type { CmsConfig } from "netlify-cms-core";
-import { ALL_LOCALES } from '../../languages';
+import { ALL_LOCALES } from "../../languages";
 
 export const config: CmsConfig = {
   load_config_file: false,
@@ -28,15 +28,15 @@ export const config: CmsConfig = {
         { name: "slug", label: "Slug", widget: "string", i18n: true },
         { name: "summary", label: "Summary", widget: "text", i18n: true },
         { name: "body", label: "Body", widget: "markdown", i18n: true },
-      ]
+      ],
     },
     {
       name: "nebulaConfig",
       label: "Nebula Config Options",
       label_singular: "Nebula Config Option",
       i18n: {
-        structure: 'single_file',
-        locales: ALL_LOCALES
+        structure: "single_file",
+        locales: ALL_LOCALES,
       },
       delete: false,
       create: false,
@@ -56,19 +56,42 @@ export const config: CmsConfig = {
                 { name: "name", label: "Option name", widget: "string" },
                 { name: "required", label: "Required?", widget: "boolean", required: false },
                 { name: "description", label: "Description", widget: "markdown", i18n: true },
-                { name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false },
                 {
-                  name: "suboptions", label: "Sub-options", label_singular: "Sub-option", summary: "{{fields.name}}", widget: "list", fields: [
+                  name: "example",
+                  label: "Example",
+                  widget: "code",
+                  default_language: "yaml",
+                  output_code_only: true,
+                  allow_language_selection: false,
+                  hint: "Example config in yml format",
+                  required: false,
+                },
+                {
+                  name: "suboptions",
+                  label: "Sub-options",
+                  label_singular: "Sub-option",
+                  summary: "{{fields.name}}",
+                  widget: "list",
+                  fields: [
                     { name: "name", label: "Option name", widget: "string" },
                     { name: "required", label: "Required?", widget: "boolean", required: false },
                     { name: "description", label: "Description", widget: "markdown", i18n: true },
-                    { name: "example", label: "Example", widget: "code", default_language: 'yaml', output_code_only: true, allow_language_selection: false, hint: 'Example config in yml format', required: false },
-                  ]
-                }
-              ]
-            }
+                    {
+                      name: "example",
+                      label: "Example",
+                      widget: "code",
+                      default_language: "yaml",
+                      output_code_only: true,
+                      allow_language_selection: false,
+                      hint: "Example config in yml format",
+                      required: false,
+                    },
+                  ],
+                },
+              ],
+            },
           ],
-        }
+        },
       ],
     },
     {
@@ -81,7 +104,8 @@ export const config: CmsConfig = {
           name: "locales",
           label: "Locales",
           file: "src/data/settings/locales.json",
-          description: "Currently supported language locales.  If adding another, also edit i18n.locales in scripts/cms/config.ts",
+          description:
+            "Currently supported language locales.  If adding another, also edit i18n.locales in scripts/cms/config.ts",
           fields: [
             {
               name: "locales",
@@ -101,10 +125,10 @@ export const config: CmsConfig = {
                   widget: "string",
                   hint: "Two character locale code (ISO 639-1)",
                   pattern: ["^([a-z]){2}$", "Must be two lowercase letters."],
-                }
-              ]
-            }
-          ]
+                },
+              ],
+            },
+          ],
         },
         {
           name: "sidebar",
@@ -120,10 +144,10 @@ export const config: CmsConfig = {
               summary: "{{fields.rootPage}}",
               fields: [
                 {
-                  name: "rootPage", 
-                  label: "Root page", 
-                  widget: "relation", 
-                  collection: "pages", 
+                  name: "rootPage",
+                  label: "Root page",
+                  widget: "relation",
+                  collection: "pages",
                   search_fields: ["title"],
                   value_field: "{{slug}}",
                   display_fields: ["title"],
@@ -146,16 +170,15 @@ export const config: CmsConfig = {
                   ],
                 },
               ],
-
             },
           ],
-        }
+        },
       ],
-    }
+    },
   ],
   i18n: {
     structure: "multiple_folders",
     default_locale: "en",
     locales: ALL_LOCALES,
-  }
-}
+  },
+};

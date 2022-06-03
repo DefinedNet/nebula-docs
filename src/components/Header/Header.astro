@@ -1,31 +1,36 @@
 ---
-import { getLanguageFromURL, getLanguageFromFilename, getSlugFromFilename, KNOWN_LANGUAGE_CODES } from '../../languages.ts';
-import SkipToContent from './SkipToContent.astro';
-import LanguageSelect from './LanguageSelect.tsx';
+import {
+  getLanguageFromURL,
+  getLanguageFromFilename,
+  getSlugFromFilename,
+  KNOWN_LANGUAGE_CODES,
+} from "../../languages.ts";
+import LanguageSelect from "./LanguageSelect.tsx";
+import SkipToContent from "./SkipToContent.astro";
 
 const currentPath = Astro.canonicalURL.pathname;
 const lang = currentPath && getLanguageFromURL(currentPath);
-const {canonicalSlug} = Astro.props;
+const { canonicalSlug } = Astro.props;
 ---
 
 <style lang="scss">
-    header {
+  header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1;
+    background-color: var(--theme-bg);
+
+    & :global(> *) {
+      max-width: var(--max-width);
+      margin: 0 auto;
       width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 1;
-      background-color: var(--theme-bg);
-
-      & :global(> *) {
-        max-width: var(--max-width);
-        margin: 0 auto;
-        width: 100%;
-        height: 100%;
-      }
+      height: 100%;
     }
+  }
 
-    nav {
+  nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -34,12 +39,14 @@ const {canonicalSlug} = Astro.props;
 </style>
 
 <header class="border-bottom">
-    <SkipToContent />
-    <nav class="pady-12" title="Top Navigation">
-      <a id="site-title" href="/" aria-label="Homepage">
-        <img src="/images/logo.svg" height="40" class="navbar-brand-img" alt="" />
-      </a>
-      <div style="flex-grow: 1;"></div>
-      {KNOWN_LANGUAGE_CODES.length > 1 && <LanguageSelect lang={lang} slug={canonicalSlug} client:idle />}
-    </nav>
+  <SkipToContent />
+  <nav class="pady-12" title="Top Navigation">
+    <a id="site-title" href="/" aria-label="Homepage">
+      <img src="/images/logo.svg" height="40" class="navbar-brand-img" alt="" />
+    </a>
+    <div style="flex-grow: 1;"></div>
+    {KNOWN_LANGUAGE_CODES.length > 1 && (
+      <LanguageSelect lang={lang} slug={canonicalSlug} client:idle />
+    )}
+  </nav>
 </header>

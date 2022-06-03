@@ -1,7 +1,5 @@
 ---
-
 const className = Astro.props.class;
-
 ---
 
 <style lang="scss">
@@ -26,5 +24,5 @@ const className = Astro.props.class;
 </style>
 
 <li class={`nav-link ${className}`.trim()}>
-  <slot />
+  <slot></slot>
 </li>
