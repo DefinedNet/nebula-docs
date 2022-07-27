@@ -243,15 +243,20 @@ en:
         nebula node.
       example: 'local_range: "172.16.0.0/24"'
     - name: sshd
-      description: sshd enables nebula's built-in debugging console, which can be
+      description: >-
+        sshd enables nebula's built-in debugging console, which can be
         accessed via ssh. it can expose informational and administrative
         functions, and allows manual tweaking of various network settings when
         debugging or testing.
+
+
+        _Hint: To generate the host key run `ssh-keygen -t ed25519 -f ssh_host_ed25519_key`.
+        Be sure to set the ownership appropriately, e.g. `chown root:root ssh_host_ed25519_key`_
       example: |-
         sshd:
           enabled: true
           listen: 127.0.0.1:2222
-          host_key: ./ssh_host_ed25519_key
+          host_key: /path/to/ssh_host_ed25519_key
           authorized_users:
             - user: steeeeve
               keys:
