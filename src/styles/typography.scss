@@ -1,22 +1,35 @@
-$font-size-base: 1rem !default; // Assumes the browser default, typically `16px`
-$font-size-lg: $font-size-base * 1.25 !default;
-$font-size-sm: $font-size-base * 0.875 !default;
+@use "sass:math";
+@use "./theme.scss";
 
-$h1-font-size: $font-size-base * 1.875 !default;
-$h2-font-size: $font-size-base * 1.625 !default;
-$h3-font-size: $font-size-base * 1.5 !default;
-$h4-font-size: $font-size-base * 1.375 !default;
-$h5-font-size: $font-size-base * 1.25 !default;
-$h6-font-size: $font-size-base !default;
+$font-size-base: 1rem !default; // Assumes the browser default, typically `16px`
+
+$font-size-xxl: $font-size-base * math.div(64, 16) !default;
+$font-size-xl: $font-size-base * math.div(48, 16) !default;
+$font-size-lg: $font-size-base * math.div(40, 16) !default;
+$font-size-md: $font-size-base * math.div(32, 16) !default;
+$font-size-smd: $font-size-base * math.div(28, 16) !default;
+$font-size-sm: $font-size-base * math.div(24, 16) !default;
+$font-size-xs: $font-size-base * math.div(18, 16) !default;
+$font-size-body: $font-size-base !default;
+$font-size-body-sm: $font-size-base * math.div(14, 16) !default;
+
+// https://www.figma.com/file/BQhWewCufVvMzxEJb0HOP2/Library?node-id=340%3A188
+// currently we shift the scale down one rung on mobile
+$h1-font-size: $font-size-lg;
+$h2-font-size: $font-size-lg;
+$h3-font-size: $font-size-md;
+$h4-font-size: $font-size-sm;
+$h5-font-size: $font-size-sm;
+$h6-font-size: $font-size-xs; // can't get any smaller here
 
 $headings-margin-bottom: 1rem !default;
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
   font-family: var(--font-headings);
   font-weight: 700;
   color: white;
@@ -27,65 +40,96 @@ h6 {
   align-items: center;
 }
 
-h1,
-h2 {
+.h1,
+.h2 {
   max-width: 40ch;
 }
 
-h1 {
+.h1 {
   font-size: $h1-font-size;
 }
-h2 {
+
+.h2 {
   font-size: $h2-font-size;
 }
-h3 {
+
+.h3 {
   font-size: $h3-font-size;
-  color: var(--theme-text-dim);
 }
-h4 {
+
+.h4 {
   font-size: $h4-font-size;
-  color: var(--theme-text-dim);
 }
-h5 {
+
+.h5 {
   font-size: $h5-font-size;
-  color: var(--theme-text-dim);
-  font-weight: 500;
-  line-height: 1.5;
+}
+
+.h6 {
+  font-size: $h6-font-size;
 }
 
 @media (min-width: 992px) {
-  $h1-font-size: $font-size-base * 2.5;
-  $h2-font-size: $font-size-base * 2;
-  $h3-font-size: $font-size-base * 1.5;
-  $h4-font-size: $font-size-base * 1.25;
-  $h5-font-size: $font-size-base * 1.25;
-  $h6-font-size: $font-size-base;
+  $h1-font-size: $font-size-xxl;
+  $h2-font-size: $font-size-xl;
+  $h3-font-size: $font-size-lg;
+  $h4-font-size: $font-size-md;
+  $h5-font-size: $font-size-sm;
+  $h6-font-size: $font-size-xs;
 
-  h1 {
+  .h1 {
     font-size: $h1-font-size;
   }
-  h2 {
+
+  .h2 {
     font-size: $h2-font-size;
   }
-  h3 {
+
+  .h3 {
     font-size: $h3-font-size;
   }
-  h4 {
+
+  .h4 {
     font-size: $h4-font-size;
   }
-  h5 {
+
+  .h5 {
     font-size: $h5-font-size;
+  }
+
+  .h6 {
+    font-size: $h6-font-size;
   }
 }
 
-p {
+.p,
+.p-md,
+.p-sm {
   color: var(--theme-text-dim);
+  font-weight: 500;
   margin-top: 0;
   margin-bottom: 1.5rem;
 }
 
-p:last-child {
+.p:last-child,
+.p-md:last-child,
+.p-sm:last-child {
   margin-bottom: 0;
+}
+
+.p {
+  font-size: 16px;
+  line-height: 180%;
+}
+
+.p-md {
+  font-size: 14px;
+  line-height: 160%;
+}
+
+.p-sm {
+  font-size: 12px;
+  line-height: 160%;
 }
 
 table {
@@ -99,18 +143,11 @@ th {
 
 small,
 .text_small {
-  font-size: 0.833rem;
-}
-
-blockquote {
-  padding: 8px 48px;
-  border-left: 6px solid var(--theme-divider);
-  margin-bottom: 1.5rem;
+  font-size: math.div(13.328, 16);
 }
 
 a {
   color: var(--theme-accent-text);
-  font-weight: 400;
   text-underline-offset: 0.08em;
   text-decoration: none;
   display: inline-flex;
@@ -138,11 +175,6 @@ a > code:not([class*="language"])::before {
   border-radius: var(--border-radius);
 }
 
-a:hover,
-a:focus {
-  color: var(--theme-accent-text-dim);
-}
-
 a:not(.no-underline):hover,
 a:not(.no-underline):focus {
   text-decoration: underline;
@@ -163,6 +195,12 @@ a:focus-visible {
   outline-offset: 0.25em;
 }
 
+blockquote {
+  padding: 8px 48px;
+  border-left: 6px solid var(--theme-divider);
+  margin-bottom: 1.5rem;
+}
+
 strong {
   font-weight: 600;
   color: inherit;
@@ -171,12 +209,14 @@ strong {
 .lead {
   font-family: var(--font-headings);
   color: var(--theme-text-dimmer);
-  font-size: 18px;
+  font-size: $font-size-sm;
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 @media (min-width: 992px) {
   .lead {
-    font-size: 28px;
+    font-size: $font-size-smd;
   }
 }
 
@@ -186,4 +226,19 @@ strong {
 
 .text-secondary {
   color: var(--theme-text-secondary);
+}
+
+.text-cyan {
+  color: theme.$cyan;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+}
+
+.text-eyebrow {
+  font-family: var(--font-headings);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }

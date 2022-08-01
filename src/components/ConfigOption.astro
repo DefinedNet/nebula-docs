@@ -1,5 +1,6 @@
 ---
-import { Code, Markdown } from "astro/components";
+import { Prism } from "@astrojs/prism";
+import { Markdown } from "astro/components";
 
 const { isRequired, description, example } = Astro.props;
 ---
@@ -8,5 +9,5 @@ const { isRequired, description, example } = Astro.props;
   <slot></slot>
   {isRequired && <p class="mt-16 badge badge-info">Required</p>}
   {description?.trim() && <Markdown content={description} />}
-  {example && <Code code={example} lang="yaml" />}
+  {example && <Prism code={example} lang="yaml" />}
 </div>
