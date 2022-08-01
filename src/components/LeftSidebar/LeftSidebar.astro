@@ -52,6 +52,7 @@ const sections = getSections({ currentPage, allPages });
     width: 100%;
     margin-right: 1rem;
   }
+
   .nav-groups {
     height: 100%;
     padding: 8px;
@@ -62,15 +63,15 @@ const sections = getSections({ currentPage, allPages });
     margin-left: -24px;
   }
 
-  .nav-groups > :last-child {
+  .nav-groups> :last-child {
     padding-bottom: 2rem;
     margin-bottom: var(--theme-navbar-height);
   }
 
-  .section-header > a {
+  .section-header>a {
     font-size: 16px;
     font-weight: 600;
-    color: theme.$gray-200;
+    color: theme.$gray-80;
   }
 
   .section-header a[aria-current="page"] {
