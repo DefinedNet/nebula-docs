@@ -242,6 +242,29 @@ en:
         which speeds up discovering the fastest path to a network adjacent
         nebula node.
       example: 'local_range: "172.16.0.0/24"'
+    - name: relay
+      description: >
+        EXPERIMENTAL: relay support for networks that can't establish direct connections.
+      example: |
+        relay:
+          relays:
+              - 192.168.100.1
+          am_relay: false
+          use_relays: true
+      suboptions:
+        - name: relays
+          description: Relays are a list of Nebula IP's that peers can use to relay packets to me. 
+            IPs in this list must have am_relay set to true in their configs, otherwise they will reject relay requests.
+          example: |
+            relays:
+              - 192.168.100.1
+              - <other Nebula VPN IPs of hosts used as relays to access me>
+        - name: am_relay
+          description: >
+            Set am_relay to true to permit other hosts to list my IP in their relays config. Default false.
+        - name: use_relays
+          description: >
+            Set use_relays to false to prevent this instance from attempting to establish connections through relays. Default true
     - name: sshd
       description: >-
         sshd enables nebula's built-in debugging console, which can be
