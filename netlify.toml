@@ -1,0 +1,6 @@
+[[redirects]]
+  from = "/nebula/*"
+  to = "/:splat"
+
+[dev]
+  framework = "docusaurus-v2"
