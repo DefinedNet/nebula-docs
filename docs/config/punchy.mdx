@@ -1,0 +1,26 @@
+---
+sidebar_position: 5
+---
+
+# punchy
+
+`punchy` configures the sending of inbound/outbound packets at a regular interval to avoid expiration of firewall nat mappings.
+
+```yml
+punchy:
+  punch: true
+  respond: true
+  delay: 1s
+```
+
+## punchy.punch
+
+`punch` enables its functionality, which causes the node to send small packets at the regular interval.
+
+## punchy.respond
+
+`respond` means that a node unable to receive handshakes will attempt to initiate a handshake to the host attempting to establish a tunnel, which can be the case when hole punching fails in one direction. This can be extremely useful if one node is behind a difficult nat, such as a symmetric NAT.
+
+## punchy.delay
+
+`delay` slows down punch responses, which can be helpful for misbehaving NATs or conditions where a NAT router’s conntrack map is unable to handle a race, default is 1 second, respond must be true to take effect.

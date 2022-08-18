@@ -1,0 +1,56 @@
+---
+sidebar_position: 9
+---
+
+# tun
+
+```yml
+tun:
+  disabled: false
+  dev: nebula1
+  drop_local_broadcast: false
+  drop_multicast: false
+  tx_queue: 500
+  mtu: 1300
+  routes:
+    - mtu: 8800
+      route: 10.0.0.0/16
+  unsafe_routes:
+    - route: 172.16.1.0/24
+      via: 192.168.100.99
+      mtu: 1300 #mtu will default to tun mtu if this option is not specified
+```
+
+## tun.disabled
+
+Allows the nebula interface (tun) to be disabled, which lets you run a lighthouse without a nebula interface (and therefore without root). You will not be able to communiate over IP with a nebula node that uses this setting.
+
+## tun.dev
+
+`dev` sets the interface name for your nebula interface.
+
+## tun.drop_local_broadcast
+
+Toggles forwarding of local broadcast packets, the address of which depends on the ip/mask encoded in pki.cert
+
+## tun.drop_multicast
+
+Toggles forwarding of multicast packets
+
+## tun.tx_queue
+
+Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number. Default is 500.
+
+## tun.mtu
+
+Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
+
+## tun.routes
+
+Route based MTU overrides, you have known vpn ip paths that can support larger MTUs you can increase/decrease them here
+
+## tun.unsafe_routes
+
+**IMPORTANT NOTE: The nebula certificate of the “via” node MUST have the “route” defined as a subnet in its certificate**
+
+Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you have hosts/services that cannot run nebula.

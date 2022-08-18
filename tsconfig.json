@@ -1,12 +1,14 @@
 {
+  // This file is not used in compilation. It is here just for a nice editor experience.
+  "extends": "@tsconfig/docusaurus/tsconfig.json",
   "compilerOptions": {
-    "target": "es2020",
-    "module": "esnext",
-    "jsx": "react",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "types": ["vite/client"]
+    "baseUrl": ".",
+    "incremental": true,
+    // If you add any more aliases here, be sure to also add it to .prettierc.cjs
+    "paths": {
+      "@docs/*": ["docs/*"],
+      "@src/*": ["src/*"],
+      "@components/*": ["src/components/*"]
+    }
   }
 }

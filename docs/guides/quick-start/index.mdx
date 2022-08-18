@@ -1,0 +1,218 @@
+---
+title: Quick Start
+description: 'Nebula Docs: How to create your first overlay network using a
+  Certificate Authority, Lighthouse, and Hosts'
+summary: This section will walk you through setting up a simple nebula network
+  for testing. The examples will need to be modified to suit your particular
+  environment.
+sidebar_position: 1
+---
+
+# How to create your first overlay network
+
+## Components of a Nebula network
+
+### Lighthouse
+
+In Nebula, a lighthouse is a Nebula host that is responsible for keeping track of all of the other Nebula hosts, and helping them find each other within a Nebula network.
+
+### Certificate Authority
+
+In its simplest form, a Nebula Certificate Authority (CA) consists of two files, a CA certificate, and an associated private key. A CA certificate is distributed to, and trusted by, every host on the network. The CA private key should not be distributed, and can be kept offline when not being used to add hosts to a Nebula network.
+
+### Hosts
+
+A Nebula host is simply any single node in the network, e.g. a server, laptop, phone, tablet. The Certificate Authority is used to sign keys for each host added to a Nebula network. A host certificate contains the name, IP address, group membership, and a number of other details about a host. Individual hosts cannot modify their own certificate, because doing so will invalidate it. This allows us to trust that a host cannot impersonate another host within a Nebula network. Each host will have its own private key, which is used to validate the identity of that host when Nebula tunnels are created.
+
+## Prerequisites
+
+This section will walk you through setting up a simple nebula network for testing. The examples will need to be modified to suit your particular environment.
+
+### Downloading Nebula
+
+To start, you'll need to download Nebula for your specific platform(s). Specifically you'll need `nebula-cert` and the specific `nebula` binary for each platform you use.
+
+#### Desktop and Server
+
+Check the [releases](https://github.com/slackhq/nebula/releases/latest) page for downloads
+
+- Linux - 64 and 32 bit, arm, mips, and others
+- Windows
+- MacOS
+- Freebsd
+
+#### Mobile
+
+- [iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936)
+- [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula)
+
+#### From source
+
+You can also compile nebula from source using instructions provided [on GitHub.](https://github.com/slackhq/nebula/)
+
+#### Extracting the binaries
+
+Once you have downloaded Nebula for your specific platform, you'll need to extract the `nebula` and `nebula-cert` files.
+
+```shell
+tar -xzf nebula-linux-amd64.tar.gz
+```
+
+### Creating your first certificate authority
+
+Nebula uses certificate authorities to identify individual hosts within a Nebula network. The very first step in creating your own Nebula network is to create a certificate authority for your organization. As you add new hosts to your Nebula network, your certificate authority is used to create credentials that prove a host should be trusted by your organization.
+
+```shell
+./nebula-cert ca -name "Myorganization, Inc"
+```
+
+This will create files named `ca.key` and `ca.cert` in the current directory. The `ca.key` file is the **most sensitive** file you'll create, because it is the key used to sign the certificates for individual nebula hosts. Please store this file somewhere safe, preferably with strong encryption.
+
+## Building a Nebula network
+
+### Establishing a Lighthouse
+
+Nebula lighthouses allow hosts to find each other, anywhere in the world. Lighthouses are the only hosts in a Nebula network whose IP addresses should not change. Running a lighthouse requires very few compute resources, and you can easily use the least expensive option from a cloud hosting provider. If you're not sure which provider to use, a number of us have used $5/mo [DigitalOcean](https://digitalocean.com) droplets as lighthouses.
+
+Once you have launched an instance, ensure that Nebula UDP traffic (default port udp/4242) can reach it over the internet and is not blocked by any inbound firewall.
+
+### Creating Keys and Certificates
+
+This assumes you have three hosts, which we will name `lighthouse1, laptop, server`. You can name the hosts any way you'd like, including FQDN. You'll also need to choose the Nebula IP address for each host when generating its certificate. In this example, we are creating a Nebula network that uses the subnet `192.168.100.x/24`, and will assign IP addresses to each host from within this subnet. This example also demonstrates nebula groups, which can later be used to define traffic rules in a nebula network.
+
+```shell
+./nebula-cert sign -name "lighthouse1" -ip "192.168.100.1/24"
+./nebula-cert sign -name "laptop" -ip "192.168.100.5/24" -groups "laptop,ssh"
+./nebula-cert sign -name "server" -ip "192.168.100.9/24" -groups "servers"
+```
+
+### Configuring Nebula
+
+_Note: For the following examples, we use the address 198.51.100.1 as the routable ip for a fictional lighthouse. You'll need to substitute the routable IP of your own lighthouse when creating your Nebula configuration files._
+
+#### Configuration files
+
+Download a copy of the nebula [example configuration](https://github.com/slackhq/nebula/blob/master/examples/config.yml). Make two separate copies of the example configuration file, one for your lighthouse named `config-lighthouse.yaml`, and one that for every non-lighthouse host, called `config.yaml`.
+
+```shell
+curl -o config.yml https://raw.githubusercontent.com/slackhq/nebula/master/examples/config.yml
+cp config.yml config-lighthouse.yaml
+cp config.yml config.yaml
+```
+
+#### Lighthouse configuration (`config-lighthouse.yaml`)
+
+On the lighthouse host, you'll need to ensure `am_lighthouse: true` is set. Generally, a lighthouse will not have any entries in its `static_host_map`, because all hosts will report themselves to a lighthouse. If you use multiple lighthouses, they do not generally need to know about each other.
+
+```yaml
+static_host_map:
+
+lighthouse:
+  am_lighthouse: true
+```
+
+#### Host configuration (`config.yaml`)
+
+On the individual hosts, ensure the lighthouse is defined properly in the `static_host_map` section, and is added to the lighthouse `hosts` section.
+
+```yaml
+static_host_map:
+  '192.168.100.1': ['198.51.100.1:4242']
+
+lighthouse:
+  am_lighthouse: false
+  interval: 60
+  hosts:
+    - '192.168.100.1'
+```
+
+#### Firewall settings
+
+The example configuration file allows all outbound traffic but only allows specific connections in to each Nebula host. You should modify these settings to allow traffic to/from hosts within your network.
+
+```yaml
+firewall:
+  outbound:
+    # Allow all outbound traffic from this node
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    # Allow icmp between any nebula hosts
+    - port: any
+      proto: icmp
+      host: any
+```
+
+### Running Nebula
+
+With the configuration, certificate, and key files created, the last step is copying the appropriate files to each host and starting your Nebula network.
+
+#### Lighthouse
+
+1. Copy the `nebula` binary, along with the `config-lighthouse.yaml`, `ca.crt`, `lighthouse1.crt`, and `lighthouse1.key` to your lighthouse. **DO NOT COPY `ca.key` TO YOUR LIGHTHOUSE.**
+
+2. SSH to your lighthouse.
+
+3. Create a directory named `/etc/nebula` on your lighthouse host.
+   ```shell
+   mkdir /etc/nebula
+   ```
+4. Move the configuration, certificates, and key into the appropriate directory.
+
+   _Note_: The example configuration assumes your host certificate and key are named `host.crt` and `host.key`, so you'll need to rename some of the files when you move them to the appropriate directory.
+
+   ```shell
+   mv config-lighthouse.yaml /etc/nebula/config.yaml
+   mv ca.crt /etc/nebula/ca.crt
+   mv lighthouse.crt /etc/nebula/host.crt
+   mv lighthouse.key /etc/nebula/host.key
+   ```
+
+5. Start Nebula
+
+   ```shell
+   ./nebula -config /etc/nebula/config.yaml
+   ```
+
+#### Hosts
+
+_For this example, we are configuring the host created above, named `server`. Please substitute the correct file names as appropriate._
+
+1. Copy the `nebula` binary, along with the `config.yaml`, `ca.crt`, `server.crt`, and `server.key` to the host named `server`. **DO NOT COPY THE `ca.key` FILE.**
+
+2. SSH to the host you've named `server`.
+
+3. Create a directory named `/etc/nebula` on the Nebula host.
+   ```shell
+   mkdir /etc/nebula
+   ```
+4. Move the configuration, certificates, and key into the appropriate directory.
+
+   _Note_: The example configuration assumes your host certificate and key are named `host.crt` and `host.key`, so you'll need to rename some of the files when you move them to the appropriate directory.
+
+   ```shell
+   mv config.yaml /etc/nebula/config.yaml
+   mv ca.crt /etc/nebula/ca.crt
+   mv server.crt /etc/nebula/host.crt
+   mv server.key /etc/nebula/host.key
+   ```
+
+5. Start Nebula
+
+   ```shell
+   ./nebula -config /etc/nebula/config.yaml
+   ```
+
+#### Verifying it all works
+
+You should now be able to ping other hosts running nebula (assuming ICMP is allowed). To ping the example lighthouse, run:
+
+```shell
+ping 192.168.100.1
+```
+
+### Adding hosts to your network
+
+It is easy to add hosts to an established Nebula network. You simply create a new host certificate and key, and then follow the steps under Running Nebula. You will not need to make changes to your lighthouse or any other hosts when adding hosts to your network, and existing hosts will be able to find new ones via the lighthouse, automatically.

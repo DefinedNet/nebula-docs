@@ -1,0 +1,33 @@
+---
+sidebar_position: 8
+---
+
+# relay
+
+EXPERIMENTAL: relay support for networks that can’t establish direct connections.
+
+```yml
+relay:
+  relays:
+    - 192.168.100.1
+  am_relay: false
+  use_relays: true
+```
+
+## relay.relays
+
+Relays are a list of Nebula IP’s that peers can use to relay packets to me. IPs in this list must have am_relay set to true in their configs, otherwise they will reject relay requests.
+
+```yml
+relays:
+  - 192.168.100.1
+  - <other Nebula VPN IPs of hosts used as relays to access me>
+```
+
+## relay.am_relay
+
+Set `am_relay` to true to permit other hosts to list my IP in their relays config. The default is false.
+
+## relay.use_relays
+
+Set `use_relays` to false to prevent this instance from attempting to establish connections through relays. The default is true.

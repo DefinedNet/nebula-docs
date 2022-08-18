@@ -1,0 +1,94 @@
+---
+sidebar_position: 11
+---
+
+# firewall
+
+The default state of the Nebula interface host firewall is _deny all_ for all inbound and outbound traffic. Firewall rules can be added to _allow_ traffic for specified ports and protocols, but it is not possible to explicitly define a _deny_ rule.
+
+Firewall rules consist of one or more ports, a protocol, and one or more Nebula certificate properties denoting which hosts the rule should apply to. The `Groups` section of a Nebula certificate is particularly useful in this context. For example, by issuing certificates for use on employee laptops with the group `user-endpoint`, that group could then be referenced to allow inbound web traffic to a Nebula host:
+
+```yaml
+inbound:
+  - port: 443
+    proto: tcp
+    group: user-endpoint
+
+  - port: 80
+    proto: tcp
+    group: user-endpoint
+```
+
+Continuing with that example, you could write another rule to allow an employee who _also_ belongs to the `ops` group to access that same webserver using SSH. This would be added inside the `inbound:` section.
+
+```yaml
+- port: 22
+  proto: tcp
+  groups:
+    - user-endpoint
+    - ops
+```
+
+When the plural `groups` property is specified, the rule only applies to hosts that have a certificate with each of the groups listed.
+
+The possible fields of a firewall rule are:
+
+- `port`: Takes `0` or `any` as any, a single number (e.g. `80`), a range (e.g. `200-901`), or `fragment` to match second and further fragments of fragmented packets (since there is no port available).
+
+- `proto`: One of `any`, `tcp`, `udp`, or `icmp`
+
+- `ca_name`: An issuing CA name
+
+- `ca_sha`: An issuing CA shasum
+
+- `host`: Can be `any` or a literal hostname, ie `test-host`
+
+- `group`: Can be `any` or a literal group name, ie `default-group`
+
+- `groups`: Same as `group` but accepts a list of values. Multiple values are AND'd together and a certificate must contain all groups to pass.
+
+- `cidr`: a CIDR, `0.0.0.0/0` is any.
+
+Logical evaluation is roughly: port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr).
+
+```yml
+
+# Nebula security group configuration
+
+firewall:
+conntrack:
+tcp_timeout: 12m
+udp_timeout: 3m
+default_timeout: 10m
+max_connections: 100000
+
+outbound: # Allow all outbound traffic from this node - port: any
+proto: any
+host: any
+
+inbound: # Allow icmp between any nebula hosts - port: any
+proto: icmp
+host: any
+
+    # Allow tcp/443 from any host with BOTH laptop and home group
+    - port: 443
+      proto: tcp
+      groups:
+        - laptop
+        - home
+```
+
+## firewall.outbound
+
+It is quite common to allow any outbound traffic to flow from a host. This simply means that the host can use any port or protocol to attempt to connect to any other host in the overlay network. (Whether or not those other hosts allow that inbound traffic is up to them.)
+
+```yml
+outbound:
+  - port: any
+    proto: any
+    host: any
+```
+
+## firewall.inbound
+
+At a minimum, it is recommended to enable ICMP so that `ping` can be used to verify connectivity. Additionally, if enabling the built-in Nebula SSH server, you may wish to grant access over the Nebula network via firewall rules.
