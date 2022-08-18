@@ -11,7 +11,8 @@ const config = {
   title: 'Nebula Docs',
   tagline: 'Learn about Nebula here',
   url: 'https://docs.defined.net',
-  baseUrl: '/nebula/',
+  // For deploy previews, don't set a baseUrl
+  baseUrl: process.env.CONTEXT === 'deploy-preview' ? '/' : '/nebula/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
