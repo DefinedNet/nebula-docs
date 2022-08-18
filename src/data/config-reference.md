@@ -298,7 +298,7 @@ en:
           unsafe_routes:
             - route: 172.16.1.0/24
               via: 192.168.100.99
-              mtu: 1300 #mtu will default to tun mtu if this option is not sepcified
+              mtu: 1300 #mtu will default to tun mtu if this option is not specified
       suboptions:
         - description: >
             Allows the nebula interface (tun) to be disabled, which lets you run

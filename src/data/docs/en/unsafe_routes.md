@@ -166,7 +166,7 @@ INFO[0000] UDP hole punching enabled
 INFO[0000] Nebula interface is active       build=1.5.0 interface=nebula network=192.168.100.10/24 udpAddr="[::]:43068"
 ```
 
-If you see a `Handshake message sent` to your lighthouse followed by a corresponding _recevied_ message after a similar set of lines shown above you are good to go.
+If you see a `Handshake message sent` to your lighthouse followed by a corresponding _received_ message after a similar set of lines shown above you are good to go.
 
 You can either leave Nebula running in the background or stop it while completing the next steps specific to this host.
 

@@ -1,7 +1,7 @@
 ---
 title: Guides
 slug: guides
-summary: A collection of how-to guides that explain how to use various capabilites of the Nebula overlay networking tool.
+summary: A collection of how-to guides that explain how to use various capabilities of the Nebula overlay networking tool.
 ---
 
 # Nebula Guides
