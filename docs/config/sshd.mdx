@@ -1,0 +1,40 @@
+---
+sidebar_position: 9
+---
+
+# sshd
+
+sshd enables nebula’s built-in debugging console, which can be accessed via ssh. it can expose informational and administrative functions, and allows manual tweaking of various network settings when debugging or testing.
+
+_Hint: To generate the host key run `ssh-keygen -t ed25519 -f ssh_host_ed25519_key`. Be sure to set the ownership appropriately, e.g. `chown root:root ssh_host_ed25519_key`_
+
+```yml
+sshd:
+  enabled: true
+  listen: 127.0.0.1:2222
+  host_key: /path/to/ssh_host_ed25519_key
+  authorized_users:
+    - user: steeeeve
+      keys:
+        - '[ssh public key string]'
+```
+
+## sshd.enabled
+
+`enabled` toggles this feature globally.
+
+## sshd.listen
+
+`listen` is used to specify the host ip and port number for the nebula debug console to listen on, port 22 is not allowed for your safety.
+
+## sshd.host_key
+
+`host_key` points to a file containing the ssh host private key to use for the ssh server side of the console.
+
+You can generate a host key using the `ssh-keygen` command line utility.
+
+`ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N "" < /dev/null`
+
+## sshd.authorized_users, user, keys
+
+These options are how you create `users` for the debug ssh daemon. Password authentication for the ssh debug console is NOT supported.

@@ -1,0 +1,50 @@
+---
+sidebar_position: 1
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# pki
+
+Defines the path of each file required for a Nebula host: CA certificate, host certificate, and host key. Each of these files can also be stored inline as YAML multiline strings.
+
+```yml
+pki:
+  ca: /etc/nebula/ca.crt
+  cert: /etc/nebula/host.crt
+  key: /etc/nebula/host.key
+  blocklist:
+    - c99d4e650533b92061b09918e838a5a0a6aaee21eed1d12fd937682865936c72
+```
+
+## pki.ca
+
+<Pill className="mb-24">Required</Pill>
+
+The ca is a collection of one or more certificate authorities this host should trust. In the above example, `/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The following example shows a CA cert inlined as a YAML multiline string.
+
+```yml
+pki:
+  ca: |
+    -----BEGIN NEBULA CERTIFICATE-----
+    CkgKFlRoZSBPbmUtSG91ciBOZWJ1bGEgQ0Eo/pL7jAYwjq/7jAY6IDIi7yqkRV9F
+    1+tozxvnHCmuuuwdArt7YbMMdCR4AYm/QAESQHBitbcetbJ06RQckqGi+hXJXd/U
+    TXKEul4TxP4Qxmd7g+cHDE6oYZhRwup+1xg/Sv9bMg2E2/LNXKV3rNf1Yw8=
+    -----END NEBULA CERTIFICATE-----
+```
+
+## pki.cert
+
+<Pill className="mb-24">Required</Pill>
+
+The cert is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address, name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created, which informs other hosts on whether to trust a particular host certificate.
+
+## pki.key
+
+<Pill className="mb-24">Required</Pill>
+
+The key is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other hosts.
+
+## pki.blocklist
+
+The blocklist contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen or compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we trust.

@@ -1,0 +1,9 @@
+{
+  "label": "Guides",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "A collection of how-to guides that explain how to use various capabilities of the Nebula overlay networking tool.",
+    "slug": "/guides"
+  }
+}

@@ -1,0 +1,14 @@
+.Pill {
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 10rem;
+  background-color: var(--ifm-color-emphasis-200);
+  padding: 4px 8px;
+}
+
+.Pill___info {
+  color: var(--ifm-color-secondary-contrast-foreground);
+}
