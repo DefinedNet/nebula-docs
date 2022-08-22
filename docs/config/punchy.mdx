@@ -34,6 +34,6 @@ node is behind a difficult nat, such as a symmetric NAT.
 
 <Pill className="mb-24">Default: 1s</Pill>
 
-`delay` slows down punch responses, which can be helpful for misbehaving NATs or conditions where a NAT router’s
-conntrack map is unable to handle a race, default is 1 second, respond must be true to take effect. Changing this value
-while running will not affect any in progress operations, only new ones.
+`delay` slows down punch responses which can be helpful for conditions where a NAT is unable to handle certain race
+conditions. `respond` must be true to take effect. Changing this value while running will not affect any in progress
+operations, only new ones.
