@@ -34,15 +34,15 @@ lighthouse:
 
 <Pill className="mb-24">Default: False</Pill>
 
-am_lighthouse is used to enable lighthouse functionality for a node. This should ONLY be `true` on nodes you have
+`am_lighthouse` is used to enable lighthouse functionality for a node. This should ONLY be `true` on nodes you have
 configured to be lighthouses in your network
 
 ## lighthouse.serve_dns
 
 <Pill className="mb-24">Default: False</Pill>
 
-serve_dns optionally starts a DNS listener that responds to `A` and `TXT` queries and can even be delegated to for name
-resolution by external DNS hosts.
+`serve_dns` optionally starts a DNS listener that responds to `A` and `TXT` queries and can even be delegated to for
+name resolution by external DNS hosts.
 
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
 Lighthouses.
@@ -75,13 +75,13 @@ the [firewall](/config/firewall)._
 
 ## lighthouse.dns
 
-dns is used to configure the address (`host`) and port (`port`) the DNS server should listen on. By listening on the
+`dns` is used to configure the address (`host`) and port (`port`) the DNS server should listen on. By listening on the
 host's Nebula IP, you can make the DNS server accessible only on the Nebula network. Alternatively, listening on
 `0.0.0.0` will allow anyone that can reach the host to make queries.
 
 The default value for `lighthouse.dns.port` is `53` but you must set an ip address.
 
-See the [serve_dns](#lighthouseserve_dns) docs for more information, or the [example Lighthouse config](#) for syntax.
+See the [`serve_dns`](#lighthouseserve_dns) docs for more information, or the [example Lighthouse config](#) for syntax.
 
 ```yml
 dns:
@@ -102,7 +102,7 @@ a large nebula network.
 
 **IMPORTANT: THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES**
 
-hosts is a list of lighthouse hosts this node should report to and query from. The lighthouses listed here should be
+`hosts` is a list of lighthouse hosts this node should report to and query from. The lighthouses listed here should be
 referenced by their **nebula IP**, not by the IPs of their physical network interfaces.
 
 ```yml
@@ -112,7 +112,7 @@ hosts:
 
 ## lighthouse.remote_allow_list
 
-remote_allow_list allows you to control ip ranges that this node will consider when handshaking to another node. By
+`remote_allow_list` allows you to control ip ranges that this node will consider when handshaking to another node. By
 default, any remote IPs are allowed. You can provide CIDRs here with `true` to allow and `false` to deny. The most
 specific CIDR rule applies to each remote. If all rules are "allow", the default will be "deny", and vice-versa. If both
 "allow" and "deny" rules are present, then you MUST set a rule for "0.0.0.0/0" as the default.
@@ -129,10 +129,10 @@ remote_allow_list:
 
 ## lighthouse.local_allow_list
 
-local_allow_list allows you to filter which local IP addresses we advertise to the lighthouses. This uses the same logic
-as `remote_allow_list`, but additionally, you can specify an `interfaces` map of regular expressions to match against
-interface names. The regexp must match the entire name. All interface rules must be either true or false (and the
-default will be the inverse). CIDR rules are matched after interface name rules. Default is all local IP addresses.
+`local_allow_list` allows you to filter which local IP addresses we advertise to the lighthouses. This uses the same
+logic as `remote_allow_list`, but additionally, you can specify an `interfaces` map of regular expressions to match
+against interface names. The regexp must match the entire name. All interface rules must be either true or false (and
+the default will be the inverse). CIDR rules are matched after interface name rules. Default is all local IP addresses.
 
 ```yml
 local_allow_list:
