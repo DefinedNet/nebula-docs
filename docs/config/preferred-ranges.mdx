@@ -8,9 +8,21 @@ sidebar_position: 7
 
 Default `preferred_ranges` order: `ipv6` > `public ipv4` > `private ipv4`
 
+There are no magic words for these values:
+
+- `::/0` is all `ipv6`
+- `0.0.0.0/0` is all `ipv4`
+- `192.168.0.0/16` would be a specific private `ipv4` network
+
 NOTE: the previous option [`local_range`](/config/local-range) only allowed definition of a single range
 and has been deprecated for `preferred_ranges`
 
 ```yml
 preferred_ranges: ['172.16.0.0/24']
+```
+
+To set up a host that prefers local network `192.168.0.0/16` first, then `ipv6` then `public ipv4` then `private ipv4`, you would do:
+
+```yml
+preferred_ranges: ['192.168.0.0/16', '::/0', '0.0.0.0/0', 'what do i do here']
 ```
