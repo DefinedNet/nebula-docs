@@ -12,6 +12,7 @@ There are no magic words for these values:
 
 - `::/0` is all `ipv6`
 - `0.0.0.0/0` is all `ipv4`
+- `10.0.0.0/8` + `172.16.0.0/12` + `192.168.0.0/16` is all `private ipv4` based on [`RFC1918` private ranges](https://datatracker.ietf.org/doc/html/rfc1918)
 - `192.168.0.0/16` would be a specific private `ipv4` network
 
 :::note
@@ -21,12 +22,10 @@ and has been deprecated for `preferred_ranges`
 
 :::
 
+To set up a host that prefers local network `172.16.0.0/24` first, then `ipv6` then `public ipv4` then `private ipv4`, specify:
+
 ```yml
 preferred_ranges: ['172.16.0.0/24']
 ```
 
-To set up a host that prefers local network `192.168.0.0/16` first, then `ipv6` then `public ipv4` then `private ipv4`, you would do:
-
-```yml
-preferred_ranges: ['192.168.0.0/16', '::/0', '0.0.0.0/0', 'what do i do here']
-```
+This would add the network range `172.16.0.0/24` to the `preferred_ranges` list, which nebula will use to influence its ranking of options for underlay connections. If you pass two or more network ranges, nebula will sort those in accordance with the above default rankings within the `preferred_ranges` list.
