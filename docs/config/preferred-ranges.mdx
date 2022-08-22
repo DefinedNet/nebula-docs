@@ -4,8 +4,10 @@ sidebar_position: 12
 
 # preferred_ranges
 
-`preferred_ranges` is used to define a hint about the local network ranges, which speeds up discovering the fastest
-path to a network adjacent nebula node.
+`preferred_ranges` sets the priority order for underlay ip addresses. Two hosts on the same LAN would likely benefit from having their tunnels use the LAN IP addresses rather than the public IP addresses the lighthouse may have learned for them.
+
+Default `preferred_ranges` order: `ipv6` > `public ipv4` > `private ipv4`
+
 NOTE: the previous option `local_range` only allowed definition of a single range
 and has been deprecated for `preferred_ranges`
 
