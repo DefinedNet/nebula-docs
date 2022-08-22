@@ -61,23 +61,26 @@ The possible fields of a firewall rule are:
 Logical evaluation is roughly: port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr).
 
 ```yml
-
 # Nebula security group configuration
 
 firewall:
-conntrack:
-tcp_timeout: 12m
-udp_timeout: 3m
-default_timeout: 10m
-max_connections: 100000
+  conntrack:
+    tcp_timeout: 12m
+    udp_timeout: 3m
+    default_timeout: 10m
+    max_connections: 100000
 
-outbound: # Allow all outbound traffic from this node - port: any
-proto: any
-host: any
+  outbound:
+    # Allow all outbound traffic from this node
+    - port: any
+      proto: any
+      host: any
 
-inbound: # Allow icmp between any nebula hosts - port: any
-proto: icmp
-host: any
+  inbound:
+    # Allow icmp between any nebula hosts
+    - port: any
+      proto: icmp
+      host: any
 
     # Allow tcp/443 from any host with BOTH laptop and home group
     - port: 443
@@ -104,3 +107,14 @@ outbound:
 
 At a minimum, it is recommended to enable ICMP so that `ping` can be used to verify connectivity. Additionally, if
 enabling the built-in Nebula SSH server, you may wish to grant access over the Nebula network via firewall rules.
+
+## firewall.conntrack
+
+Settings for the Connection Tracker.
+
+```yml
+conntrack:
+  tcp_timeout: 12m
+  udp_timeout: 3m
+  default_timeout: 10m
+```
