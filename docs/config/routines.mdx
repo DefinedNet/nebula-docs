@@ -2,7 +2,11 @@
 sidebar_position: 12
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # routines
+
+<Pill className="mb-24">Default: 1</Pill>
 
 `routines` is the number of thread pairs to run that consume from the tun and UDP queues.
 Currently, this defaults to `1` which means we have `1` tun queue reader and `1`
