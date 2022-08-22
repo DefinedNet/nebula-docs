@@ -83,7 +83,7 @@ To allow hosts to make queries against the DNS server over the Nebula network, d
 host's Nebula IP, you can make the DNS server accessible only on the Nebula network. Alternatively, listening on
 `0.0.0.0` will allow anyone that can reach the host to make queries.
 
-The default value for `lighthouse.dns.port` is `53` but you must set an ip address.
+The default value for `dns.port` is `53` but you must set an IP address.
 
 See the [`serve_dns`](#lighthouseserve_dns) docs for more information, or the [example Lighthouse config](#) for syntax.
 
@@ -104,7 +104,11 @@ a large nebula network.
 
 ## lighthouse.hosts
 
-**IMPORTANT: THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES**
+:::caution
+
+THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES
+
+:::
 
 `hosts` is a list of lighthouse hosts this node should report to and query from. The lighthouses listed here should be
 referenced by their **nebula IP**, not by the IPs of their physical network interfaces.
