@@ -2,10 +2,12 @@
 sidebar_position: 4
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # listen
 
-listen sets the UDP port Nebula will use for sending/receiving traffic and for handshakes. The default here is 4242. For
-a lighthouse node, the port should be defined, however using port 0 will dynamically assign a port and is recommended
+`listen` sets the UDP port Nebula will use for sending/receiving traffic and for handshakes. For a lighthouse node, the
+port should be defined, conventionally to `4242`, however using port 0 will dynamically assign a port and is recommended
 for roaming nodes.
 
 ```yml
@@ -19,14 +21,23 @@ listen:
 
 ## listen.host
 
+<Pill className="mb-24">Default: 0.0.0.0</Pill>
+
 `host` is the ip of the interface to use when binding the listener. The default is 0.0.0.0, which is what most people
 should use.
 
 ## listen.port
 
-`port` is the UDP port nebula should use on a host. Setting this to 0 will dynamically assign a port number.
+`port` is the UDP port nebula should use on a host. Setting this to `0` will dynamically assign a port number.
 
-## batch, read_buffer, write_buffer
+## batch
+
+<Pill className="mb-24">Default: 64</Pill>
+
+Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`). Does
+not support reload
+
+## read_buffer, write_buffer
 
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and
