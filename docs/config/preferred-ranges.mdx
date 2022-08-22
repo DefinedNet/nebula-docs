@@ -14,8 +14,12 @@ There are no magic words for these values:
 - `0.0.0.0/0` is all `ipv4`
 - `192.168.0.0/16` would be a specific private `ipv4` network
 
-NOTE: the previous option [`local_range`](/config/local-range) only allowed definition of a single range
+:::note
+
+The previous option [`local_range`](/config/local-range) only allowed definition of a single range
 and has been deprecated for `preferred_ranges`
+
+:::
 
 ```yml
 preferred_ranges: ['172.16.0.0/24']

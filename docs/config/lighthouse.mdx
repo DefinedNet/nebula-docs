@@ -70,8 +70,12 @@ $ dig +short @192.168.100.1 192.168.100.5 TXT
 "Name: web01" "Ips: [192.168.100.5/24]" "Subnets []" "Groups [servers web]" "NotBefore 2021-06-15 14:19:22 +0000 UTC" "NotAFter 2022-04-28 21:49:15 +0000 UTC" "PublicKey dde33784fb2bbada73f8bf4cafbf9271dc864b770b1e44002f81563856711f7c" "IsCA false" "Issuer 91f795c52f601d3110ee5232b22c13a89a76d3e3fb89bed3c21929c873cb6ec9"
 ```
 
-_NOTE: To allow hosts to make queries against the DNS server over the Nebula network, don't forget to allow access in
-the [firewall](/config/firewall)._
+:::note
+
+To allow hosts to make queries against the DNS server over the Nebula network, don't forget to allow access in the
+[firewall](/config/firewall).
+
+:::
 
 ## lighthouse.dns
 

@@ -69,8 +69,11 @@ tun:
 
 ## tun.unsafe_routes
 
-**IMPORTANT NOTE: The nebula certificate of the “via” node MUST have the “route” defined as a subnet in its
-certificate**
+:::danger
+
+The nebula certificate of the “via” node MUST have the “route” defined as a subnet in its certificate
+
+:::
 
 Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you
 have hosts/services that cannot run nebula.
