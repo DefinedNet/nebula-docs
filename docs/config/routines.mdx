@@ -1,0 +1,7 @@
+# routines
+
+Routines is the number of thread pairs to run that consume from the tun and UDP queues.
+Currently, this defaults to `1` which means we have `1` tun queue reader and `1`
+UDP queue reader. Setting this above `1` will set `IFF_MULTI_QUEUE` on the tun
+device and `SO_REUSEPORT` on the UDP socket to allow multiple queues.
+This option is only supported on Linux.
