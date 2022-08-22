@@ -2,6 +2,8 @@
 sidebar_position: 5
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # punchy
 
 `punchy` configures the sending of inbound/outbound packets at a regular interval to avoid expiration of firewall nat
@@ -16,9 +18,13 @@ punchy:
 
 ## punchy.punch
 
+<Pill className="mb-24">Default: False</Pill>
+
 `punch` enables its functionality, which causes the node to send small packets at the regular interval.
 
 ## punchy.respond
+
+<Pill className="mb-24">Default: False</Pill>
 
 `respond` means that a node unable to receive handshakes will attempt to initiate a handshake to the host attempting to
 establish a tunnel, which can be the case when hole punching fails in one direction. This can be extremely useful if one
@@ -26,5 +32,8 @@ node is behind a difficult nat, such as a symmetric NAT.
 
 ## punchy.delay
 
+<Pill className="mb-24">Default: 1s</Pill>
+
 `delay` slows down punch responses, which can be helpful for misbehaving NATs or conditions where a NAT router’s
-conntrack map is unable to handle a race, default is 1 second, respond must be true to take effect.
+conntrack map is unable to handle a race, default is 1 second, respond must be true to take effect. Changing this value
+while running will not affect any in progress operations, only new ones.
