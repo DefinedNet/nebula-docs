@@ -56,3 +56,9 @@ hosts.
 
 The blocklist contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen or
 compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we trust.
+
+## pki.disconnect_invalid
+
+<Pill className="mb-24">Default: False</Pill>
+
+`disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.
