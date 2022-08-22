@@ -6,9 +6,7 @@ import { Pill } from '@components/Pill/Pill';
 
 # listen
 
-`listen` sets the UDP port Nebula will use for sending/receiving traffic and for handshakes. For a lighthouse node, the
-port should be defined, conventionally to `4242`, however using port 0 will dynamically assign a port and is recommended
-for roaming nodes.
+`listen` sets the UDP port Nebula will use for sending/receiving traffic and for handshakes.
 
 ```yml
 listen:
@@ -28,7 +26,9 @@ should use.
 
 ## listen.port
 
-`port` is the UDP port nebula should use on a host. Setting this to `0` will dynamically assign a port number.
+`port` is the UDP port nebula should use on a host. For a lighthouse node, the port should be defined, conventionally to
+`4242`, however using port 0 or leaving `port` unset will dynamically assign a port and is recommended for roaming
+nodes.
 
 ## batch
 
