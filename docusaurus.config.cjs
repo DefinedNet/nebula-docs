@@ -93,7 +93,7 @@ const config = {
             title: 'Nebula',
             items: [
               {
-                label: 'Github',
+                label: 'GitHub',
                 href: 'https://github.com/slackhq/nebula',
               },
               {
