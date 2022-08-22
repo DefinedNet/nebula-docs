@@ -2,6 +2,8 @@
 sidebar_position: 10
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # logging
 
 ```yml
@@ -10,4 +12,35 @@ logging:
   format: text
   #disable_timestamp: true
   #timestamp_format: "2006-01-02T15:04:05.000Z07:00"
+```
+
+## logging.level
+
+<Pill className="mb-24">Default: info</Pill>
+
+options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
+
+## logging.format
+
+<Pill className="mb-24">Default: text</Pill>
+
+options are `json` or `text`
+
+## logging.disable_timestamp
+
+<Pill className="mb-24">Default: False</Pill>
+
+Disable timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
+
+## logging.timestamp_format
+
+```yml
+# timestamp format is specified in Go time format, see:
+#     https://golang.org/pkg/time/#pkg-constants
+# default when `format: json`: "2006-01-02T15:04:05Z07:00" (RFC3339)
+# default when `format: text`:
+#     when TTY attached: seconds since beginning of execution
+#     otherwise: "2006-01-02T15:04:05Z07:00" (RFC3339)
+# As an example, to log as RFC3339 with millisecond precision:
+timestamp_format: '2006-01-02T15:04:05.000Z07:00'
 ```
