@@ -4,15 +4,15 @@ sidebar_position: 7
 
 # preferred_ranges
 
-`preferred_ranges` sets the priority order for underlay IP addresses. Two hosts on the same LAN would likely benefit from having their tunnels use the LAN IP addresses rather than the public IP addresses the lighthouse may have learned for them. `preferred_ranges` accepts a list of [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) ranges admitted as a set of preferred ranges of IP addresses.
+`preferred_ranges` sets the priority order for [underlay](/glossary/underlay-network) IP addresses. Two hosts on the same LAN would likely benefit from having their tunnels use the LAN IP addresses rather than the public IP addresses the lighthouse may have learned for them. `preferred_ranges` accepts a list of [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) ranges admitted as a set of preferred ranges of IP addresses.
 
 How nebula orders underlay IP addresses it learns about:
 
 Highest priority
 
-- CIDR is in `preferred_ranges` set and is ipv6
-- CIDR is in `preferred_ranges` set and is public ipv4
-- CIDR is in `preferred_ranges` set and is private ipv4
+- CIDR is in `preferred_ranges` set and is [ipv6](https://en.wikipedia.org/wiki/IPv6)
+- CIDR is in `preferred_ranges` set and is [public ipv4](https://en.wikipedia.org/wiki/IPv4)
+- CIDR is in `preferred_ranges` set and is [private ipv4](https://en.wikipedia.org/wiki/IPv4#Private_networks)
 - CIDR is ipv6
 - CIDR is public ipv4
 - CIDR is private ipv4
