@@ -88,10 +88,11 @@ The default value for `dns.port` is `53` but you must set an IP address.
 See the [`serve_dns`](#lighthouseserve_dns) docs for more information.
 
 ```yml
-dns:
-  # The DNS host defines the IP to bind the dns listener to. This also allows binding to the nebula node IP.
-  host: 0.0.0.0
-  port: 53
+lighthouse:
+  dns:
+    # The DNS host defines the IP to bind the dns listener to. This also allows binding to the nebula node IP.
+    host: 0.0.0.0
+    port: 53
 ```
 
 ## lighthouse.interval
@@ -99,14 +100,14 @@ dns:
 <Pill className="mb-24">Default: 10</Pill>
 
 `interval` specifies how often a nebula host should report itself to a lighthouse. By default, hosts report themselves
-to lighthouses once every 60 seconds. Use caution when changing this interval, as it may affect host discovery times in
+to lighthouses once every 10 seconds. Use caution when changing this interval, as it may affect host discovery times in
 a large nebula network.
 
 ## lighthouse.hosts
 
 :::caution
 
-THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES
+This should be empty on lighthouse nodes
 
 :::
 
@@ -114,8 +115,9 @@ THIS SHOULD BE EMPTY ON LIGHTHOUSE NODES
 referenced by their **nebula IP**, not by the IPs of their physical network interfaces.
 
 ```yml
-hosts:
-  - '192.168.100.1'
+lighthouse:
+  hosts:
+    - '192.168.100.1'
 ```
 
 ## lighthouse.remote_allow_list
@@ -126,13 +128,14 @@ specific CIDR rule applies to each remote. If all rules are "allow", the default
 "allow" and "deny" rules are present, then you MUST set a rule for "0.0.0.0/0" as the default.
 
 ```yml
-remote_allow_list:
-  # Example to block IPs from this subnet from being used for remote IPs.
-  '172.16.0.0/12': false
-  # A more complicated example, allow public IPs but only private IPs from a specific subnet
-  '0.0.0.0/0': true
-  '10.0.0.0/8': false
-  '10.42.42.0/24': true
+lighthouse:
+  remote_allow_list:
+    # Example to block IPs from this subnet from being used for remote IPs.
+    '172.16.0.0/12': false
+    # A more complicated example, allow public IPs but only private IPs from a specific subnet
+    '0.0.0.0/0': true
+    '10.0.0.0/8': false
+    '10.42.42.0/24': true
 ```
 
 ## lighthouse.local_allow_list
@@ -143,11 +146,12 @@ against interface names. The regexp must match the entire name. All interface ru
 the default will be the inverse). CIDR rules are matched after interface name rules. Default is all local IP addresses.
 
 ```yml
-local_allow_list:
-  # Example to block tun0 and all docker interfaces.
-  interfaces:
-    tun0: false
-    'docker.*': false
-    # Example to only advertise this subnet to the lighthouse.
-    '10.0.0.0/8': true
+lighthouse:
+  local_allow_list:
+    # Example to block tun0 and all docker interfaces.
+    interfaces:
+      tun0: false
+      'docker.*': false
+      # Example to only advertise this subnet to the lighthouse.
+      '10.0.0.0/8': true
 ```
