@@ -1,0 +1,3 @@
+{
+  "languageToolLinter.languageTool.ignoredWordsInWorkspace": ["classname", "yml", "chown", "classname", "syscall"]
+}
