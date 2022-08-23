@@ -18,28 +18,30 @@ logging:
 
 <Pill className="mb-24">Default: info</Pill>
 
-options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
+Controls the verbosity of logs. The options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
 
 ## logging.format
 
 <Pill className="mb-24">Default: text</Pill>
 
-options are `json` or `text`
+Controls the logging format. The options are `json` or `text`
 
 ## logging.disable_timestamp
 
 <Pill className="mb-24">Default: False</Pill>
 
-Disable timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
+Disables timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
 
 ## logging.timestamp_format
 
-`timestamp_format` is specified in Go time format, see:
-https://golang.org/pkg/time/#pkg-constants
+`timestamp_format` is specified in Go time format, see: <https://golang.org/pkg/time/#pkg-constants>.
 
 The default when `format: json` is set is an [RFC3339 timestamp](https://datatracker.ietf.org/doc/html/rfc3339), e.g. `"2006-01-02T15:04:05Z07:00"`.
 
-The default when `format: text` is either seconds since beginning of execution when a TTY is attached, otherwise: `"2006-01-02T15:04:05Z07:00"` (RFC3339).
+When `format: text` is set:
+
+- If a TTY is attached, the timestamp output is seconds since beginning of execution.
+- Otherwise it is `"2006-01-02T15:04:05Z07:00"` (RFC3339).
 
 As an example, to log as RFC3339 with millisecond precision:
 
