@@ -6,7 +6,8 @@ import { Pill } from '@components/Pill/Pill';
 
 # pki
 
-Defines the path of each file required for a Nebula host: CA certificate, host certificate, and host key. Each of these files can also be stored inline as YAML multiline strings.
+Defines the path of each file required for a Nebula host: CA certificate, host certificate, and host key. Each of these
+files can also be stored inline as YAML multiline strings.
 
 ```yml
 pki:
@@ -21,7 +22,9 @@ pki:
 
 <Pill className="mb-24">Required</Pill>
 
-The ca is a collection of one or more certificate authorities this host should trust. In the above example, `/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The following example shows a CA cert inlined as a YAML multiline string.
+The ca is a collection of one or more certificate authorities this host should trust. In the above example,
+`/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The
+following example shows a CA cert inlined as a YAML multiline string.
 
 ```yml
 pki:
@@ -37,14 +40,19 @@ pki:
 
 <Pill className="mb-24">Required</Pill>
 
-The cert is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address, name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created, which informs other hosts on whether to trust a particular host certificate.
+The cert is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
+name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
+which informs other hosts on whether to trust a particular host certificate.
 
 ## pki.key
 
 <Pill className="mb-24">Required</Pill>
 
-The key is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other hosts.
+The key is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate
+to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other
+hosts.
 
 ## pki.blocklist
 
-The blocklist contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen or compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we trust.
+The blocklist contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen or
+compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we trust.
