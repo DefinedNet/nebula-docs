@@ -6,7 +6,8 @@ import { Pill } from '@components/Pill/Pill';
 
 # stats
 
-Nebula sorts outputting stats for [Graphite](https://graphiteapp.org/) or [Prometheus](https://prometheus.io/). Options passed / required will depend on `stats.type`.
+Nebula sorts outputting stats for [Graphite](https://graphiteapp.org/) or [Prometheus](https://prometheus.io/). Options
+passed / required will depend on `stats.type`.
 
 ```yml
 stats:
@@ -30,8 +31,8 @@ stats:
 
 ## stats.type
 
-Choose your stats provider. Options are `graphite` and `prometheus`. If unset, nebula will not report statistics to a provider.
-This will determine other available options.
+Choose your stats provider. Options are `graphite` and `prometheus`. If unset, nebula will not report statistics to a
+provider. This will determine other available options.
 
 ## stats.interval
 
@@ -43,7 +44,8 @@ Duration.
 
 <Pill className="mb-24">Default: False</Pill>
 
-Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always emitted.
+Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always
+emitted.
 
 ## stats.lighthouse_metrics
 
