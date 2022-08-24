@@ -30,7 +30,23 @@ stats:
 
 ## stats.type
 
-options are `graphite` and `prometheus`. This will determine other available options.
+Choose your stats provider. Options are `graphite` and `prometheus`. This will determine other available options.
+
+## stats.interval
+
+Duration.
+
+## stats.message_metrics
+
+<Pill className="mb-24">Default: False</Pill>
+
+Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always emitted.
+
+## stats.lighthouse_metrics
+
+<Pill className="mb-24">Default: False</Pill>
+
+Enables detailed counter metrics for lighthouse packets, e.g.: `lighthouse.rx.HostQuery`.
 
 ## Graphite options
 
@@ -42,11 +58,11 @@ Config options if `stats.type` is chosen to be `graphite`
 
 ### stats.protocol
 
-tcp|udp, but must only be TCP lol
+<Pill className="mb-24">Default: tcp</Pill>
+
+Choose which protocol is used for passing stats to Graphite. The options are `tcp` and `udp`.
 
 ### stats.host
-
-### stats.interval
 
 ## Prometheus options
 
@@ -65,19 +81,3 @@ Path to serve up stats at, for example `/my-stats`
 ### stats.namespace
 
 ### stats.subsystem
-
-### stats.interval
-
-Duration.
-
-## stats.message_metrics
-
-<Pill className="mb-24">Default: False</Pill>
-
-Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always emitted.
-
-## stats.lighthouse_metrics
-
-<Pill className="mb-24">Default: False</Pill>
-
-Enables detailed counter metrics for lighthouse packets, e.g.: `lighthouse.rx.HostQuery`.
