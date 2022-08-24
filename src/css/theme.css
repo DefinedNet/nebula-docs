@@ -16,7 +16,7 @@
   --ifm-color-primary-light: var(--dn-color-cyan-50);
   --ifm-color-primary-lighter: var(--dn-color-cyan-60);
   --ifm-color-primary-lightest: var(--dn-color-cyan-70);
-  --ifm-code-font-size: .875em;
+  --ifm-code-font-size: 0.875em;
   --docusaurus-highlighted-code-line-bg: hsla(0, 0%, 0%, 0.1);
   --ifm-footer-background-color: var(--dn-color-gray-95);
   --ifm-background-surface-color: var(--dn-color-gray-95);

@@ -23,7 +23,8 @@ tun:
 
 ## tun.disabled
 
-Allows the nebula interface (tun) to be disabled, which lets you run a lighthouse without a nebula interface (and therefore without root). You will not be able to communiate over IP with a nebula node that uses this setting.
+Allows the nebula interface (tun) to be disabled, which lets you run a lighthouse without a nebula interface (and
+therefore without root). You will not be able to communiate over IP with a nebula node that uses this setting.
 
 ## tun.dev
 
@@ -39,7 +40,8 @@ Toggles forwarding of multicast packets
 
 ## tun.tx_queue
 
-Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number. Default is 500.
+Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number.
+Default is 500.
 
 ## tun.mtu
 
@@ -51,6 +53,8 @@ Route based MTU overrides, you have known vpn ip paths that can support larger M
 
 ## tun.unsafe_routes
 
-**IMPORTANT NOTE: The nebula certificate of the “via” node MUST have the “route” defined as a subnet in its certificate**
+**IMPORTANT NOTE: The nebula certificate of the “via” node MUST have the “route” defined as a subnet in its
+certificate**
 
-Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you have hosts/services that cannot run nebula.
+Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you
+have hosts/services that cannot run nebula.

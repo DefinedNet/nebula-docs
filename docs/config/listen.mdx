@@ -4,7 +4,9 @@ sidebar_position: 4
 
 # listen
 
-listen sets the UDP port Nebula will use for sending/receiving traffic and for handshakes. The default here is 4242. For a lighthouse node, the port should be defined, however using port 0 will dynamically assign a port and is recommended for roaming nodes.
+listen sets the UDP port Nebula will use for sending/receiving traffic and for handshakes. The default here is 4242. For
+a lighthouse node, the port should be defined, however using port 0 will dynamically assign a port and is recommended
+for roaming nodes.
 
 ```yml
 listen:
@@ -17,7 +19,8 @@ listen:
 
 ## listen.host
 
-`host` is the ip of the interface to use when binding the listener. The default is 0.0.0.0, which is what most people should use.
+`host` is the ip of the interface to use when binding the listener. The default is 0.0.0.0, which is what most people
+should use.
 
 ## listen.port
 
@@ -25,4 +28,7 @@ listen:
 
 ## batch, read_buffer, write_buffer
 
-Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and `/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
+Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
+the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and
+`/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is
+used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
