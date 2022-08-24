@@ -30,9 +30,12 @@ stats:
 
 ## stats.type
 
-Choose your stats provider. Options are `graphite` and `prometheus`. This will determine other available options.
+Choose your stats provider. Options are `graphite` and `prometheus`. If unset, nebula will not report statistics to a provider.
+This will determine other available options.
 
 ## stats.interval
+
+<Pill className="mb-24">Required</Pill>
 
 Duration.
 
@@ -54,21 +57,29 @@ Config options if `stats.type` is chosen to be `graphite`
 
 ### stats.prefix
 
-`nebula` by default
+<Pill className="mb-24">
+  Default: <span data-no-transform>nebula</span>
+</Pill>
 
 ### stats.protocol
 
-<Pill className="mb-24">Default: tcp</Pill>
+<Pill className="mb-24">
+  Default: <span data-no-transform>tcp</span>
+</Pill>
 
 Choose which protocol is used for passing stats to Graphite. The options are `tcp` and `udp`.
 
 ### stats.host
+
+<Pill className="mb-24">Required</Pill>
 
 ## Prometheus options
 
 Config options if `stats.type` is chosen to be `prometheus`
 
 ### stats.listen
+
+<Pill className="mb-24">Required</Pill>
 
 TCP address of `0.0.0.0:8080` or `:8080` or `192.168.14.12:1234`, for instance.
 

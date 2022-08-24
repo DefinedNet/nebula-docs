@@ -7,6 +7,10 @@
   border-radius: 10rem;
   background-color: var(--ifm-color-emphasis-200);
   padding: 4px 8px;
+
+  & :global([data-no-transform]) {
+    text-transform: none;
+  }
 }
 
 .Pill___info {
