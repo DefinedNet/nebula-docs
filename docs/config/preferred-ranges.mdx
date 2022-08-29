@@ -12,19 +12,24 @@ ranges admitted as a set of preferred ranges of IP addresses.
 > An underlay network is the network that a nebula [overlay network](https://en.wikipedia.org/wiki/Overlay_network) maps
 > onto. It is the LAN network that a host is connected to in addition to the wider internet.
 
-How nebula orders underlay IP addresses it learns about:
+## How nebula orders underlay IP addresses it learns about
 
-Highest priority
+<figure>
+<figcaption>
 
-- IP address is in `preferred_ranges` set and is [ipv6](https://en.wikipedia.org/wiki/IPv6)
-- IP address is in `preferred_ranges` set and is [public ipv4](https://en.wikipedia.org/wiki/IPv4)
-- IP address is in `preferred_ranges` set and is [private ipv4](https://en.wikipedia.org/wiki/IPv4#Private_networks)
-- IP address is ipv6
-- IP address is public ipv4
-- IP address is private ipv4
-- Route is via a [relay](/config/relay) (experimental)
+Highest priority to Lowest Priority:
 
-Lowest priority
+</figcaption>
+
+1. IP address is in `preferred_ranges` set and is [ipv6](https://en.wikipedia.org/wiki/IPv6)
+1. IP address is in `preferred_ranges` set and is [public ipv4](https://en.wikipedia.org/wiki/IPv4)
+1. IP address is in `preferred_ranges` set and is [private ipv4](https://en.wikipedia.org/wiki/IPv4#Private_networks)
+1. IP address is ipv6
+1. IP address is public ipv4
+1. IP address is private ipv4
+1. Route is via a [relay](/config/relay) (experimental)
+
+</figure>
 
 To set up a host that prefers local network `172.16.0.0/24` first, then `ipv6` then `public ipv4` then `private ipv4`,
 specify:
