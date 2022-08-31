@@ -105,11 +105,13 @@ Path to serve up stats at, for example `/my-stats`
 <Pill className="mb-24">Required</Pill>
 
 The [prefix](https://prometheus.io/docs/practices/naming/#metric-names) that nebula should add to stats to add context
-within Prometheus. It's recommended to set this to `nebula` by default.
+within Prometheus. It's recommended to set this to `nebula` by default. Must be in the shape:
+<https://prometheus.io/docs/concepts/data_model/>
 
 ### stats.subsystem
 
 <Pill className="mb-24">Required</Pill>
 
 Describe which sort of subsystem these stats fall into:
-<https://prometheus.io/docs/practices/instrumentation/#subsystems>
+<https://prometheus.io/docs/practices/instrumentation/#subsystems>. Must be in the shape:
+<https://prometheus.io/docs/concepts/data_model/>
