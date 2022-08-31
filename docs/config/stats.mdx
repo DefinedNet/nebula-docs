@@ -1,0 +1,96 @@
+---
+sidebar_position: 14
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# stats
+
+Nebula sorts outputting stats for [Graphite](https://graphiteapp.org/) or [Prometheus](https://prometheus.io/). Options
+passed / required will depend on `stats.type`.
+
+```yml
+stats:
+  type: graphite
+  prefix: nebula
+  protocol: tcp
+  host: 127.0.0.1:9999
+  interval: 10s
+
+  type: prometheus
+  listen: 127.0.0.1:8080
+  path: /metrics
+  namespace: prometheusns
+  subsystem: nebula
+  interval: 10s
+
+  message_metrics: false
+
+  lighthouse_metrics: false
+```
+
+## stats.type
+
+Choose your stats provider. Options are `graphite` and `prometheus`. If unset, nebula will not report statistics to a
+provider. This will determine other available options.
+
+## stats.interval
+
+<Pill className="mb-24">Required</Pill>
+
+Duration.
+
+## stats.message_metrics
+
+<Pill className="mb-24">Default: False</Pill>
+
+Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always
+emitted.
+
+## stats.lighthouse_metrics
+
+<Pill className="mb-24">Default: False</Pill>
+
+Enables detailed counter metrics for lighthouse packets, e.g.: `lighthouse.rx.HostQuery`.
+
+## Graphite options
+
+Config options if `stats.type` is chosen to be `graphite`
+
+### stats.prefix
+
+<Pill className="mb-24">
+  Default: <span className="no-transform">nebula</span>
+</Pill>
+
+### stats.protocol
+
+<Pill className="mb-24">
+  Default: <span className="no-transform">tcp</span>
+</Pill>
+
+Choose which protocol is used for passing stats to Graphite. The options are `tcp` and `udp`.
+
+### stats.host
+
+<Pill className="mb-24">Required</Pill>
+
+## Prometheus options
+
+Config options if `stats.type` is chosen to be `prometheus`
+
+### stats.listen
+
+<Pill className="mb-24">Required</Pill>
+
+TCP address of `0.0.0.0:8080` or `:8080` or `192.168.14.12:1234`, for instance.
+
+### stats.path
+
+<Pill className="mb-24">Required</Pill>
+
+Path to serve up stats at, for example `/my-stats`
+
+### stats.namespace
+
+### stats.subsystem
