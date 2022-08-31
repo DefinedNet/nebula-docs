@@ -1,5 +1,5 @@
 ---
-sidebar_position: 14
+sidebar_position: 13
 ---
 
 import { Pill } from '@components/Pill/Pill';
@@ -32,11 +32,15 @@ stats:
 ## stats.type
 
 Choose your stats provider. Options are `graphite` and `prometheus`. If unset, nebula will not report statistics to a
-provider. This will determine other available options.
+provider. This will determine other available options. A difference between the two is that Prometheus is a polling
+based system, whereas Graphite is push based.
 
 ## stats.interval
 
 <Pill className="mb-24">Required</Pill>
+
+The speed at which Graphite will push stats updates to the consumer + the speed at which some internal services will
+push updates to the main stats service.
 
 Duration.
 
@@ -63,6 +67,9 @@ Config options if `stats.type` is chosen to be `graphite`
   Default: <span className="no-transform">nebula</span>
 </Pill>
 
+The prefix for Graphite metrics that nebula will prepend:
+<https://graphite.readthedocs.io/en/latest/feeding-carbon.html#step-1-plan-a-naming-hierarchy>
+
 ### stats.protocol
 
 <Pill className="mb-24">
@@ -74,6 +81,8 @@ Choose which protocol is used for passing stats to Graphite. The options are `tc
 ### stats.host
 
 <Pill className="mb-24">Required</Pill>
+
+IP address of the host that Graphite should push stats updates to.
 
 ## Prometheus options
 
@@ -93,4 +102,14 @@ Path to serve up stats at, for example `/my-stats`
 
 ### stats.namespace
 
+<Pill className="mb-24">Required</Pill>
+
+The [prefix](https://prometheus.io/docs/practices/naming/#metric-names) that nebula should add to stats to add context
+within Prometheus. It's recommended to set this to `nebula` by default.
+
 ### stats.subsystem
+
+<Pill className="mb-24">Required</Pill>
+
+Describe which sort of subsystem these stats fall into:
+<https://prometheus.io/docs/practices/instrumentation/#subsystems>
