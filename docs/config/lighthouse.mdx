@@ -78,10 +78,11 @@ To allow hosts to make queries against the DNS server over the Nebula network, d
 The below example config will allow any host on the network to query the lighthouse for DNS
 
 ```yml
-inbound:
-  - port: 53
-    proto: udp
-    group: any
+firewall:
+  inbound:
+    - port: 53
+      proto: udp
+      group: any
 ```
 
 :::
