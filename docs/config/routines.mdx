@@ -1,0 +1,16 @@
+---
+sidebar_position: 12
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# routines
+
+<Pill className="mb-24">Default: 1</Pill>
+
+`routines` is the number of thread pairs to run that consume from the tun and UDP queues. Currently, this defaults to
+`1` which means we have `1` tun queue reader and `1` UDP queue reader. Setting this above `1` will set `IFF_MULTI_QUEUE`
+on the tun device and `SO_REUSEPORT` on the UDP socket to allow multiple queues. This option is only supported on Linux.
+
+The _maximum_ recommended setting is half of the available CPU cores. It's recommended to set this to a lower value
+still, to avoid resource starvation.

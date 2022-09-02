@@ -1,10 +1,12 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 ---
+
+import { Pill } from '@components/Pill/Pill';
 
 # sshd
 
-sshd enables nebula’s built-in debugging console, which can be accessed via ssh. it can expose informational and
+`sshd` enables nebula's built-in debugging console, which can be accessed via ssh. It can expose informational and
 administrative functions, and allows manual tweaking of various network settings when debugging or testing.
 
 _Hint: To generate the host key run `ssh-keygen -t ed25519 -f ssh_host_ed25519_key`. Be sure to set the ownership
@@ -22,6 +24,8 @@ sshd:
 ```
 
 ## sshd.enabled
+
+<Pill className="mb-24">Default: False</Pill>
 
 `enabled` toggles this feature globally.
 

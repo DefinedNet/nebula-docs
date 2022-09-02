@@ -22,7 +22,7 @@ pki:
 
 <Pill className="mb-24">Required</Pill>
 
-The ca is a collection of one or more certificate authorities this host should trust. In the above example,
+The `ca` is a collection of one or more certificate authorities this host should trust. In the above example,
 `/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The
 following example shows a CA cert inlined as a YAML multiline string.
 
@@ -40,7 +40,7 @@ pki:
 
 <Pill className="mb-24">Required</Pill>
 
-The cert is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
+The `cert` is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
 name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
 which informs other hosts on whether to trust a particular host certificate.
 
@@ -48,11 +48,18 @@ which informs other hosts on whether to trust a particular host certificate.
 
 <Pill className="mb-24">Required</Pill>
 
-The key is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate
+The `key` is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate
 to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other
 hosts.
 
 ## pki.blocklist
 
-The blocklist contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen or
-compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we trust.
+The `blocklist` contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen
+or compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we
+trust.
+
+## pki.disconnect_invalid
+
+<Pill className="mb-24">Default: False</Pill>
+
+`disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.
