@@ -75,6 +75,15 @@ $ dig +short @192.168.100.1 192.168.100.5 TXT
 To allow hosts to make queries against the DNS server over the Nebula network, don't forget to allow access in the
 [firewall](/config/firewall).
 
+The below example config will allow any host on the network to query the lighthouse for DNS
+
+```yml
+inbound:
+  - port: 53
+    proto: udp
+    group: any
+```
+
 :::
 
 ## lighthouse.dns
