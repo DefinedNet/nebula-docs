@@ -42,7 +42,7 @@ based system, whereas Graphite is push based.
 The speed at which Graphite will push stats updates to the consumer + the speed at which some internal services will
 push updates to the main stats service.
 
-Duration.
+A golang [Duration](https://pkg.go.dev/time#ParseDuration). Recommended to be set to `60s`.
 
 ## stats.message_metrics
 
@@ -92,13 +92,14 @@ Config options if `stats.type` is chosen to be `prometheus`
 
 <Pill className="mb-24">Required</Pill>
 
-TCP address of `0.0.0.0:8080` or `:8080` or `192.168.14.12:1234`, for instance.
+Interface for the Prometheus stats server to listen on. TCP address of `0.0.0.0:8080` or `:8080` or
+`192.168.14.12:1234`, for instance.
 
 ### stats.path
 
 <Pill className="mb-24">Required</Pill>
 
-Path to serve up stats at, for example `/my-stats`
+Path to serve stats to, normally `/metrics`.
 
 ### stats.namespace
 
