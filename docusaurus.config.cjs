@@ -12,7 +12,7 @@ const config = {
   tagline: 'Learn about Nebula here',
   url: 'https://docs.defined.net',
   // For deploy previews, don't set a baseUrl
-  baseUrl: process.env.CONTEXT === 'deploy-preview' ? '/' : '/nebula/',
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
@@ -40,7 +40,6 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          routeBasePath: '/', // Serve the docs at the site's root
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: 'https://github.com/definednet/nebula-docs/tree/main/',
         },
@@ -63,6 +62,7 @@ const config = {
         title: 'Nebula Docs',
         logo: {
           alt: 'Defined Networking logo',
+          href: '/docs',
           src: 'img/mark.svg',
           srcDark: 'img/mark-dark.svg',
         },
@@ -81,11 +81,11 @@ const config = {
             items: [
               {
                 label: 'Guides',
-                to: '/guides',
+                to: '/docs/guides',
               },
               {
                 label: 'Config Reference',
-                to: '/config',
+                to: '/docs/config',
               },
             ],
           },
