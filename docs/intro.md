@@ -43,7 +43,7 @@ Nebula is written in Go and is designed for portability.
 _How to create your first overlay network_ is a step-by-step guide that explains how to deploy Nebula. It's a great
 place to get started and learn how to connect a few hosts.
 
-[Nebula Quick Start guide](/guides/quick-start/)
+[Nebula Quick Start guide](/docs/guides/quick-start/)
 
 ### Overview presentation
 

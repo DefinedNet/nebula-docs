@@ -1,6 +1,7 @@
 [[redirects]]
-  from = "/nebula/*"
-  to = "/:splat"
+  from = "/"
+  to = "/docs/"
+  force = true
 
 [dev]
   framework = "docusaurus-v2"
