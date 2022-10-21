@@ -45,3 +45,7 @@ html[data-theme='dark'] {
   color: white;
   background-color: var(--ifm-color-primary);
 }
+
+[data-theme='dark'] .DocSearch {
+  --docsearch-hit-active-color: var(--ifm-color-black);
+}
