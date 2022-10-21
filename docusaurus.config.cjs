@@ -130,10 +130,12 @@ const config = {
         // The application ID provided by Algolia
         appId: '3Z2PF7OC67',
 
-        // Public API key: it is safe to commit it
-        apiKey: 'ccfef882ebf7aacb150510b2005898d8',
+        // Public Search API key: it is safe to commit it
+        apiKey: 'e18093227a63ac004263f767e3f5a896',
 
         indexName: 'defined-nebula',
+
+        contextualSearch: false,
 
         // Optional: path for search page that enabled by default (`false` to disable it)
         searchPagePath: false,
