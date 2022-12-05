@@ -1,0 +1,54 @@
+# Using Lighthouse DNS with Nebula
+
+Nebula comes with built-in DNS server support in the Lighthouse hosts.
+
+This is in addition to supporting regular DNS records that point to particular nebula IP addresses. If you want to, you
+can simply create a public DNS A record pointing to `10.0.0.23` for your private team wiki on <https://gandi.net> or
+some other public DNS, set up a server w/ TLS and Basic Auth via caddy server, and you're golden.
+
+Lighthouse DNS can be helpful and useful for generating DNS records based on dynamic nebula hosts, for example if you
+are spinning up new nebula hosts with demand, or using [anycast](https://en.wikipedia.org/wiki/Anycast) addresses to
+split load.
+
+To get started, set up a lighthouse and two hosts using our [Quick Start](/docs/guides/quick-start/).
+
+You can then use [`lighthouse.serve_dns`](/docs/config/lighthouse#lighthouseserve_dns) and the
+[`lighthouse.dns`](/docs/config/lighthouse#lighthousedns) config settings for your lighthouse config file to enable DNS
+querying.
+
+You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
+lighthouse IP or the private Nebula IP. If you set `lighthouse.dns.host: 0.0.0.0`, it will bind to all interfaces,
+including botht the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.23`
+will ensure the DNS is only accessible to hosts that are allowed to make UDP requests to that lighthouse.
+
+I guess something related to these docs might be how to enable TLS certs for a server, though I'll leave that as an
+exercise to the reader 😉.
+
+## Q&A
+
+- How do hostnames turn into DNS host names?
+- Are the names case sensitive?
+- Do they support Unicode?
+- How do duplicate hostnames get resolved?
+- Can I run more than one Lighthouse DNS server?
+
+example:
+
+```bash
+dig -A 10.0.0.23
+blah blah blah blah
+```
+
+## Additional info supported by the Lighthouse DNS
+
+```bash
+$ dig +short @192.168.100.1 192.168.100.5 TXT
+
+"Name: web01" "Ips: [192.168.100.5/24]" "Subnets []" "Groups [servers web]" "NotBefore 2021-06-15 14:19:22 +0000 UTC" "NotAFter 2022-04-28 21:49:15 +0000 UTC" "PublicKey dde33784fb2bbada73f8bf4cafbf9271dc864b770b1e44002f81563856711f7c" "IsCA false" "Issuer 91f795c52f601d3110ee5232b22c13a89a76d3e3fb89bed3c21929c873cb6ec9"
+```
+
+:::warning
+
+update the above to be a newer example
+
+:::

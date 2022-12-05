@@ -1,5 +1,6 @@
 {
   "languageToolLinter.languageTool.ignoredWordsInWorkspace": [
+    "anycast",
     "chown",
     "classname",
     "figcaption",
