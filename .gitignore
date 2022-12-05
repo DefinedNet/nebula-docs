@@ -30,3 +30,4 @@ pids
 
 # macOS-specific files
 .DS_Store
+tsconfig.tsbuildinfo
