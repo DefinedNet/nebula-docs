@@ -52,3 +52,10 @@ $ dig +short @192.168.100.1 192.168.100.5 TXT
 update the above to be a newer example
 
 :::
+
+I've learned that you need to make sure that port `53` or whatever is open unless we make a PR to enable port reuse.
+
+I've learned that DN doesn't currently accept ipv6 addresses or require that you pass a host to bind to at all
+
+For some reason I'm currently getting a nothing response in dig even though I'm getting logs visible in Digital Ocean
+that it processed the response ++ dig completes quickly instead of timing out.
