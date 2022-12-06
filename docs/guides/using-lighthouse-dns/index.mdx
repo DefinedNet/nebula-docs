@@ -29,8 +29,24 @@ exercise to the reader 😉.
 - How do hostnames turn into DNS host names?
 - Are the names case sensitive?
 - Do they support Unicode?
+  - I don't think so? Maybe via punycode???
 - How do duplicate hostnames get resolved?
 - Can I run more than one Lighthouse DNS server?
+  - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
+- How to get the lighthouse to answer questions about itself
+  - How does the lighthouse learn about hosts? Hosts connect to the lighthouse as they normally do, and in doing so the
+    lighthouse learns about their cert. Due to this fact, the lighthouse can only answer questions about hosts it has
+    seen since last start.
+
+## How to name hosts w/ valid domain names
+
+https://www.geeksforgeeks.org/how-to-validate-a-domain-name-using-regular-expression/
+
+Here's a validator inline in the documentation for you:
+
+import { ValidateDomainInput } from './ValidateDomainInput';
+
+<ValidateDomainInput />
 
 example:
 
