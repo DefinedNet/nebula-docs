@@ -8,7 +8,7 @@ export function ValidateDomainInput() {
 
   return (
     <form>
-      <input name="domain" value={value} onChange={(e) => setValue(e.target.value)} />
+      <input name="domain" type="text" value={value} onChange={(e) => setValue(e.target.value)} />
       {!value.length ? (
         <div>Please input a domain to validate</div>
       ) : typeof error === 'string' ? (

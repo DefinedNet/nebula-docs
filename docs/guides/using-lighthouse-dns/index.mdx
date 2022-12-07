@@ -35,36 +35,6 @@ lighthouse IP or the private Nebula IP. If you set `lighthouse.dns.host: [::]`, 
 including both the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
 ensure the DNS is only accessible to hosts that are allowed to make UDP requests to that lighthouse.
 
-## Q&A
-
-- How do hostnames turn into DNS host names?
-  - If the hostname is a valid DNS name, it will be resolved by the Lighthouse DNS resolver.
-- Are the domain names case-sensitive?
-  - Currently the DNS server matches names case sensitively, though DNS is
-    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
-- Do they support Unicode?
-  - I don't think so? Maybe via punycode???
-- How do duplicate hostnames get resolved?
-- Can I run more than one Lighthouse DNS server?
-  - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
-- How to get the lighthouse to answer questions about itself
-  - How does the lighthouse learn about hosts? Hosts connect to the lighthouse as they normally do, and in doing so the
-    lighthouse learns about their cert. Due to this fact, the lighthouse can only answer questions about hosts it has
-    seen since last start.
-- Can the lighthouse resolve its own name?
-  - As of nebula `v1.6.1`, no, the lighthouse only responds about hosts it has handshaked with, it never handshakes with
-    itself. [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
-
-## How to name hosts w/ valid domain names
-
-https://www.geeksforgeeks.org/how-to-validate-a-domain-name-using-regular-expression/
-
-Here's a validator inline in the documentation for you:
-
-import { ValidateDomainInput } from './ValidateDomainInput';
-
-<ValidateDomainInput />
-
 ## Tutorial
 
 First, spin up a lighthouse and 2 hosts. Then add
@@ -108,6 +78,37 @@ If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall r
 curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 <div>hello i am a website</div>
 ```
+
+## Name hosts with valid domain names
+
+Hosts with names conforming to the [DNS RFC](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1) will be resolved,
+otherwise the Lighthouse DNS will return an empty response.
+
+Here's a validator inline in the documentation for you:
+
+import { ValidateDomainInput } from './ValidateDomainInput';
+
+<ValidateDomainInput />
+
+## Q&A
+
+- How do hostnames turn into DNS host names?
+  - If the hostname is a valid DNS name, it will be resolved by the Lighthouse DNS resolver.
+- Are the domain names case-sensitive?
+  - Currently the DNS server matches names case sensitively, though DNS is
+    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
+- Do they support Unicode?
+  - I don't think so? Maybe via punycode???
+- How do duplicate hostnames get resolved?
+- Can I run more than one Lighthouse DNS server?
+  - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
+- How to get the lighthouse to answer questions about itself
+  - How does the lighthouse learn about hosts? Hosts connect to the lighthouse as they normally do, and in doing so the
+    lighthouse learns about their cert. Due to this fact, the lighthouse can only answer questions about hosts it has
+    seen since last start.
+- Can the lighthouse resolve its own name?
+  - As of nebula `v1.6.1`, no, the lighthouse only responds about hosts it has handshaked with, it never handshakes with
+    itself. [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
 
 Document Windows DNS setup?
 
