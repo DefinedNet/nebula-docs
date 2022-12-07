@@ -1,14 +1,21 @@
-# Using Lighthouse DNS with Nebula
+# Using Experimental Lighthouse DNS with Nebula
+
+:::caution
+
+Lighthouse DNS in Nebula is Experimental and not intended to be a robust solution currently.
+
+:::
 
 Nebula comes with built-in DNS server support in the Lighthouse hosts.
-
-This is in addition to supporting regular DNS records that point to particular nebula IP addresses. If you want to, you
-can simply create a public DNS A record pointing to `10.0.0.23` for your private team wiki on <https://gandi.net> or
-some other public DNS, set up a server w/ TLS and Basic Auth via caddy server, and you're golden.
 
 Lighthouse DNS can be helpful and useful for generating DNS records based on dynamic nebula hosts, for example if you
 are spinning up new nebula hosts with demand, or using [anycast](https://en.wikipedia.org/wiki/Anycast) addresses to
 split load.
+
+An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. If you want to, you
+can simply create a public DNS A record pointing to `10.0.0.23` for your private team wiki on <https://gandi.net> or
+some other public DNS, set up a server w/ TLS and Basic Auth via
+[caddy server](https://caddyserver.com/docs/getting-started), and you're golden.
 
 To get started, set up a lighthouse and two hosts using our [Quick Start](/docs/guides/quick-start/).
 
@@ -17,21 +24,17 @@ You can then use [`lighthouse.serve_dns`](/docs/config/lighthouse#lighthouseserv
 querying.
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private Nebula IP. If you set `lighthouse.dns.host: 0.0.0.0`, it will bind to all interfaces,
-including botht the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.23`
-will ensure the DNS is only accessible to hosts that are allowed to make UDP requests to that lighthouse.
-
-I guess something related to these docs might be how to enable TLS certs for a server, though I'll leave that as an
-exercise to the reader 😉.
-
-## TODO:
-
-- [ ] Explain this impl as Experimental and Incomplete
+lighthouse IP or the private Nebula IP. If you set `lighthouse.dns.host: [::]`, it will bind to all interfaces,
+including both the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
+ensure the DNS is only accessible to hosts that are allowed to make UDP requests to that lighthouse.
 
 ## Q&A
 
 - How do hostnames turn into DNS host names?
-- Are the names case sensitive?
+  - If the hostname is a valid DNS name, it will be resolved by the Lighthouse DNS resolver.
+- Are the domain names case-sensitive?
+  - Currently the DNS server matches names case sensitively, though DNS is
+    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
 - Do they support Unicode?
   - I don't think so? Maybe via punycode???
 - How do duplicate hostnames get resolved?
@@ -51,37 +54,6 @@ Here's a validator inline in the documentation for you:
 import { ValidateDomainInput } from './ValidateDomainInput';
 
 <ValidateDomainInput />
-
-example:
-
-```bash
-dig -A 10.0.0.23
-blah blah blah blah
-```
-
-## Additional info supported by the Lighthouse DNS
-
-```bash
-$ dig +short @192.168.100.1 192.168.100.5 TXT
-
-"Name: web01" "Ips: [192.168.100.5/24]" "Subnets []" "Groups [servers web]" "NotBefore 2021-06-15 14:19:22 +0000 UTC" "NotAFter 2022-04-28 21:49:15 +0000 UTC" "PublicKey dde33784fb2bbada73f8bf4cafbf9271dc864b770b1e44002f81563856711f7c" "IsCA false" "Issuer 91f795c52f601d3110ee5232b22c13a89a76d3e3fb89bed3c21929c873cb6ec9"
-```
-
-:::warning
-
-update the above to be a newer example
-
-:::
-
-I've learned that you need to make sure that port `53` or whatever is open unless we make a PR to enable port reuse.
-
-I've learned that DN doesn't currently accept ipv6 addresses or require that you pass a host to bind to at all
-
-For some reason I'm currently getting a nothing response in dig even though I'm getting logs visible in Digital Ocean
-that it processed the response ++ dig completes quickly instead of timing out.
-
-Currently the DNS server matches names case sensitively, though DNS is
-[meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
 
 ## Tutorial
 
@@ -106,7 +78,8 @@ dig @100.100.0.1 +short alice-laptop A
 100.100.0.2
 ```
 
-I can also query the TXT record for the nebula IP for certificate info.
+I can also query the TXT record for the nebula IP for certificate info. Each piece of info is delivered within quotes
+and as a `"Key: Value"` format.
 
 ```bash
 dig @100.100.0.1 +short 100.100.0.2 TXT
