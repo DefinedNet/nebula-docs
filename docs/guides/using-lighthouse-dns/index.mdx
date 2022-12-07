@@ -24,6 +24,10 @@ will ensure the DNS is only accessible to hosts that are allowed to make UDP req
 I guess something related to these docs might be how to enable TLS certs for a server, though I'll leave that as an
 exercise to the reader 😉.
 
+## TODO:
+
+- [ ] Explain this impl as Experimental and Incomplete
+
 ## Q&A
 
 - How do hostnames turn into DNS host names?
@@ -75,3 +79,44 @@ I've learned that DN doesn't currently accept ipv6 addresses or require that you
 
 For some reason I'm currently getting a nothing response in dig even though I'm getting logs visible in Digital Ocean
 that it processed the response ++ dig completes quickly instead of timing out.
+
+Currently the DNS server matches names case sensitively, though DNS is
+[meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
+
+## Tutorial
+
+First, spin up a lighthouse and 2 hosts. Then add
+
+```yaml
+lighthouse:
+  serve_dns: true
+  host: [::]
+  port: 53
+```
+
+to your config for your lighthouse as well as a firewall rule that enables UDP on port `53` for all hosts you want to
+query DNS on the lighthouse.
+
+Then you can run `dig` against it to test! For example, I made a host named `lighthouse` as my lighthouse with nebula IP
+`100.100.0.1` and `alice-laptop` with nebula IP `100.100.0.2` as my host, and I set up my lighthouse with the above
+config / firewall rule.
+
+```bash
+dig @100.100.0.1 +short alice-laptop A
+100.100.0.2
+```
+
+I can also query the TXT record for the nebula IP for certificate info.
+
+```bash
+dig @100.100.0.1 +short 100.100.0.2 TXT
+"Name: alice-laptop" "Ips: [100.100.0.2/22]" "Subnets []" "Groups [role:Laptop]" "NotBefore 2022-12-06 21:34:25 +0000 UTC" "NotAFter 2024-05-13 17:37:27 +0000 UTC" "PublicKey 2c4828672fef1306124df94eb0fecd753e462e1bd4107f866f4e1a463550eb1b" "IsCA false" "Issuer 5b568aedaa5d97746e870f01a356ba474cf3251c0e743499ec668f93efa77f51"
+```
+
+If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall rule that allows this to be accessed from
+`bob-laptop`, I can request it with `curl` using the custom DNS resolver.
+
+```bash
+curl --dns-servers 100.100.0.1 http://alice-laptop:3000
+<div>hello i am a website</div>
+```
