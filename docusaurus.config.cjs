@@ -10,7 +10,7 @@ const hq = require('alias-hq');
 const config = {
   title: 'Nebula Docs',
   tagline: 'Learn about Nebula here',
-  url: 'https://docs.defined.net',
+  url: 'https://nebula.defined.net',
   // For deploy previews, don't set a baseUrl
   baseUrl: '/',
   onBrokenLinks: 'throw',
