@@ -113,7 +113,7 @@ Document Windows DNS setup?
 
 > If it does work then
 >
-> Add-DnsClientNrptRule -Namespace ".<domain>" -NameServers "<lighthouse ip>" using powershell will tell windows to
+> `Add-DnsClientNrptRule -Namespace ".<domain>" -NameServers "<lighthouse ip>"` using powershell will tell windows to
 > include your lighthouse dns server in name lookups.
 >
 > This means that your nebula hosts will need to share a domain name. You may be able to omit the -Namespace option but
