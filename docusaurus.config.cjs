@@ -89,7 +89,7 @@ const config = {
               },
               {
                 label: 'Docs Github',
-                to: 'https://github.com/DefinedNet/nebula-docs',
+                href: 'https://github.com/DefinedNet/nebula-docs',
               },
             ],
           },
