@@ -23,6 +23,13 @@ You can then use [`lighthouse.serve_dns`](/docs/config/lighthouse#lighthouseserv
 [`lighthouse.dns`](/docs/config/lighthouse#lighthousedns) config settings for your lighthouse config file to enable DNS
 querying.
 
+:::note
+
+Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is aggregated as hosts talk to the lighthouse,
+and if enabled on a regular host would only respond with answers for hosts it has already handshaked with
+
+:::
+
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
 lighthouse IP or the private Nebula IP. If you set `lighthouse.dns.host: [::]`, it will bind to all interfaces,
 including both the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
@@ -44,6 +51,9 @@ ensure the DNS is only accessible to hosts that are allowed to make UDP requests
   - How does the lighthouse learn about hosts? Hosts connect to the lighthouse as they normally do, and in doing so the
     lighthouse learns about their cert. Due to this fact, the lighthouse can only answer questions about hosts it has
     seen since last start.
+- Can the lighthouse resolve its own name?
+  - As of nebula `v1.6.1`, no, the lighthouse only responds about hosts it has handshaked with, it never handshakes with
+    itself. [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
 
 ## How to name hosts w/ valid domain names
 
@@ -98,3 +108,15 @@ If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall r
 curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 <div>hello i am a website</div>
 ```
+
+Document Windows DNS setup?
+
+> If it does work then
+>
+> Add-DnsClientNrptRule -Namespace ".<domain>" -NameServers "<lighthouse ip>" using powershell will tell windows to
+> include your lighthouse dns server in name lookups.
+>
+> This means that your nebula hosts will need to share a domain name. You may be able to omit the -Namespace option but
+> I didn't try it.
+>
+> https://github.com/slackhq/nebula/issues/110#issuecomment-578470077
