@@ -12,9 +12,9 @@ Lighthouse DNS can be helpful and useful for generating DNS records based on dyn
 are spinning up new nebula hosts with demand, or using [anycast](https://en.wikipedia.org/wiki/Anycast) addresses to
 split load.
 
-An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. If you want to, you
-can simply create a public DNS A record pointing to `10.0.0.23` for your private team wiki on a public nameserver, set
-up a server w/ TLS and Basic Auth, and you're golden.
+An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. For example, you can
+create a public DNS A record pointing to `10.0.0.23` for your private team wiki. While this does make your internal IP
+address visible to the internet, only users on your nebula network will be able to access it.
 
 To get started, set up a lighthouse and two hosts using our [Quick Start guide](/docs/guides/quick-start/).
 
