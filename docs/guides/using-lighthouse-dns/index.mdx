@@ -103,10 +103,9 @@ import { ValidateDomainInput } from './ValidateDomainInput';
 - How do duplicate hostnames get resolved?
 - Can I run more than one Lighthouse DNS server?
   - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
-- How to get the lighthouse to answer questions about itself
-  - How does the lighthouse learn about hosts? Hosts connect to the lighthouse as they normally do, and in doing so the
-    lighthouse learns about their cert. Due to this fact, the lighthouse can only answer questions about hosts it has
-    seen since last start.
+- How does the lighthouse learn about hosts?
+  - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
+    this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
   - As of nebula `v1.6.1`, no, the lighthouse only responds about hosts it has handshaked with, it never handshakes with
     itself. [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
