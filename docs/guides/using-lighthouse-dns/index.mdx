@@ -31,9 +31,10 @@ and refuse to serve DNS on that non-lighthouse host.
 :::
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private Nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
-including both the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
-ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
+lighthouse IP or the private Nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to
+`[::]`, nebula will bind to all interfaces, including both the public and Nebula IP. Binding to only the Nebula IP, for
+example `lighthouse.dns.host: 10.0.0.1` will ensure the DNS is only accessible to hosts that are allowed to contact the
+lighthouse via nebula.
 
 ## Tutorial
 
@@ -79,8 +80,6 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 
 Hosts with names conforming to the [DNS RFC](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1) will be resolved,
 otherwise the Lighthouse DNS will return an empty response.
-
-Here's a validator inline in the documentation for you:
 
 import { ValidateDomainInput } from './ValidateDomainInput';
 

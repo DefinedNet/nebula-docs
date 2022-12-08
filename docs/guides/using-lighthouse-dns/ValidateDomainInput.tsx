@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { validateDomain } from './validateDomain';
+import styles from './ValidateDomainInput.module.css';
 
 export function ValidateDomainInput() {
   const [value, setValue] = useState('');
@@ -7,14 +8,23 @@ export function ValidateDomainInput() {
   const error = validateDomain(value);
 
   return (
-    <form>
-      <input name="domain" type="text" value={value} onChange={(e) => setValue(e.target.value)} />
+    <form className={styles.ValidateDomainInput}>
+      <label htmlFor="domainInput">Here's a validator inline in the documentation for you:</label>
+      <input
+        id="domainInput"
+        className={styles.ValidateDomainInput_input}
+        name="domain"
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      />
+
       {!value.length ? (
-        <div>Please input a domain to validate</div>
+        <div className={styles.ValidateDomainInput_info}>Please input a domain to validate</div>
       ) : typeof error === 'string' ? (
-        <div style={{ color: 'tomato' }}>{error}</div>
+        <div className={styles.ValidateDomainInput_error}>{error}</div>
       ) : (
-        <div>Passing domain!</div>
+        <div className={styles.ValidateDomainInput_success}>Passing domain!</div>
       )}
     </form>
   );
