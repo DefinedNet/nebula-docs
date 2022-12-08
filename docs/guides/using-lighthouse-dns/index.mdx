@@ -24,9 +24,9 @@ answers served by Lighthouse DNS.
 
 :::note
 
-Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the lighthouse.
-If enabled on a regular host, nebula will warn: `DNS server refusing to run because this host is not a lighthouse.`
-and refuse to serve DNS on that non-lighthouse host.
+Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
+lighthouse. If enabled on a regular host, nebula will warn:
+`DNS server refusing to run because this host is not a lighthouse.` and refuse to serve DNS on that non-lighthouse host.
 
 :::
 
@@ -102,6 +102,7 @@ import { ValidateDomainInput } from './ValidateDomainInput';
 - Are the domain names case-sensitive?
   - Currently the DNS server matches names case sensitively, though DNS is
     [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
+    [slackhq/nebula/issues/776](https://github.com/slackhq/nebula/issues/776) is tracking this issue.
 - How do duplicate hostnames get resolved?
   - In Nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
     two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
