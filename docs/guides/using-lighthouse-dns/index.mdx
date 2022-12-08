@@ -72,7 +72,7 @@ dig @100.100.0.1 +short "100.100.0.2" TXT
 > will be correct.)
 
 If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall rule that allows this to be accessed from
-`bob-laptop`, I can request it with `curl` using the custom DNS resolver.
+`bob-laptop`, I can request it with `curl` using the custom DNS resolver. (In a production environment, you may choose to configure the system resolver.)
 
 ```bash
 curl --dns-servers "100.100.0.1" http://alice-laptop:3000
