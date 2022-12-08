@@ -89,9 +89,6 @@ import { ValidateDomainInput } from './ValidateDomainInput';
 
 - How do hostnames turn into DNS host names?
   - If the hostname is a valid DNS name, it will be resolved by the Lighthouse DNS resolver.
-- Are the domain names case-sensitive?
-  - Currently the DNS server matches names case sensitively, though DNS is
-    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
 - Do Lighthouse DNS queries support Unicode?
   - DNS only supports ASCII, but has [support for Unicode via punycode](https://www.rfc-editor.org/rfc/rfc3492), for
     example:
@@ -102,6 +99,9 @@ import { ValidateDomainInput } from './ValidateDomainInput';
     ```
     Nebula supports full unicode strings in the host name, but for hosts to be discovered via Lighthouse DNS, they must
     conform to the DNS spec. <https://www.punycoder.com/> is a useful tool for conversion.
+- Are the domain names case-sensitive?
+  - Currently the DNS server matches names case sensitively, though DNS is
+    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
 - How do duplicate hostnames get resolved?
   - In Nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
     two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
