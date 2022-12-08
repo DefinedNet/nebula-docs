@@ -108,8 +108,6 @@ import { ValidateDomainInput } from './ValidateDomainInput';
     two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
     results when querying for these hosts' hostname as the DNS query is ambiguous. The lighthouse will return the nebula
     IP of whichever host it has most recently performed a handshake with.
-- Can I run more than one Lighthouse DNS server?
-  - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
 - How does the lighthouse learn about hosts?
   - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
