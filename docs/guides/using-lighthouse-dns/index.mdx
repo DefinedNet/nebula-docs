@@ -25,7 +25,8 @@ answers served by Lighthouse DNS.
 :::note
 
 Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is aggregated as hosts talk to the lighthouse,
-and if enabled on a regular host would only respond with answers for hosts it has already performed a handshake with
+and if enabled on a regular host, nebula will warn: `DNS server refusing to run because this host is not a lighthouse.`
+and refuse to serve DNS on that non-lighthouse host.
 
 :::
 
