@@ -2,7 +2,7 @@
 
 :::caution
 
-Lighthouse DNS in Nebula is Experimental and not intended to be a robust solution currently.
+Lighthouse DNS in nebula is Experimental and not intended to be a robust solution currently.
 
 :::
 
@@ -31,8 +31,8 @@ lighthouse. If enabled on a regular host, nebula will warn:
 :::
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private Nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to
-`[::]`, nebula will bind to all interfaces, including both the public and Nebula IP. Binding to only the Nebula IP, for
+lighthouse IP or the private nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to
+`[::]`, nebula will bind to all interfaces, including both the public and nebula IP. Binding to only the nebula IP, for
 example `lighthouse.dns.host: 10.0.0.1` will ensure the DNS is only accessible to hosts that are allowed to contact the
 lighthouse via nebula.
 
@@ -104,7 +104,7 @@ import { ValidateDomainInput } from './ValidateDomainInput';
     [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
     [slackhq/nebula/issues/776](https://github.com/slackhq/nebula/issues/776) is tracking this issue.
 - How do duplicate hostnames get resolved?
-  - In Nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
+  - In nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
     two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
     results when querying for these hosts' hostname as the DNS query is ambiguous. The lighthouse will return the nebula
     IP of whichever host it has most recently performed a handshake with.
