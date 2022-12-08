@@ -65,11 +65,6 @@ dig @100.100.0.1 +short "100.100.0.2" TXT
 "Name: alice-laptop" "Ips: [100.100.0.2/22]" "Subnets []" "Groups [role:Laptop]" "NotBefore 2022-12-06 21:34:25 +0000 UTC" "NotAFter 2024-05-13 17:37:27 +0000 UTC" "PublicKey 2c4828672fef1306124df94eb0fecd753e462e1bd4107f866f4e1a463550eb1b" "IsCA false" "Issuer 5b568aedaa5d97746e870f01a356ba474cf3251c0e743499ec668f93efa77f51"
 ```
 
-> The IP is the closest thing to a nebula "primary key" of sorts. An overlapping name/etc. is probably a mistake that
-> can happen commonly, but only one host can actively have an IP (from the lighthouse perspective) at any moment. (note:
-> if you give the same IP to two hosts, via valid certs, they will fight back and forth, but at the moment you query it
-> will be correct.)
-
 If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall rule that allows this to be accessed from
 `bob-laptop`, I can request it with `curl` using the custom DNS resolver. (In a production environment, you may choose
 to configure the system resolver.)
@@ -108,6 +103,10 @@ import { ValidateDomainInput } from './ValidateDomainInput';
     Nebula supports full unicode strings in the host name, but for hosts to be discovered via Lighthouse DNS, they must
     conform to the DNS spec. <https://www.punycoder.com/> is a useful tool for conversion.
 - How do duplicate hostnames get resolved?
+  - In Nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
+    two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
+    results when querying for these hosts' hostname as the DNS query is ambiguous. The lighthouse will return the nebula
+    IP of whichever host it has most recently performed a handshake with.
 - Can I run more than one Lighthouse DNS server?
   - Sure. Just set as many lighthouses as you want in your DNS query settings for your host.
 - How does the lighthouse learn about hosts?
