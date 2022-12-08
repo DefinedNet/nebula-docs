@@ -21,8 +21,8 @@
 }
 
 .ValidateDomainInput_error {
-  color: var(--ifm-color-error);
-  background-color: var(--ifm-color-error-contrast-background);
+  color: var(--ifm-color-danger);
+  background-color: var(--ifm-color-danger-contrast-background);
   border-radius: var(--ifm-global-radius);
   padding: 0.5rem;
   width: fit-content;
