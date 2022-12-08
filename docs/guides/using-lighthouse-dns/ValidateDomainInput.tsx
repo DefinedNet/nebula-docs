@@ -9,7 +9,7 @@ export function ValidateDomainInput() {
 
   return (
     <form className={styles.ValidateDomainInput}>
-      <label htmlFor="domainInput">Here's a validator inline in the documentation for you:</label>
+      <label htmlFor="domainInput">You can use the following tool to check if a hostname is valid:</label>
       <input
         id="domainInput"
         className={styles.ValidateDomainInput_input}
