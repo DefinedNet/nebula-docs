@@ -33,7 +33,7 @@ and refuse to serve DNS on that non-lighthouse host.
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
 lighthouse IP or the private Nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
 including both the public and Nebula IP. Binding to only the Nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
-ensure the DNS is only accessible to hosts that are allowed to make UDP requests to that lighthouse.
+ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
 
 ## Tutorial
 
