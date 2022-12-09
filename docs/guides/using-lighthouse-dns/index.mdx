@@ -47,8 +47,9 @@ to your config for your lighthouse. By setting `lighthouse.dns.host` to `[::]`, 
 including both the public and nebula IP. Binding to only the nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
 ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
 
-Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` for
-all hosts you want to be able to query DNS on the lighthouse. For example to allow any host on the nebula network:
+Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` (or
+the port in `lighthouse.dns.port`) for all hosts you want to be able to query DNS on the lighthouse. For example to
+allow any host on the nebula network:
 
 ```yaml
 firewall:
