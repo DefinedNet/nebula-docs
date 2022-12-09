@@ -38,8 +38,9 @@ First, spin up a lighthouse and 2 hosts. Then add
 ```yaml
 lighthouse:
   serve_dns: true
-  host: [::]
-  port: 53
+  dns:
+    host: [::]
+    port: 53
 ```
 
 to your config for your lighthouse. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
