@@ -65,9 +65,10 @@ dig @100.100.0.1 +short "100.100.0.2" TXT
 "Name: alice-laptop" "Ips: [100.100.0.2/22]" "Subnets []" "Groups [role:Laptop]" "NotBefore 2022-12-06 21:34:25 +0000 UTC" "NotAFter 2024-05-13 17:37:27 +0000 UTC" "PublicKey 2c4828672fef1306124df94eb0fecd753e462e1bd4107f866f4e1a463550eb1b" "IsCA false" "Issuer 5b568aedaa5d97746e870f01a356ba474cf3251c0e743499ec668f93efa77f51"
 ```
 
-If I then host a server on `[::]:3000` on `alice-laptop` and set up a firewall rule that allows this to be accessed from
-`bob-laptop`, I can request it with `curl` using the custom DNS resolver. (In a production environment, you may choose
-to configure the system resolver.)
+If I then host a server on `[::]:3000` (ex, by creating an index.html file and then running
+`python3 -m http.server 3000` on a \*nix host) on `alice-laptop` and set up a firewall rule that allows this to be
+accessed from `bob-laptop`, I can request it with `curl` using the custom DNS resolver. (In a production environment,
+you may choose to configure the system resolver.)
 
 ```bash
 curl --dns-servers "100.100.0.1" http://alice-laptop:3000
