@@ -47,15 +47,14 @@ including both the public and nebula IP. Binding to only the nebula IP, for exam
 ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
 
 Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` for
-all hosts you want to be able to query DNS on the lighthouse. For example to allow only hosts with the `role:Laptop`
-group:
+all hosts you want to be able to query DNS on the lighthouse. For example to allow any host on the nebula network:
 
 ```yaml
 firewall:
   inbound:
     - port: 53
       proto: UDP
-      group: role:Laptop
+      group: any
 ```
 
 Then you can run `dig` against it to test! For example, I made a host named `lighthouse` as my lighthouse with nebula IP
