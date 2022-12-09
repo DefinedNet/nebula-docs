@@ -123,5 +123,6 @@ import { ValidateDomainInput } from './ValidateDomainInput';
   - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
-  - As of nebula `v1.6.1`, no, the lighthouse only responds about hosts it has handshaked with, it never handshakes with
-    itself. [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
+  - As of [nebula `v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
+    about hosts it has handshaked with, it never handshakes with itself.
+    [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
