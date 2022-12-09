@@ -29,10 +29,7 @@ lighthouse. Nebula will not honor the option if enabled on a non-lighthouse host
 :::
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private nebula IP depending on the Lighthouse's configuration. By setting `lighthouse.dns.host` to
-`[::]`, nebula will bind to all interfaces, including both the public and nebula IP. Binding to only the nebula IP, for
-example `lighthouse.dns.host: 10.0.0.1` will ensure the DNS is only accessible to hosts that are allowed to contact the
-lighthouse via nebula.
+lighthouse IP or the private nebula IP depending on the Lighthouse's configuration.
 
 ## Tutorial
 
@@ -45,9 +42,13 @@ lighthouse:
   port: 53
 ```
 
-to your config for your lighthouse as well as a [firewall rule](/docs/config/firewall) in your lighthouse config that
-enables UDP on port `53` for all hosts you want to be able to query DNS on the lighthouse. For example to allow only
-hosts with the `role:Laptop` group:
+to your config for your lighthouse. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
+including both the public and nebula IP. Binding to only the nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
+ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
+
+Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` for
+all hosts you want to be able to query DNS on the lighthouse. For example to allow only hosts with the `role:Laptop`
+group:
 
 ```yaml
 firewall:
