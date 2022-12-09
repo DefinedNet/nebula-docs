@@ -96,7 +96,8 @@ import { ValidateDomainInput } from './ValidateDomainInput';
 ## Q&A
 
 - How do hostnames turn into DNS host names?
-  - If the hostname is a valid DNS name, it will be resolved by the Lighthouse DNS resolver.
+  - If the hostname is a [valid DNS name](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1), it will be resolved by
+    the Lighthouse DNS resolver.
 - Do Lighthouse DNS queries support Unicode?
   - DNS only supports ASCII, but has [support for Unicode via punycode](https://www.rfc-editor.org/rfc/rfc3492), for
     example:
