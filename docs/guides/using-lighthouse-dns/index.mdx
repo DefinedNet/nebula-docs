@@ -1,0 +1,128 @@
+# Using Experimental Lighthouse DNS with Nebula
+
+:::caution
+
+Lighthouse DNS in nebula is Experimental and not intended to be a robust solution currently.
+
+:::
+
+Nebula comes with built-in DNS server support via Lighthouse hosts.
+
+Lighthouse DNS can generate DNS records based on dynamic nebula hosts, useful if you are spinning up new nebula hosts on
+demand.
+
+An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. For example, you can
+create a public DNS A record pointing to `10.0.0.23` for your private team wiki. While this does make your internal IP
+address visible to the internet, only users on your nebula network will be able to access it.
+
+To get started, set up a lighthouse and two hosts using our [Quick Start guide](/docs/guides/quick-start/).
+
+You can then use [`lighthouse.serve_dns`](/docs/config/lighthouse#lighthouseserve_dns) and the
+[`lighthouse.dns`](/docs/config/lighthouse#lighthousedns) config settings for your lighthouse config file to enable
+Lighthouse DNS.
+
+:::note
+
+Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
+lighthouse. Nebula will not honor the option if enabled on a non-lighthouse host.
+
+:::
+
+You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
+lighthouse IP or the private nebula IP depending on the Lighthouse's configuration.
+
+## Tutorial
+
+First, spin up a lighthouse and 2 hosts. Then add
+
+```yaml
+lighthouse:
+  serve_dns: true
+  dns:
+    host: [::]
+    port: 53
+```
+
+to your config for your lighthouse. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
+including both the public and nebula IP. Binding to only the nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
+ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
+
+Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` (or
+the port in `lighthouse.dns.port`) for all hosts you want to be able to query DNS on the lighthouse. For example to
+allow any host on the nebula network:
+
+```yaml
+firewall:
+  inbound:
+    - port: 53
+      proto: UDP
+      group: any
+```
+
+Then you can run `dig` against it to test! For example, I made a host named `lighthouse` as my lighthouse with nebula IP
+`100.100.0.1` and `alice-laptop` with nebula IP `100.100.0.2` as my host, and I set up my lighthouse with the above
+config / firewall rule.
+
+```bash
+dig @100.100.0.1 +short alice-laptop A
+100.100.0.2
+```
+
+I can also query the TXT record for the nebula IP for certificate info. Each piece of info is delivered within quotes
+and as a `"Key: Value"` format.
+
+```bash
+dig @100.100.0.1 +short "100.100.0.2" TXT
+"Name: alice-laptop" "Ips: [100.100.0.2/22]" "Subnets []" "Groups [role:Laptop]" "NotBefore 2022-12-06 21:34:25 +0000 UTC" "NotAFter 2024-05-13 17:37:27 +0000 UTC" "PublicKey 2c4828672fef1306124df94eb0fecd753e462e1bd4107f866f4e1a463550eb1b" "IsCA false" "Issuer 5b568aedaa5d97746e870f01a356ba474cf3251c0e743499ec668f93efa77f51"
+```
+
+If I then host a server on `[::]:3000` (ex, by creating an index.html file and then running
+`python3 -m http.server 3000` on a \*nix host) on `alice-laptop` and set up a firewall rule that allows this to be
+accessed from `bob-laptop`, I can request it with `curl` using the custom DNS resolver. (In a production environment,
+you may choose to configure the system resolver.)
+
+```bash
+curl --dns-servers "100.100.0.1" http://alice-laptop:3000
+<div>hello i am a website</div>
+```
+
+## Name hosts with valid domain names
+
+Hosts with names conforming to the [DNS RFC](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1) will be resolved,
+otherwise the Lighthouse DNS will return an empty response.
+
+import { ValidateDomainInput } from './ValidateDomainInput';
+
+<ValidateDomainInput />
+
+## Q&A
+
+- How do hostnames turn into DNS host names?
+  - If the hostname is a [valid DNS name](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1), it will be resolved by
+    the Lighthouse DNS resolver.
+- Do Lighthouse DNS queries support Unicode?
+  - DNS only supports ASCII, but has [support for Unicode via punycode](https://www.rfc-editor.org/rfc/rfc3492), for
+    example:
+    ```bash
+    # `alice-xn--3s8h` = `alice-💻` in punycode.
+    dig @100.100.0.1 +short alice-xn--3s8h A
+    100.100.0.2
+    ```
+    Nebula supports full unicode strings in the host name, but for hosts to be discovered via Lighthouse DNS, they must
+    conform to the DNS spec. <https://www.punycoder.com/> is a useful tool for conversion.
+- Are the domain names case-sensitive?
+  - Currently the DNS server matches names case sensitively, though DNS is
+    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
+    [slackhq/nebula/issues/776](https://github.com/slackhq/nebula/issues/776) is tracking this issue.
+- How do duplicate hostnames get resolved?
+  - In nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
+    two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
+    results when querying for these hosts' hostname as the DNS query is ambiguous. The lighthouse will return the nebula
+    IP of whichever host it has most recently performed a handshake with.
+- How does the lighthouse learn about hosts?
+  - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
+    this fact, the lighthouse can only answer questions about hosts it has seen since last start.
+- Can the lighthouse resolve its own name?
+  - As of nebula [`v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
+    about hosts it has handshaked with, it never handshakes with itself.
+    [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.

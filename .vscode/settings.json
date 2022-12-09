@@ -1,11 +1,14 @@
 {
   "languageToolLinter.languageTool.ignoredWordsInWorkspace": [
+    "anycast",
     "chown",
     "classname",
     "figcaption",
     "mtus",
     "prometheus",
     "proto",
+    "punycode",
+    "slackhq",
     "syscall",
     "yaml",
     "yml"

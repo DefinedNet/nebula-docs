@@ -1,0 +1,37 @@
+.ValidateDomainInput {
+  font-size: var(--ifm-font-size-base);
+  display: grid;
+  gap: 1rem;
+}
+
+.ValidateDomainInput_input {
+  border-color: var(--ifm-color-content-secondary);
+  border-radius: var(--ifm-global-radius);
+  border-style: solid;
+  border-width: var(--ifm-global-border-width);
+  padding: 0.5rem;
+}
+
+.ValidateDomainInput_info {
+  color: var(--ifm-color-info);
+  background-color: var(--ifm-color-info-contrast-background);
+  border-radius: var(--ifm-global-radius);
+  padding: 0.5rem;
+  width: fit-content;
+}
+
+.ValidateDomainInput_error {
+  color: var(--ifm-color-danger);
+  background-color: var(--ifm-color-danger-contrast-background);
+  border-radius: var(--ifm-global-radius);
+  padding: 0.5rem;
+  width: fit-content;
+}
+
+.ValidateDomainInput_success {
+  color: var(--ifm-color-success);
+  background-color: var(--ifm-color-success-contrast-background);
+  border-radius: var(--ifm-global-radius);
+  padding: 0.5rem;
+  width: fit-content;
+}
