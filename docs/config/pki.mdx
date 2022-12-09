@@ -54,9 +54,16 @@ hosts.
 
 ## pki.blocklist
 
-The `blocklist` contains a list of individual host certificates to ignore. In the case a host’s credentials are stolen
-or compromised, this allows us to block connectivity from a host, even if it is signed by a certificate authority we
-trust.
+:::note
+
+The blocklist is _not_ distributed via Lighthouses. To ensure access to your entire network is blocked you must distribute
+the full blocklist to every host in your network. This is typically done via tooling such as Ansible, Chef, or Puppet.
+
+:::
+
+The `blocklist` contains a list of individual hosts' certificate fingerprints which should be blocked even if the
+certificate is otherwise valid (signed by a trusted CA and unexpired.) This should be used if a host's credentials are
+stolen or compromised.
 
 ## pki.disconnect_invalid
 
