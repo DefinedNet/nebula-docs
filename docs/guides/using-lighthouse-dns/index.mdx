@@ -6,7 +6,7 @@ Lighthouse DNS in nebula is Experimental and not intended to be a robust solutio
 
 :::
 
-Nebula comes with built-in DNS server support in the Lighthouse hosts.
+Nebula comes with built-in DNS server support via Lighthouse hosts.
 
 Lighthouse DNS can generate DNS records based on dynamic nebula hosts, useful if you are spinning up new nebula hosts on
 demand.
@@ -123,6 +123,6 @@ import { ValidateDomainInput } from './ValidateDomainInput';
   - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
-  - As of [nebula `v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
+  - As of nebula [`v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
     about hosts it has handshaked with, it never handshakes with itself.
     [slackhq/nebula/issues/560](https://github.com/slackhq/nebula/issues/560) is tracking this feature.
