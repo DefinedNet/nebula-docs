@@ -13,6 +13,7 @@ const config = {
   url: 'https://nebula.defined.net',
   // For deploy previews, don't set a baseUrl
   baseUrl: '/',
+  trailingSlash: true,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
@@ -62,7 +63,7 @@ const config = {
         title: 'Nebula Docs',
         logo: {
           alt: 'Defined Networking logo',
-          href: '/docs',
+          href: '/docs/',
           src: 'img/mark.svg',
           srcDark: 'img/mark-dark.svg',
         },
@@ -81,11 +82,11 @@ const config = {
             items: [
               {
                 label: 'Guides',
-                to: '/docs/guides',
+                to: '/docs/guides/',
               },
               {
                 label: 'Config Reference',
-                to: '/docs/config',
+                to: '/docs/config/',
               },
               {
                 label: 'Docs Github',
@@ -119,7 +120,7 @@ const config = {
               },
               {
                 label: 'Docs',
-                href: 'https://docs.defined.net/dn',
+                href: 'https://docs.defined.net',
               },
               {
                 label: 'Twitter',
