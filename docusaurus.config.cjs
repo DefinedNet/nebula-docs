@@ -116,7 +116,7 @@ const config = {
               },
               {
                 label: 'Docs',
-                href: 'https://docs.defined.net/dn',
+                href: 'https://docs.defined.net',
               },
               {
                 label: 'Twitter',
