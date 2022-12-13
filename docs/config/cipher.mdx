@@ -6,13 +6,16 @@ sidebar_position: 6
 
 :::danger
 
-This value must be identical on ALL NODES/LIGHTHOUSES. Nebula does not support use of different ciphers simultaneously!
+This value must be identical on ALL nodes and lighthouses. Nebula does not support the use of different ciphers
+simultaneously!
 
 :::
 
-`cipher` allows you to choose between the available ciphers for your network. The default is `aes`, and the available
-options are `chachapoly` or `aes`.
+`cipher` allows you to choose between the available ciphers for your network. You may choose `chachapoly` to use the
+ChaCha20-Poly1305 cipher or `aes` for AES256-GCM.
+
+Because most devices have hardware support for the AES instruction set (e.g. AES-NI), this is the recommended option.
 
 ```yml
-cipher: chachapoly
+cipher: aes
 ```

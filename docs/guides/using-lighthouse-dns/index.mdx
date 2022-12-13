@@ -2,7 +2,8 @@
 
 :::caution
 
-Lighthouse DNS in nebula is Experimental and not intended to be a robust solution currently.
+Lighthouse DNS in nebula is experimental and should not be considered to be a robust solution. For details, see the
+[limitations](#limitations) listed below.
 
 :::
 
@@ -11,27 +12,15 @@ Nebula comes with built-in DNS server support via Lighthouse hosts.
 Lighthouse DNS can generate DNS records based on dynamic nebula hosts, useful if you are spinning up new nebula hosts on
 demand.
 
-An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. For example, you can
-create a public DNS A record pointing to `10.0.0.23` for your private team wiki. While this does make your internal IP
-address visible to the internet, only users on your nebula network will be able to access it.
+## Prerequisites
 
-To get started, set up a lighthouse and two hosts using our [Quick Start guide](/docs/guides/quick-start/).
-
-You can then use [`lighthouse.serve_dns`](/docs/config/lighthouse#lighthouseserve_dns) and the
-[`lighthouse.dns`](/docs/config/lighthouse#lighthousedns) config settings for your lighthouse config file to enable
-Lighthouse DNS.
-
-:::note
-
-Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
-lighthouse. Nebula will not honor the option if enabled on a non-lighthouse host.
-
-:::
+This guide assumes you already have a working Lighthouse and at least one other host communicating with it. If you
+haven't setup a Nebula network yet, check out the [Quick Start guide](/docs/guides/quick-start/).
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
 lighthouse IP or the private nebula IP depending on the Lighthouse's configuration.
 
-## Tutorial
+## Configuration
 
 First, spin up a lighthouse and 2 hosts. Then add
 
@@ -43,12 +32,19 @@ lighthouse:
     port: 53
 ```
 
-to your config for your lighthouse. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces,
+to your lighthouses's Nebula config. By setting `lighthouse.dns.host` to `[::]`, nebula will bind to all interfaces
 including both the public and nebula IP. Binding to only the nebula IP, for example `lighthouse.dns.host: 10.0.0.1` will
 ensure the DNS is only accessible to hosts that are allowed to contact the lighthouse via nebula.
 
-Additionally, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` (or
-the port in `lighthouse.dns.port`) for all hosts you want to be able to query DNS on the lighthouse. For example to
+:::note
+
+Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
+lighthouse. Nebula will not honor the option if enabled on a non-lighthouse host.
+
+:::
+
+Next, add a [firewall rule](/docs/config/firewall) in your lighthouse config that enables UDP on port `53` (or the port
+specified in `lighthouse.dns.port`) for all hosts you want to be able to query DNS on the lighthouse. For example to
 allow any host on the nebula network:
 
 ```yaml
@@ -58,6 +54,8 @@ firewall:
       proto: UDP
       group: any
 ```
+
+## Testing
 
 Then you can run `dig` against it to test! For example, I made a host named `lighthouse` as my lighthouse with nebula IP
 `100.100.0.1` and `alice-laptop` with nebula IP `100.100.0.2` as my host, and I set up my lighthouse with the above
@@ -86,14 +84,28 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 <div>hello i am a website</div>
 ```
 
-## Name hosts with valid domain names
+## Limitations
 
-Hosts with names conforming to the [DNS RFC](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1) will be resolved,
-otherwise the Lighthouse DNS will return an empty response.
+- The built-in DNS server will only respond to queries for known Nebula hosts and will not make upstream queries to a
+  secondary DNS server (e.g. for supporting both internal DNS and public DNS.)
+- A host's hostname is restricted to the name in its certificate.
+- There is no way to register additional hostnames (e.g. additional CNAMEs for a given Nebula host, or additional A
+  records for managing non-Nebula hosts.)
+- Duplicate names in certificates will result in non-stable answers from the DNS server.
+- If the name in the Nebula certificate is not a [valid hostname](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1),
+Lighthouse DNS will return an empty result.
+
+### Hostname Validity
 
 import { ValidateDomainInput } from './ValidateDomainInput';
 
 <ValidateDomainInput />
+
+## Alternatives
+
+An alternative approach to DNS would be to point public DNS records at private nebula IP addresses. For example, you can
+create a public DNS A record pointing to `10.0.0.23` for your private team wiki. While this does make your internal IP
+address visible to the internet, only users on your nebula network will be able to access it.
 
 ## Q&A
 
