@@ -74,9 +74,10 @@ tun:
 
 ## tun.unsafe_routes
 
-:::danger
+:::caution
 
-The nebula certificate of the `via` node MUST have the `route` defined as a subnet in its certificate.
+The nebula certificate of the `via` node MUST have the `route` defined as a subnet in its certificate or it will refuse
+to route traffic.
 
 :::
 

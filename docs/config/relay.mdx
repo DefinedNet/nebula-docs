@@ -4,9 +4,10 @@ sidebar_position: 8
 
 # relay
 
-:::info
+:::caution
 
-EXPERIMENTAL: relay support for networks that can’t establish direct connections.
+Relay support is new and therefore should be considered experimental. However, relays are a useful tool for solving
+tricky connectivity issues between hosts that otherwise are unable to route packets to each other.
 
 :::
 
@@ -20,14 +21,17 @@ relay:
 
 ## relay.relays
 
-`relays` are a list of Nebula IPs that peers can use to relay packets to the host. IPs in this list must have `am_relay`
-set to `true` in their configs, otherwise they will reject relay requests.
+`relays` are a list of Nebula IPs that peers can use to relay packets to this host. IPs in this list must have
+`am_relay` set to `true` in their configs, otherwise they will reject relay requests.
 
 ```yml
 relays:
   - 192.168.100.1
   - <other Nebula VPN IPs of hosts used as relays to access me>
 ```
+
+This list of relays is reported to the Lighthouse. When other nodes attempt to handshake with this host, the Lighthouse
+will indicate its supported relays in addition to its known IP addresses.
 
 ## relay.am_relay
 
