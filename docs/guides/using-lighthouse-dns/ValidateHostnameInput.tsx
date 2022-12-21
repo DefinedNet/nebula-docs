@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { remapHostnameIfValid } from './remapHostnameIfValid';
 import { validateHostname } from './validateHostname';
 import styles from './ValidateHostnameInput.module.css';
 
@@ -16,9 +17,8 @@ export function ValidateHostnameInput() {
         name="domain"
         type="text"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => setValue(remapHostnameIfValid(e.target.value))}
       />
-
       {!value.length ? (
         <div className={styles.ValidateHostnameInput_info}>Please input a hostname to validate</div>
       ) : typeof error === 'string' ? (

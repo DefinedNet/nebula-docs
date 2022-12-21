@@ -1,16 +1,20 @@
-export const INVALID_HOSTNAME = 'Invalid hostname';
+import { parseDomain, ParseResultType } from 'parse-domain';
 
-export function validateHostname(hostname: string): true | typeof INVALID_HOSTNAME {
+export const INVALID_HOSTNAME = 'Invalid hostname';
+export const INVALID_HOSTNAME_IP = 'An IP is not a valid hostname for DNS';
+
+export function validateHostname(hostname: string): true | string {
   if (!hostname.length) {
     return true;
   }
 
-  // sourced & modified from https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s15.html
-  const domainRegex = new RegExp('\\b((?=[a-z0-9-]{1,63}\\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,63}\\b', 'gmi');
+  const result = parseDomain(hostname);
 
-  if (domainRegex.test(hostname) == true) {
-    return true;
-  } else {
-    return INVALID_HOSTNAME;
+  if (result.type === ParseResultType.Invalid) {
+    return `${INVALID_HOSTNAME}: ${result.errors[0].message}`;
   }
+  if (result.type === ParseResultType.Ip) {
+    return INVALID_HOSTNAME_IP;
+  }
+  return true;
 }
