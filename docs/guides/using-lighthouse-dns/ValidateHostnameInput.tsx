@@ -8,7 +8,7 @@ export function ValidateHostnameInput() {
   const error = validateHostname(value);
 
   return (
-    <form className={styles.ValidateHostnameInput}>
+    <form className={styles.ValidateHostnameInput} onSubmit={(event) => event.preventDefault()}>
       <label htmlFor="domainInput">You can use the following tool to check if a hostname is valid:</label>
       <input
         id="domainInput"
