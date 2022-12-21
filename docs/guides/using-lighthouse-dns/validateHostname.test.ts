@@ -12,6 +12,7 @@ test('should accept a valid domain', () => {
   assert.is(validateHostname('prometheus.nebula'), true);
   assert.is(validateHostname('GRAFANA.admin.INTERNAL'), true);
   assert.is(validateHostname('3.com'), true);
+  assert.is(validateHostname('NEBULA'), true);
   // xn--b09h.com -> 🪀.com when rendered
   assert.is(validateHostname('xn--b09h.com'), true);
 });
@@ -24,9 +25,18 @@ test('should reject an invalid domain', () => {
 
 test('should accept generated valid domains', () => {
   fc.assert(
-    fc.property(fc.domain(), (domain) => {
-      return validateHostname(domain) === true;
-    })
+    fc.property(
+      fc.oneof(
+        fc.domain(),
+        fc.domain().map((domain) => {
+          // convert domain to hostname
+          return domain.slice(0, domain.indexOf('.'));
+        })
+      ),
+      (hostname) => {
+        return validateHostname(hostname) === true;
+      }
+    )
   );
 });
 
