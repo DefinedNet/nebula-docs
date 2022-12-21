@@ -1,7 +1,6 @@
 ---
 title: Signing a Certificate Without a Private Key
-description:
-  'Nebula Docs: How to sign certificates without copying private keys across devices.'
+description: 'Nebula Docs: How to sign certificates without copying private keys across devices.'
 summary:
   After reading this guide you will be able to create public/private keypairs on devices you wish to add to the Nebula
   network and generate certificates for them using only the public key.
@@ -44,9 +43,9 @@ any other device.
 Copy `alice.pub` (the public key) to the host you store your CA key material on. You will need both the CA certificate
 as well as the CA private key. We will assume these are named `ca.crt` and `ca.key` respectively.
 
-Before signing a certificate you will need to choose an IP address for the new device as well as any groups you'd
-like to apply. For the sake of this guide, let's assume your Nebula network space is `192.168.100.0/24` and you want
-to assign the IP address `192.168.100.25` to the new host. We'll use the groups `users` and `developers`.
+Before signing a certificate you will need to choose an IP address for the new device as well as any groups you'd like
+to apply. For the sake of this guide, let's assume your Nebula network space is `192.168.100.0/24` and you want to
+assign the IP address `192.168.100.25` to the new host. We'll use the groups `users` and `developers`.
 
 ```shell
 nebula-cert sign -in-pub alice.pub -name "Alice" -ip "192.168.100.25/24" --groups "users,developers"
