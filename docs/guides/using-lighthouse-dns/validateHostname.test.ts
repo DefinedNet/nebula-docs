@@ -26,12 +26,15 @@ test('should accept a valid hostname', () => {
   // xn--b09h.com -> 🪀.com when rendered
   validHostnameTest('xn--b09h.com');
   validHostnameTest('xn--b09h');
+  validHostnameTest('a.a');
 });
 
 test('should reject an invalid hostname', () => {
   invalidHostnameTest('🪀');
   invalidHostnameTest('🪀.com');
-  invalidHostnameTest('a.a');
+  invalidHostnameTest('jkfd@jkfdkd.com');
+  invalidHostnameTest('@mfd.com');
+  invalidHostnameTest('!jkfd.com');
 });
 
 test('should accept generated valid hostnames', () => {
