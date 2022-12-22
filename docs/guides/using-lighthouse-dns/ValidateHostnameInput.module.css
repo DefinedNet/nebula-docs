@@ -5,6 +5,8 @@
 }
 
 .ValidateHostnameInput_input {
+  /* Prevent ios from "zooming in" */
+  font-size: 1rem;
   border-color: var(--ifm-color-content-secondary);
   border-radius: var(--ifm-global-radius);
   border-style: solid;
