@@ -6,6 +6,12 @@ on:
   pull_request:
     branches:
       - main
+
+# Cancel in-progress workflows on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Typecheck
