@@ -114,7 +114,7 @@ listen:
   port: 4242
   # Sets the max number of packets to pull from the kernel for each syscall (under systems that support recvmmsg)
   # default is 64, does not support reload
-  #batch: 64
+  batch: 64
   # Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by the kernel
   # Default is net.core.rmem_default and net.core.wmem_default (/proc/sys/net/core/rmem_default and /proc/sys/net/core/rmem_default)
   # Maximum is limited by memory in the system, SO_RCVBUFFORCE and SO_SNDBUFFORCE is used to avoid having to raise the system wide
@@ -245,30 +245,30 @@ logging:
   #     when TTY attached: seconds since beginning of execution
   #     otherwise: "2006-01-02T15:04:05Z07:00" (RFC3339)
   # As an example, to log as RFC3339 with millisecond precision, set to:
-  #timestamp_format: "2006-01-02T15:04:05.000Z07:00"
+  timestamp_format: '2006-01-02T15:04:05.000Z07:00'
 
-#stats:
-#type: graphite
-#prefix: nebula
-#protocol: tcp
-#host: 127.0.0.1:9999
-#interval: 10s
+stats:
+  # type: graphite
+  #prefix: nebula
+  #protocol: tcp
+  #host: 127.0.0.1:9999
+  #interval: 10s
 
-#type: prometheus
-#listen: 127.0.0.1:8080
-#path: /metrics
-#namespace: prometheusns
-#subsystem: nebula
-#interval: 10s
+  type: prometheus
+  listen: 127.0.0.1:8080
+  #path: /metrics
+  #namespace: prometheusns
+  #subsystem: nebula
+  #interval: 10s
 
-# enables counter metrics for meta packets
-#   e.g.: `messages.tx.handshake`
-# NOTE: `message.{tx,rx}.recv_error` is always emitted
-#message_metrics: false
+  # enables counter metrics for meta packets
+  #   e.g.: `messages.tx.handshake`
+  # NOTE: `message.{tx,rx}.recv_error` is always emitted
+  #message_metrics: false
 
-# enables detailed counter metrics for lighthouse packets
-#   e.g.: `lighthouse.rx.HostQuery`
-#lighthouse_metrics: false
+  # enables detailed counter metrics for lighthouse packets
+  #   e.g.: `lighthouse.rx.HostQuery`
+  lighthouse_metrics: false
 
 # Handshake Manager Settings
 #handshakes:
