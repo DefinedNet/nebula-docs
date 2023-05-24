@@ -1,0 +1,14 @@
+# https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml#associating-a-schema-in-the-yaml-file
+# yaml-language-server: $schema=./config-schema.json
+listen:
+  batch: 100
+
+stats:
+  type: prometheus
+  lighthouse_metrics: true
+  listen: ':8000'
+
+logging:
+  format: text
+  level: panic
+  timestamp_format: Mon Jan _2 15:04:05 2006

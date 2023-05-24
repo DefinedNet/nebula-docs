@@ -1,5 +1,5 @@
 # https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml#associating-a-schema-in-the-yaml-file
-# yaml-language-server: $schema=./config-schema.json5
+# yaml-language-server: $schema=./config-schema.json
 
 # This is the nebula example configuration file. You must edit, at a minimum, the static_host_map, lighthouse, and firewall sections
 # Some options in this file are HUPable, including the pki section. (A HUP will reload credentials from disk without affecting existing tunnels)

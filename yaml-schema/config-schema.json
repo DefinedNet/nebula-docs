@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$ref": "#/definitions/Welcome10",
+  "definitions": {
+    "Welcome10": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pki": { "$ref": "#/definitions/PKI" },
+        "static_host_map": { "$ref": "#/definitions/StaticHostMap" },
+        "lighthouse": { "$ref": "#/definitions/Lighthouse" },
+        "listen": { "$ref": "#/definitions/Listen" },
+        "punchy": { "$ref": "#/definitions/Punchy" },
+        "relay": { "$ref": "#/definitions/Relay" },
+        "tun": { "$ref": "#/definitions/Tun" },
+        "logging": { "$ref": "#/definitions/Logging" },
+        "firewall": { "$ref": "#/definitions/Firewall" },
+        "stats": { "$ref": "#/definitions/Stats" }
+      },
+
+      "title": "Welcome10"
+    },
+    "Firewall": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outbound_action": { "type": "string" },
+        "inbound_action": { "type": "string" },
+        "conntrack": { "$ref": "#/definitions/Conntrack" },
+        "outbound": { "type": "array", "items": { "$ref": "#/definitions/Outbound" } },
+        "inbound": { "type": "array", "items": { "$ref": "#/definitions/Inbound" } }
+      },
+
+      "title": "Firewall"
+    },
+    "Conntrack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tcp_timeout": { "type": "string" },
+        "udp_timeout": { "type": "string" },
+        "default_timeout": { "type": "string" }
+      },
+
+      "title": "Conntrack"
+    },
+    "Inbound": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "port": { "$ref": "#/definitions/Port" },
+        "proto": { "type": "string" },
+        "host": { "type": "string" },
+        "groups": { "type": "array", "items": { "type": "string" } }
+      },
+
+      "title": "Inbound"
+    },
+    "Outbound": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "port": { "type": "string" }, "proto": { "type": "string" }, "host": { "type": "string" } },
+
+      "title": "Outbound"
+    },
+    "Lighthouse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "am_lighthouse": { "type": "boolean" },
+        "interval": { "type": "integer" },
+        "hosts": { "type": "array", "items": { "type": "string" } }
+      },
+
+      "title": "Lighthouse"
+    },
+    "Listen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "host": { "type": "string" }, "port": { "type": "integer" }, "batch": { "type": "integer" } },
+
+      "title": "Listen"
+    },
+    "Logging": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "type": "string" },
+        "format": { "type": "string" },
+        "timestamp_format": { "type": "string" }
+      },
+      "title": "Logging"
+    },
+    "PKI": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "ca": { "type": "string" }, "cert": { "type": "string" }, "key": { "type": "string" } },
+
+      "title": "PKI"
+    },
+    "Punchy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "punch": { "type": "boolean" } },
+
+      "title": "Punchy"
+    },
+    "Relay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "am_relay": { "type": "boolean" }, "use_relays": { "type": "boolean" } },
+
+      "title": "Relay"
+    },
+    "StaticHostMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "192.168.100.1": { "type": "array", "items": { "type": "string" } } },
+      "required": ["192.168.100.1"],
+      "title": "StaticHostMap"
+    },
+    "Tun": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disabled": { "type": "boolean" },
+        "dev": { "type": "string" },
+        "drop_local_broadcast": { "type": "boolean" },
+        "drop_multicast": { "type": "boolean" },
+        "tx_queue": { "type": "integer" },
+        "mtu": { "type": "integer" },
+        "routes": { "type": "null" },
+        "unsafe_routes": { "type": "null" }
+      },
+
+      "title": "Tun"
+    },
+    "Port": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "title": "Port" },
+    "Stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string" },
+        "lighthouse_metrics": { "type": "boolean" },
+        "listen": { "type": "string" }
+      }
+    }
+  }
+}
