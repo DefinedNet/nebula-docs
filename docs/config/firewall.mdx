@@ -1,5 +1,6 @@
 ---
-sidebar_position: 11
+sidebar_position: 13
+description: Configure firewall rules for this host
 ---
 
 # firewall
@@ -58,12 +59,17 @@ The possible fields of a firewall rule are:
 
 - `cidr`: a CIDR, `0.0.0.0/0` is any.
 
+- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This could be used to filter destinations when using unsafe_routes.
+
 Logical evaluation is roughly: port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr).
 
 ```yml
 # Nebula security group configuration
 
 firewall:
+  outbound_action: drop
+  inbound_action: drop
+
   conntrack:
     tcp_timeout: 12m
     udp_timeout: 3m
@@ -117,3 +123,15 @@ conntrack:
   udp_timeout: 3m
   default_timeout: 10m
 ```
+
+## outbound_action, inbound_action
+
+<Pill className="mb-24">Default: drop</Pill>
+
+Action to take when a packet is not allowed by the firewall rules.
+
+Can be one of:
+ * `drop`: silently drop the packet.
+ * `reject`: send a reject reply.
+    - For TCP, this will be a RST "Connection Reset" packet.
+    - For other protocols, this will be an ICMP port unreachable packet.
