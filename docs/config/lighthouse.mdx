@@ -31,8 +31,8 @@ lighthouse:
     '10.0.0.0/8': true
 
   advertise_addrs:
-    - "1.1.1.1:4242"
-    - "1.2.3.4:0" # port will be replaced with the real listening port
+    - '1.1.1.1:4242'
+    - '1.2.3.4:0' # port will be replaced with the real listening port
 
   calculated_remotes:
     10.0.10.0/24:
@@ -179,19 +179,20 @@ lighthouse:
 
 ## lighthous.advertise_addrs
 
-advertise_addrs are routable addresses that will be included along with discovered addresses to report to the lighthouse,
-the format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its place, useful if 
-`listen.port` is set to 0. This option is mainly useful when there are static ip addresses the host can be reached at 
-that nebula can not typically discover on its own. Examples being port forwarding or multiple paths to the internet.
+advertise_addrs are routable addresses that will be included along with discovered addresses to report to the
+lighthouse, the format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its
+place, useful if `listen.port` is set to 0. This option is mainly useful when there are static ip addresses the host can
+be reached at that nebula can not typically discover on its own. Examples being port forwarding or multiple paths to the
+internet.
 
 ## lighthouse.calculated_remotes
 
-EXPERIMENTAL: This option may change or disappear in the future. This setting allows us to "guess" what the remote might 
+EXPERIMENTAL: This option may change or disappear in the future. This setting allows us to "guess" what the remote might
 be for a host while we wait for the lighthouse response.
 
-For any Nebula IPs in the range, it will apply the mask and add the calculated IP as the initial remote (while we wait for
-the response from the lighthouse). Both CIRRs must have the same mask size. For example, Nebula IP 10.0.10.123 will have a
-calculated remote of 192.168.1.123.
+For any Nebula IPs in the range, it will apply the mask and add the calculated IP as the initial remote (while we wait
+for the response from the lighthouse). Both CIRRs must have the same mask size. For example, Nebula IP 10.0.10.123 will
+have a calculated remote of 192.168.1.123.
 
 ```yml
 calculated_remotes:

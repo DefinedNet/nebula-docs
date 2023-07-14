@@ -131,7 +131,8 @@ conntrack:
 Action to take when a packet is not allowed by the firewall rules.
 
 Can be one of:
- * `drop`: silently drop the packet.
- * `reject`: send a reject reply.
-    - For TCP, this will be a RST "Connection Reset" packet.
-    - For other protocols, this will be an ICMP port unreachable packet.
+
+- `drop`: silently drop the packet.
+- `reject`: send a reject reply.
+  - For TCP, this will be a RST "Connection Reset" packet.
+  - For other protocols, this will be an ICMP port unreachable packet.
