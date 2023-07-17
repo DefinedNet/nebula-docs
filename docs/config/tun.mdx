@@ -21,8 +21,8 @@ tun:
   unsafe_routes:
     - route: 172.16.1.0/24
       via: 192.168.100.99
-      mtu: 1300 #mtu will default to tun mtu if this option is not specified
-      install: true #controls whether this route is installed in the systems routing table.
+      mtu: 1300 # mtu will default to tun mtu if this option is not specified
+      install: true # controls whether this route is installed in the systems routing table.
 ```
 
 ## tun.disabled
@@ -93,7 +93,7 @@ tun:
       via: 192.168.100.99
       mtu: 1300
       metric: 100
-      install: true #controls whether this route is installed in the systems routing table.
+      install: true # controls whether this route is installed in the systems routing table.
 ```
 
 ## tun.use_system_route_table
