@@ -28,7 +28,7 @@ First, spin up a lighthouse and 2 hosts. Then add
 lighthouse:
   serve_dns: true
   dns:
-    host: [::]
+    host: '[::]'
     port: 53
 ```
 
@@ -51,7 +51,7 @@ allow any host on the nebula network:
 firewall:
   inbound:
     - port: 53
-      proto: UDP
+      proto: udp
       group: any
 ```
 

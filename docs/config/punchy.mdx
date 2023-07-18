@@ -1,5 +1,6 @@
 ---
-sidebar_position: 5
+sidebar_position: 6
+description: Configuration of keep-alive packets to avoid expiration of firewall and NAT mappings
 ---
 
 import { Pill } from '@components/Pill/Pill';
@@ -14,6 +15,7 @@ punchy:
   punch: true
   respond: true
   delay: 1s
+  respond_delay: 5s
 ```
 
 ## punchy.punch
@@ -29,6 +31,12 @@ punchy:
 `respond` means that a node unable to receive handshakes will attempt to initiate a handshake to the host attempting to
 establish a tunnel, which can be the case when hole punching fails in one direction. This can be extremely useful if one
 node is behind a difficult nat, such as a symmetric NAT.
+
+## punchy.respond_delay
+
+<Pill className="mb-24">Default: 5s</Pill>
+
+Delay before attempting punchy.respond. respond must be true to take effect.
 
 ## punchy.delay
 

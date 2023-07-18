@@ -1,0 +1,37 @@
+---
+sidebar_position: 3
+description: Define options for the static host map
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# static_map
+
+The static map defines options which control the interpretation of the static_host_map.
+
+Example:
+
+```yml
+static_map:
+  network: ip4
+  cadence: 30s
+  lookup_timeout: 250ms
+```
+
+## static_map.network
+
+<Pill className="mb-24">Default: ip4</Pill>
+
+Select the IP version used to communicate with hosts in the static map. Valid values are `ip`, `ip4`, and `ip6`.
+
+## static_map.cadence
+
+<Pill className="mb-24">Default: 30s</Pill>
+
+Interval to retry DNS lookups of static hosts
+
+## static_map.lookup_timeout
+
+<Pill className="mb-24">Default: 250ms</Pill>
+
+Timeout for DNS lookup of static hosts
