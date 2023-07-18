@@ -74,8 +74,10 @@ tar -xzf nebula-linux-amd64.tar.gz
 
 Since Nebula v1.7.0, it is possible to encrypt the Nebula CA private key using AES-256-GCM encryption and Argon2id key
 derivation. If you do not plan to store the private key in encrypted storage (e.g. Ansible Vault or AWS Secrets
-Manager), it is recommended to pass the `-encrypt` flag when generating the CA. Each time you sign a host using an
-encrypted CA key, you will need to re-enter your chosen password.
+Manager), it is recommended that you use the built-in encryption feature.
+
+To encrypt your Nebula private key, pass the `-encrypt` flag when generating the CA and you will be prompted for a
+passphrase. Keep it safe - you will be prompted for it each time you sign a host using the encrypted CA key.
 
 The default Argon2 parameters are taken from the "FIRST RECOMMENDED" suggestion in the
 [Argon2 RFC](https://datatracker.ietf.org/doc/rfc9106/) (1 iteration, 4 lanes parallelism, 2 GiB RAM.) To select your
