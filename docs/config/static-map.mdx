@@ -22,13 +22,23 @@ static_map:
 
 <Pill className="mb-24">Default: ip4</Pill>
 
-Select the IP version used to communicate with hosts in the static map. Valid values are `ip`, `ip4`, and `ip6`.
+Select the IP version used to communicate with hosts in the static map. Valid values are  `ip4`, `ip6`, and `ip` (for both.)
+
+:::caution
+
+In general, this should be left as the default value `ip4` to avoid issues communicating with IPv4-only hosts.
+
+Lighthouses learn each node's IP addresses by looking at the source address of incoming packets as well as the self-reported addresses sent by the node. Because most devices are behind a NAT of some sort (e.g. a network router) they cannot self-report their public IPv4 address. By contacting the Lighthouse via its IPv4 address, the Lighthouse is able to learn the node's public IPv4 address.
+
+It is necessary to set this setting to `ip6` (or `ip`) for IPv6-only hosts.
+
+:::
 
 ## static_map.cadence
 
 <Pill className="mb-24">Default: 30s</Pill>
 
-Interval to retry DNS lookups of static hosts
+Interval to re-query DNS for hostnames listed in the static map
 
 ## static_map.lookup_timeout
 
