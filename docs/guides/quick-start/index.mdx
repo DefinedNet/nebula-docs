@@ -70,6 +70,21 @@ tar -xzf nebula-linux-amd64.tar.gz
 
 ### Creating your first certificate authority
 
+:::note
+
+Nebula offers built-in encryption of the CA private key since v1.7.0. If you do not plan to store the private key in
+encrypted storage (e.g. Ansible Vault or AWS Secrets Manager), it is recommended that you use the built-in encryption.
+
+To encrypt your Nebula private key, pass the `-encrypt` flag when generating the CA and you will be prompted for a
+passphrase. Keep it safe - you will be prompted for it each time you sign a host using the encrypted CA key.
+
+Nebula uses AES-256-GCM encryption with Argon2id for key derivation. The default Argon2 parameters are taken from the
+"FIRST RECOMMENDED" suggestion in the [Argon2 RFC](https://datatracker.ietf.org/doc/rfc9106/) (1 iteration, 4 lanes
+parallelism, 2 GiB RAM.) To select your own parameters, use the `-argon-iterations`, `-argon-parallelism`, and
+`-argon-memory` CLI flags.
+
+:::
+
 Nebula uses certificate authorities to identify individual hosts within a Nebula network. The very first step in
 creating your own Nebula network is to create a certificate authority for your organization. As you add new hosts to
 your Nebula network, your certificate authority is used to create credentials that prove a host should be trusted by
