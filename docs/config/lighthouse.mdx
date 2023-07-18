@@ -52,7 +52,8 @@ configured to be lighthouses in your network
 <Pill className="mb-24">Default: False</Pill>
 
 `serve_dns` optionally starts a DNS listener that responds to `A` and `TXT` queries and can even be delegated to for
-name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set `lighthouse.dns.host` to `'[::]'`.
+name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set `lighthouse.dns.host` to
+`'[::]'`.
 
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
 Lighthouses.
@@ -182,8 +183,8 @@ lighthouse:
 `advertise_addrs` are routable addresses that will be included along with discovered addresses to report to the
 lighthouse. The format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its
 place, useful if `listen.port` is set to `0`. This option is mainly useful when there are static IP addresses the host
-can be reached at that nebula can not typically discover on its own (e.g. when port forwarding or when the node has multiple paths to
-the internet.)
+can be reached at that nebula can not typically discover on its own (e.g. when port forwarding or when the node has
+multiple paths to the internet.)
 
 ## lighthouse.calculated_remotes
 
