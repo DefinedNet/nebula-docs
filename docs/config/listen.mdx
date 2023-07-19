@@ -1,6 +1,6 @@
 ---
 sidebar_position: 5
-description: Configuration of the UDP port used for sending/receiving traffic
+description: Configure the UDP port used for sending/receiving Nebula traffic on underlay networks.
 ---
 
 import { Pill } from '@components/Pill/Pill';
@@ -31,13 +31,13 @@ enable IPv6, use `'[::]'` instead. `host` may also contain a hostname.
 `4242`, however using port 0 or leaving `port` unset will dynamically assign a port and is recommended for roaming
 nodes. Using 0 on lighthouses and relay hosts will likely lead to connectivity issues.
 
-## batch
+## listen.batch
 
 <Pill className="mb-24">Default: 64</Pill>
 
 Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`).
 
-## read_buffer, write_buffer
+## listen.read_buffer, listen.write_buffer
 
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and

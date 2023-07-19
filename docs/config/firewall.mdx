@@ -1,6 +1,6 @@
 ---
 sidebar_position: 13
-description: Configure firewall rules for this host
+description: Configure inbound and outbound firewall rules for a Nebula host
 ---
 
 import { Pill } from '@components/Pill/Pill';
@@ -59,9 +59,13 @@ The possible fields of a firewall rule are:
 - `groups`: Same as `group` but accepts a list of values. Multiple values are AND'd together and a certificate must
   contain all groups to pass.
 
-- `cidr`: a CIDR, `0.0.0.0/0` is any.
+- `cidr`: a CIDR, `0.0.0.0/0` is any. This restricts which Nebula IP addresses the rule allows.
 
-- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This could be used to filter destinations when using unsafe_routes.
+- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This restricts which destination IP addresses, when using
+  unsafe_routes, the rule allows. If unset, the rule will allow access to the specified ports on both the node itself as
+  well as any IP addresses it routes to. It is a good idea to specify this setting on any box that is configured as an
+  unsafe_routes router. (e.g. Use the node's Nebula IP with a `/32` mask to allow inbound access only to the node
+  itself.)
 
 Logical evaluation is roughly: port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr).
 
