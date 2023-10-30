@@ -66,12 +66,16 @@ To match this certificate, we would run `nebula-cert ca -name "test ca - do not 
 not need to pass `-groups` or `-subnets` because this CA has no such restrictions. By default, Nebula will set the
 expiration to a year from today. If you'd like to use a custom expiration, you can use the `-duration` flag.
 
-:::note Nebula offers built-in encryption of the CA private key since v1.7.0. If you do not plan to store the private
+:::note
+
+Nebula offers built-in encryption of the CA private key since v1.7.0. If you do not plan to store the private
 key in encrypted storage (e.g. Ansible Vault or AWS Secrets Manager), it is recommended that you use the built-in
 encryption.
 
 To encrypt your Nebula private key, pass the `-encrypt` flag when generating the CA and you will be prompted for a
-passphrase. Keep it safe - you will be prompted for it each time you sign a host using the encrypted CA key. :::
+passphrase. Keep it safe - you will be prompted for it each time you sign a host using the encrypted CA key.
+
+:::
 
 **Before proceeding,** we strongly recommend you set a reminder for yourself to rotate your CA again in the future.
 Consider setting a reminder in your team's shared calendar for 2-3 months prior to your new CA's expiration.
