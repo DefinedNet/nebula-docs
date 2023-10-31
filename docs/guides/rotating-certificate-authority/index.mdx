@@ -27,7 +27,7 @@ you'll need to manually connect to each device to update its Nebula config.
 
 Additionally, consider checking your config and enabling
 [`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) if you have not already. This flag will cause Nebula
-to close existing tunnels to hosts whic are no longer trusted - either because their certificates are expired or because
+to close existing tunnels to hosts which are no longer trusted - either because their certificates are expired or because
 their certificate is no longer signed by a trusted CA. This will accelerate how quickly you learn of problems after
 updating your CA trust bundle, giving you as much time as possible to rollback and fix any issues before your CA
 expires.
