@@ -80,8 +80,8 @@ Consider setting a reminder in your team's shared calendar for 2-3 months prior 
 
 ### Step 2: Updating your existing host's trust bundle
 
-Before issuing new certificates for each host, it's important to update the trust bundle on all of your existing hosts'
-config. This will ensure that as hosts are moved over to certificates signed by the new CA, these new certificates will
+Before issuing new certificates for each host, it's important to update the trust bundle in all of your existing hosts'
+configs. This will ensure that as hosts are moved over to certificates signed by the new CA, these new certificates will
 be trusted by the rest of your network.
 
 On each host, find the `pki` section and append the new CA underneath your existing CA in the `ca` setting. For example,
