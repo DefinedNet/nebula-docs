@@ -46,6 +46,9 @@ devDependencies:
   '@ianvs/prettier-plugin-sort-imports':
     specifier: ^3.7.1
     version: 3.7.2(prettier@2.8.8)
+  '@types/node':
+    specifier: ^20.8.10
+    version: 20.8.10
   alias-hq:
     specifier: ^6.1.0
     version: 6.2.2(@babel/preset-env@7.23.2)
