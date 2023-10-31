@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "postinstall": "npx parse-domain-update",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "pnpm parse-domain-update",
     "start": "docusaurus start",
-    "build": "npx parse-domain-update && docusaurus build",
+    "build": "pnpm parse-domain-update && docusaurus build",
     "preview": "docusaurus serve",
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
@@ -48,11 +49,8 @@
       "last 1 safari version"
     ]
   },
+  "packageManager": "pnpm@8.10.0+sha256.3c5d70d07b0c4849d7e07398b62bf48ca6619ca86f77981125eaab7f5ee82c4c",
   "engines": {
-    "node": ">=16.14"
-  },
-  "volta": {
-    "node": "18.16.0",
-    "npm": "8.17.0"
+    "node": ">=20.9.0"
   }
 }
