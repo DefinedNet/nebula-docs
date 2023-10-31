@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "incremental": true,
+    "module": "Node16",
     // If you add any more aliases here, be sure to also add it to .prettierc.cjs
     "paths": {
       "@docs/*": ["docs/*"],
