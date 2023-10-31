@@ -8,8 +8,8 @@
     "start": "docusaurus start",
     "build": "pnpm parse-domain-update && docusaurus build",
     "preview": "docusaurus serve",
-    "format": "prettier --write . --ignore-path .gitignore",
-    "format:check": "prettier --check . --ignore-path .gitignore",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc",
     "test": "uvu -r tsm --dir ."
   },
