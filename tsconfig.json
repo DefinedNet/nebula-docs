@@ -1,10 +1,9 @@
 {
   // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@tsconfig/docusaurus/tsconfig.json",
+  "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
     "baseUrl": ".",
     "incremental": true,
-    "module": "Node16",
     // If you add any more aliases here, be sure to also add it to .prettierc.cjs
     "paths": {
       "@docs/*": ["docs/*"],
