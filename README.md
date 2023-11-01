@@ -27,4 +27,4 @@ with different requirements.
 
 To install our javascript dependencies, run `pnpm install` (or `pnpm i` for short). You'll want to do this whenever you
 change branches, if there's a possibility that dependencies have been changed or updated. If you're not able to start up
-the client app, this is a good first troubleshooting step to take.
+the client app, this is a good first troubleshooting step to take. To get `pnpm`, run `corepack enable` after installing `node`, and `corepack` should install the right `pnpm` version for you.
