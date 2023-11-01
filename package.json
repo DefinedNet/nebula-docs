@@ -3,12 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "postinstall": "npx parse-domain-update",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "pnpm parse-domain-update",
     "start": "docusaurus start",
-    "build": "npx parse-domain-update && docusaurus build",
+    "build": "pnpm parse-domain-update && docusaurus build",
     "preview": "docusaurus serve",
-    "format": "prettier --write . --ignore-path .gitignore",
-    "format:check": "prettier --check . --ignore-path .gitignore",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc",
     "test": "uvu -r tsm --dir ."
   },
@@ -17,15 +18,18 @@
     "@docusaurus/preset-classic": "2.3.0",
     "@mdx-js/react": "^1.6.22",
     "clsx": "^1.2.1",
-    "parse-domain": "^7.0.1",
+    "parse-domain": "^5.0.0",
     "prism-react-renderer": "^1.3.5",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "2.3.0",
+    "@docusaurus/theme-classic": "^2.0.0",
+    "@docusaurus/types": "^2.0.0",
     "@ianvs/prettier-plugin-sort-imports": "^3.7.1",
     "@tsconfig/docusaurus": "^1.0.6",
+    "@types/node": "^20.8.10",
     "alias-hq": "^6.1.0",
     "autoprefixer": "^10.4.13",
     "docusaurus-plugin-module-alias": "^0.0.2",
@@ -48,11 +52,8 @@
       "last 1 safari version"
     ]
   },
+  "packageManager": "pnpm@8.10.0+sha256.3c5d70d07b0c4849d7e07398b62bf48ca6619ca86f77981125eaab7f5ee82c4c",
   "engines": {
-    "node": ">=16.14"
-  },
-  "volta": {
-    "node": "18.16.0",
-    "npm": "8.17.0"
+    "node": ">=18.16.0"
   }
 }
