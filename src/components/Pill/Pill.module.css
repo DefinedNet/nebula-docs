@@ -8,6 +8,7 @@
   background-color: var(--ifm-color-emphasis-200);
   padding: 4px 8px;
 
+  &:global(.no-transform),
   & :global(.no-transform) {
     text-transform: none;
   }
