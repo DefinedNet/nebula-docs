@@ -209,7 +209,52 @@ net.ipv4.ip_forward = 1
 Note: This change is only persistent until you reboot. To make it permanent, add a new line with
 `net.ipv4.ip_forward = 1` to the end of the `/etc/sysctl.conf` file.
 
-### Step 5. Configure iptables on Linux host (LAN)
+### Step 5. Configure packet routing on Linux host (LAN)
+
+Packet routing on Linux can be done using iptables or the newer nftables.
+On most distributions iptables is using the nftables backend already. 
+
+nftalbes is preffered because it's new and designed to keep configurations in files.
+
+Both iptables and nftables are also used to implement Linux firewall so be careful when making changes 
+so you don't break your firewall, lock yourself outside your server or introduce vulnerabilities. 
+
+#### 5.a Packet routing using nftables
+
+1. Create a nftables file that we will name `nebula-routing.conf` with the contents bellow
+1. Load the configuration
+1. Test the configuration works as expected
+1. Load the configuration at boot (see https://wiki.nftables.org/wiki-nftables/index.php/Quick_reference-nftables_in_10_minutes#Load_ruleset )
+
+nebula-routing.conf
+```
+table ip nebula_routing {
+	chain nat {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter masquerade
+	}
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter accept
+		ct state related,established counter accept
+	}
+}
+```
+
+Usefull nftables commands are listed bellow.
+
+```shell
+# List current nftables rules
+sudo nft list ruleset
+
+# Load nebula rourting configuration
+sudo nft --file nebula-routing.conf
+
+# Remove all nftables configuration
+sudo nft flush ruleset
+```
+
+#### 5.b Packet routing using iptables
 
 Now that IP forwarding is enabled, we need to add a few iptables rules so that our Linux host running Nebula will be
 able to act as a NAT and masquerade as the other Nebula nodes that are using `unsafe_routes` to connect through the
