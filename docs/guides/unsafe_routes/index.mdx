@@ -211,61 +211,109 @@ Note: This change is only persistent until you reboot. To make it permanent, add
 
 ### Step 5. Configure packet routing on Linux host (LAN)
 
-Packet routing on Linux can be done using iptables or the newer nftables.
-On most distributions iptables is using the nftables backend already. 
++Now that IP forwarding is enabled, we need to add a few firewall rules so that our Linux router host will be able to to
+act as a NAT and masquerade as the other Nebula nodes which are using the route to connect through the Linux host to the
+hosts in the VPC. The exact steps necessary will depend on the firewall you are using, and the current firewall state on
+the host.
 
-nftalbes is preffered because it's new and designed to keep configurations in files.
+#### ufw
 
-Both iptables and nftables are also used to implement Linux firewall so be careful when making changes 
-so you don't break your firewall, lock yourself outside your server or introduce vulnerabilities. 
+Open `/etc/ufw/before.rules` and add the following lines to the bottom of the file.
 
-#### 5.a Packet routing using nftables
-
-1. Create a nftables file that we will name `nebula-routing.conf` with the contents bellow
-1. Load the configuration
-1. Test the configuration works as expected
-1. Load the configuration at boot (see https://wiki.nftables.org/wiki-nftables/index.php/Quick_reference-nftables_in_10_minutes#Load_ruleset )
-
-nebula-routing.conf
 ```
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# flush all existing POSTROUTING rules in the nat table to avoid duplicates
+-F POSTROUTING
+
+# 192.168.100.0/24 is the Nebula network, 192.168.86.0/24 is the route CIDR
+-A POSTROUTING -s 192.168.100.0/24 -d 192.168.86.0/24 -j MASQUERADE
+
+# don't delete the 'COMMIT' line or these nat table rules won't be processed
+COMMIT
+```
+
+Then run the following commands, replacing `nebula1` (Nebula interface) and `enp5s0` (local network interface) with the
+correct interface names, if necessary:
+
+```shell
+sudo ufw route allow in on nebula1 out on enp5s0 from 192.168.100.0/24 to 192.168.86.0/24
+sudo ufw reload
+```
+
+Confirm the new rule is active by running the following:
+
+```
+$ sudo ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+192.168.86.0/24 on enp5s0  ALLOW FWD   192.168.100.0/24 on nebula1
+```
+
+#### nftables
+
+Create a new nftables configuration (e.g. `/etc/nftables-routing.conf`) with the following configuration:
+
+```
+table ip nebula_routing
+delete table ip nebula_routing
 table ip nebula_routing {
-	chain nat {
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter masquerade
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy accept;
+    ct state related,established counter accept
+    iifname nebula1 oifname enp6s0 ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter accept
+  }
+}
+```
+
+Then run the following command to load the rules:
+
+```shell
+sudo nft -f /etc/nftables-routing.conf
+```
+
+You can verify the rule has taken effect by running the following command:
+
+```
+$ sudo nft list table nebula_routing
+table ip nebula_routing {
+	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
-		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter masquerade
+		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter packets 1 bytes 84 masquerade
 	}
+
 	chain forward {
 		type filter hook forward priority filter; policy accept;
-		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter accept
-		ct state related,established counter accept
+		ct state established,related counter packets 134763 bytes 123879509 accept
+		iifname "nebula1" oifname "enp6s0" ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter packets 726 bytes 85482 accept
 	}
 }
 ```
 
-Usefull nftables commands are listed bellow.
+:::note
 
-```shell
-# List current nftables rules
-sudo nft list ruleset
+These rules will only be persistent until you reboot the host. You will need to configure the file to be loaded at boot.
 
-# Load nebula rourting configuration
-sudo nft --file nebula-routing.conf
+:::
 
-# Remove all nftables configuration
-sudo nft flush ruleset
-```
+#### iptables
 
-#### 5.b Packet routing using iptables
-
-Now that IP forwarding is enabled, we need to add a few iptables rules so that our Linux host running Nebula will be
-able to act as a NAT and masquerade as the other Nebula nodes that are using `unsafe_routes` to connect through the
-Linux host to any host on the local LAN.
-
-Run the following commands to add the rules specific to our example networks.
+Run the following commands to add the rules specific to our example networks, replacing `nebula1` (Nebula interface) and
+`epn5s0` (local network interface) with the correct interface names, if necessary.
 
 ```shell
 sudo iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -d 192.168.86.0/24 -j MASQUERADE
-sudo iptables -I FORWARD 1 -s 192.168.100.0/24 -d 192.168.86.0/24 -j ACCEPT
-sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -I FORWARD 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -I FORWARD 2 -i nebula1 -o enp5s0 -s 192.168.100.0/24 -d 192.168.86.0/24 -j ACCEPT
 ```
 
 Once complete, you can confirm that the new rules are active by running the following.
@@ -273,23 +321,23 @@ Once complete, you can confirm that the new rules are active by running the foll
 This first list shows the second and third rule.
 
 ```shell
-sudo iptables -L
-Chain INPUT (policy ACCEPT)
-target     prot opt source               destination
+$ sudo iptables -vL
+Chain INPUT (policy ACCEPT 10M packets, 6461M bytes)
+ pkts bytes target     prot opt in     out     source               destination
 
-Chain FORWARD (policy ACCEPT)
-target     prot opt source               destination
-ACCEPT     all  --  192.168.100.0/24     192.168.86.0/24
-ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+Chain FORWARD (policy ACCEPT 86 packets, 11057 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+ 1034 1469K ACCEPT     all  --  epn6s0 nebula1  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     all  --  nebula1 enp6s0  192.168.100.0/24     192.168.86.0/24
 
-Chain OUTPUT (policy ACCEPT)
-target     prot opt source               destination
+Chain OUTPUT (policy ACCEPT 18M packets, 58G bytes)
+ pkts bytes target     prot opt in     out     source               destination
 ```
 
 And this command shows the first rule, specific to the NAT table.
 
 ```shell
-sudo iptables -t nat -L
+$ sudo iptables -t nat -L
 Chain PREROUTING (policy ACCEPT)
 target     prot opt source               destination
 
@@ -306,8 +354,12 @@ target     prot opt source               destination
 
 You may see additional rules listed depending on your host and whether or not you've modified it.
 
-Note: These rules will only be persistent until you reboot the host. Depending on your distribution, you need to run
-additional commands to save these rules to disk and load them at boot.
+:::note
+
+These rules will only be persistent until you reboot the host. Depending on your distribution, you need to run
+additional commands (e.g. `iptables-save`) to save these rules to disk and load them at boot.
+
+:::
 
 ### Step 6. Edit Nebula config on the overlay hosts that need to access the home LAN
 
