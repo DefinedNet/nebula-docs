@@ -1,18 +1,19 @@
 ---
 title: Debugging with Nebula SSH commands
 summary:
-  This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging network connectivity for the nebula host.
+  This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging
+  network connectivity for the nebula host.
 ---
 
 # Debugging with Nebula SSH commands
 
-This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging network connectivity for the nebula host.
+This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging network
+connectivity for the nebula host.
 
-
-First you need to configure the [`sshd`](https://nebula.defined.net/docs/config/sshd/) section on the host you want to debug.
+First you need to configure the [`sshd`](https://nebula.defined.net/docs/config/sshd/) section on the host you want to
+debug.
 
 Please follow the instructions here: https://nebula.defined.net/docs/config/sshd/.
-
 
 Example config:
 
@@ -73,7 +74,6 @@ list-hostmap - List all known previously connected hosts
 ```
 
 Now you can debug your nebula installation, querying things like your hostmap:
-
 
 ```ssh
 > list-hostmap
