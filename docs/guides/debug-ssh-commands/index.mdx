@@ -32,6 +32,14 @@ You must add the correct public ssh key for the users you wish to access the ssh
 
 Next, restart nebula and ssh via `ssh 127.0.0.1 -p 2222`.
 
+Now you can debug your nebula installation, querying things like your hostmap:
+
+```ssh
+> list-hostmap
+10.128.1.1: [205.133.20.81:4242]
+10.128.1.2: [153.231.31.111:4242]
+```
+
 You should be able to run `help` once you're logged in.
 
 ```ssh
@@ -73,10 +81,4 @@ list-hostmap - List all known previously connected hosts
     	pretty prints json, assumes -json
 ```
 
-Now you can debug your nebula installation, querying things like your hostmap:
 
-```ssh
-> list-hostmap
-10.128.1.1: [205.133.20.81:4242]
-10.128.1.2: [153.231.31.111:4242]
-```
