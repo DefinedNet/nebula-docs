@@ -81,4 +81,11 @@ list-hostmap - List all known previously connected hosts
     	pretty prints json, assumes -json
 ```
 
+## Notes about some commands
 
+`query-lighthouse <some-ip>` will return an empty result set initially if the host is not connected, but it will trigger
+a background request to the Lighthouse. Meaning, you need to run it twice to actually get a result.
+
+`change-remote` has only a temporary effect: after a period of time, Nebula will "revert" to its preferred remote (i.e.
+based on the rules here:
+https://nebula.defined.net/docs/config/preferred-ranges/#how-nebula-orders-underlay-ip-addresses-it-learns-about)
