@@ -30,7 +30,9 @@ sshd:
 ```
 
 In this case `steeeeve` and `[ssh public key string]` should be the values for the user you want to enable access for
-debugging. You must add the correct public ssh key for the users you wish to access the ssh server with.
+debugging. You must add the correct public ssh key for the users you wish to access the ssh server with. If you don't
+already have an SSH key for the host you want to access from, follow this guide by GitHub:
+[Generating a new SSH key and adding it to the ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
 Set the `listen` property to localhost for local debugging or to your nebula IP to enable access over the nebula overlay
 network.
