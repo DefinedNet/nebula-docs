@@ -10,10 +10,11 @@ summary:
 This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging network
 connectivity for the nebula host.
 
-First you need to configure the [`sshd`](https://nebula.defined.net/docs/config/sshd/) section on the host you want to
-debug.
+First generate a new SSH key for the host you want to debug, via `ssh-keygen -t ed25519 -f ssh_host_ed25519_key`. You
+can set it to only accessible by `root` via `chown root:root ssh_host_ed25519_key`, which will ensure that regular users
+on that host cannot access the private key.
 
-Please follow the instructions here: https://nebula.defined.net/docs/config/sshd/.
+Next configure the [`sshd`](https://nebula.defined.net/docs/config/sshd/) section on the host you want to debug.
 
 Example config:
 
@@ -28,9 +29,13 @@ sshd:
         - '[ssh public key string]'
 ```
 
-You must add the correct public ssh key for the users you wish to access the ssh server with.
+In this case `steeeeve` and `[ssh public key string]` should be the values for the user you want to enable access for
+debugging. You must add the correct public ssh key for the users you wish to access the ssh server with.
 
-Next, restart nebula and ssh via `ssh 127.0.0.1 -p 2222`.
+Set the `listen` property to localhost for local debugging or to your nebula IP to enable access over the nebula overlay
+network.
+
+Next, restart nebula and ssh via `ssh 127.0.0.1 -p 2222` for example.
 
 Now you can debug your nebula installation, querying things like your hostmap:
 
