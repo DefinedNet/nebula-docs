@@ -37,7 +37,7 @@ already have an SSH key for the host you want to access from, follow this guide 
 Set the `listen` property to localhost for local debugging or to your nebula IP to enable access over the nebula overlay
 network.
 
-Next, either send a kill SIGHUP to the nebula PID or restart nebula and ssh via `ssh 127.0.0.1 -p 2222` for example.
+Next, either run `kill SIGHUP <nebula PID>` or restart nebula and ssh via `ssh 127.0.0.1 -p 2222` for example.
 
 Now you can debug your nebula installation, querying things like your hostmap:
 
