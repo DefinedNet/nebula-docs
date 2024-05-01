@@ -37,7 +37,28 @@ allowed for your safety.
 
 ## sshd.host_key
 
-`host_key` points to a file containing the ssh host private key to use for the ssh server side of the console.
+`host_key` points to a file containing the ssh host private key to use for the ssh server side of the console. In the
+above example, `/path/to/ssh_host_ed25519_key` contains a PEM-encoded SSH host key. The following example shows a host
+key inlined as a YAML multiline string.
+
+```
+sshd:
+  host_key: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+    QyNTUxOQAAACCAvcPQI9IPXWXmsCFBi+IGoqxjKcCZjivS2ev7wVLWjAAAAKCzhBSYs4QU
+    mAAAAAtzc2gtZWQyNTUxOQAAACCAvcPQI9IPXWXmsCFBi+IGoqxjKcCZjivS2ev7wVLWjA
+    AAAECkLDZ1uXRNpvWTG+tff7MSoy6WCDkNhlwB+I5BpI0zfYC9w9Aj0g9dZeawIUGL4gai
+    rGMpwJmOK9LZ6/vBUtaMAAAAGmptYWd1aXJlQGpvaG5zLW1icC0zLmxvY2FsAQID
+    -----END OPENSSH PRIVATE KEY-----
+```
+
+:::warning
+
+Do not use the above private key in your own config file. SSH host keys should be unique per host, and provide
+authenticity that you are connecting to the correct server.
+
+:::
 
 You can generate a host key using the `ssh-keygen` command line utility.
 
