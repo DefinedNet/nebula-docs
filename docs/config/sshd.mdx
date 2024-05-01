@@ -22,6 +22,8 @@ sshd:
     - user: steeeeve
       keys:
         - '[ssh public key string]'
+  trusted_cas:
+    - '[ssh ca public key string]'
 ```
 
 See also the [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/) guide.
@@ -70,3 +72,11 @@ You can generate a host key using the `ssh-keygen` command line utility.
 
 These options are how you create `users` for the debug ssh daemon. Password authentication for the ssh debug console is
 NOT supported.
+
+# sshd.trusted_cas
+
+As an alternative to (or in addition to) `authorized_users`, you may define a list of trusted SSH CA public keys. Any
+SSH certificate signed by a trusted CA will be granted access to the SSH debug server.
+
+If an SSH certificate contains at least one principal, the connecting username must match a principal in the
+certificate. If no principals are specified in the certificate, any username can be used.
