@@ -26,7 +26,7 @@ punchy:
 
 ## punchy.respond
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `respond` means that a node unable to receive handshakes will attempt to initiate a handshake to the host attempting to
 establish a tunnel, which can be the case when hole punching fails in one direction. This can be extremely useful if one
@@ -34,13 +34,13 @@ node is behind a difficult nat, such as a symmetric NAT.
 
 ## punchy.respond_delay
 
-<Pill className="mb-24">Default: 5s</Pill>
+<Pill className="mb-24">Default: 5s</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Delay before attempting punchy.respond. respond must be true to take effect.
 
 ## punchy.delay
 
-<Pill className="mb-24">Default: 1s</Pill>
+<Pill className="mb-24">Default: 1s</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `delay` slows down punch responses which can be helpful for conditions where a NAT is unable to handle certain race
 conditions. `respond` must be true to take effect. Changing this value while running will not affect any in progress
