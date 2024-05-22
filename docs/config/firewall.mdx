@@ -65,8 +65,20 @@ The possible fields of a firewall rule are:
   unsafe_routes, the rule allows. If unset, the rule will allow access to the specified ports on both the node itself as
   well as any IP addresses it routes to.
 
-Logical evaluation is roughly: port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr OR
-local_cidr).
+:::note
+
+Logical evaluation of these rules changed in Nebula v1.9.0. Previously, a match on `local_cidr` meant that a rule did
+not need to also pass `host`, `group`, `groups`, or `cidr` checks. This is almost never what uers want - `local_cidr`
+generally refers to a specific segment of an [unsafe_routes](/docs/config/tun/#tununsafe_routes) configuration that is
+being accessed, while the latter options relate to the connecting host's identity.
+
+:::
+
+Since Nebula v1.9.0, rules are evaluated as:
+`port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr) AND local_cidr`.
+
+Prior to Nebula v1.9.0, rules were evaluated as:
+`port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr OR local_cidr)`.
 
 ```yml
 # Nebula security group configuration
@@ -74,6 +86,8 @@ local_cidr).
 firewall:
   outbound_action: drop
   inbound_action: drop
+
+  default_local_cidr_any: false # false will become the default in Nebula v1.10.0+
 
   conntrack:
     tcp_timeout: 12m
@@ -117,6 +131,21 @@ outbound:
 
 At a minimum, it is recommended to enable ICMP so that `ping` can be used to verify connectivity. Additionally, if
 enabling the built-in Nebula SSH server, you may wish to grant access over the Nebula network via firewall rules.
+
+## firewall.default_local_cidr_any
+
+<Pill className="mb-24">Default: True</Pill>
+
+This setting was introduced in Nebula v1.9.0 for backwards compatibility purposes. The default will be changed to
+`false` in Nebula v1.10.0 and the config option will be deprecated.
+
+When set to `true`, any firewall rules which do not explicitly set `local_cidr` will be interpreted as if they were set
+to `any`. In other words, firewall rules which do not explicitly configure `local_cidr` will apply both to ports on the
+local machine as well as ports on any hosts accessible via [unsafe_routes](/docs/config/tun/#tununsafe_routes).
+
+When set to `false`, firewall rules which do not explicitly set `local_cidr` will only apply to the local host. To
+permit access to machines accessible via unsafe_routes, define a firewall rule which explicitly references those routes
+in the `local_cidr` field.
 
 ## firewall.conntrack
 
