@@ -17,23 +17,25 @@ logging:
 
 ## logging.level
 
-<Pill className="mb-24">Default: info</Pill>
+<Pill className="mb-24">Default: info</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Controls the verbosity of logs. The options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
 
 ## logging.format
 
-<Pill className="mb-24">Default: text</Pill>
+<Pill className="mb-24">Default: text</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Controls the logging format. The options are `json` or `text`
 
 ## logging.disable_timestamp
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Disables timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
 
 ## logging.timestamp_format
+
+<Pill className="mb-24">Reloadable</Pill>
 
 `timestamp_format` is specified in Go time format, see: https://golang.org/pkg/time/#pkg-constants.
 

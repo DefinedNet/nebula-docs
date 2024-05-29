@@ -118,13 +118,15 @@ lighthouse:
 
 ## lighthouse.interval
 
-<Pill className="mb-24">Default: 10</Pill>
+<Pill className="mb-24">Default: 10</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `interval` specifies how often a nebula host should report itself to a lighthouse. By default, hosts report themselves
 to lighthouses once every 10 seconds. Use caution when changing this interval, as it may affect host discovery times in
 a large nebula network.
 
 ## lighthouse.hosts
+
+<Pill className="mb-24">Reloadable</Pill>
 
 :::warning
 
@@ -142,6 +144,8 @@ lighthouse:
 ```
 
 ## lighthouse.remote_allow_list
+
+<Pill className="mb-24">Reloadable</Pill>
 
 `remote_allow_list` allows you to control ip ranges that this node will consider when handshaking to another node. By
 default, any remote IPs are allowed. You can provide CIDRs here with `true` to allow and `false` to deny. The most
@@ -162,6 +166,8 @@ lighthouse:
 
 ## lighthouse.local_allow_list
 
+<Pill className="mb-24">Reloadable</Pill>
+
 `local_allow_list` allows you to filter which local IP addresses we advertise to the lighthouses. This uses the same
 logic as `remote_allow_list`, but additionally, you can specify an `interfaces` map of regular expressions to match
 against interface names. The regexp must match the entire name. All interface rules must be either true or false (and
@@ -180,6 +186,8 @@ lighthouse:
 
 ## lighthouse.advertise_addrs
 
+<Pill className="mb-24">Reloadable</Pill>
+
 `advertise_addrs` are routable addresses that will be included along with discovered addresses to report to the
 lighthouse. The format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its
 place, useful if `listen.port` is set to `0`. This option is mainly useful when there are static IP addresses the host
@@ -187,6 +195,8 @@ can be reached at that nebula can not typically discover on its own (e.g. when p
 multiple paths to the internet.)
 
 ## lighthouse.calculated_remotes
+
+<Pill className="mb-24">Reloadable</Pill>
 
 :::danger
 

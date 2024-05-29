@@ -21,7 +21,7 @@ pki:
 
 ## pki.ca
 
-<Pill className="mb-24">Required</Pill>
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 The `ca` is a collection of one or more certificate authorities this host should trust. In the above example,
 `/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The
@@ -39,7 +39,14 @@ pki:
 
 ## pki.cert
 
-<Pill className="mb-24">Required</Pill>
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+:::note
+
+A new certificate will only take effect after a reload if the IP address has not changed, but all other properties of
+the certificate can be changed.
+
+:::
 
 The `cert` is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
 name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
@@ -47,13 +54,15 @@ which informs other hosts on whether to trust a particular host certificate.
 
 ## pki.key
 
-<Pill className="mb-24">Required</Pill>
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 The `key` is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate
 to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other
 hosts.
 
 ## pki.blocklist
+
+<Pill className="mb-24">Reloadable</Pill>
 
 :::note
 
@@ -69,6 +78,6 @@ stolen or compromised.
 
 ## pki.disconnect_invalid
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.

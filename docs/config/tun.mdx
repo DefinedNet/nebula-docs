@@ -58,11 +58,13 @@ Default is 500.
 
 ## tun.mtu
 
-<Pill className="mb-24">Default: 1300</Pill>
+<Pill className="mb-24">Default: 1300</Pill> <Pill className="mb-24">Reloadable: Linux</Pill>
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
 
 ## tun.routes
+
+<Pill className="mb-24">Reloadable</Pill>
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
 here.
@@ -75,6 +77,8 @@ tun:
 ```
 
 ## tun.unsafe_routes
+
+<Pill className="mb-24">Reloadable</Pill>
 
 :::warning
 

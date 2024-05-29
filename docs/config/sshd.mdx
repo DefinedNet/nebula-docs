@@ -30,16 +30,20 @@ See also the [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-command
 
 ## sshd.enabled
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `enabled` toggles this feature globally.
 
 ## sshd.listen
 
+<Pill className="mb-24">Reloadable</Pill>
+
 `listen` is used to specify the host ip and port number for the nebula debug console to listen on, port 22 is not
 allowed for your safety.
 
 ## sshd.host_key
+
+<Pill className="mb-24">Reloadable</Pill>
 
 `host_key` points to a file containing the ssh host private key to use for the ssh server side of the console. In the
 above example, `/path/to/ssh_host_ed25519_key` contains a PEM-encoded SSH host key. The following example shows a host
@@ -69,6 +73,8 @@ You can generate a host key using the `ssh-keygen` command line utility.
 `ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N "" < /dev/null`
 
 ## sshd.authorized_users, user, keys
+
+<Pill className="mb-24">Reloadable</Pill>
 
 These options are how you create `users` for the debug ssh daemon. Password authentication for the ssh debug console is
 NOT supported.

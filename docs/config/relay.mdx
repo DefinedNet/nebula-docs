@@ -3,6 +3,8 @@ sidebar_position: 9
 description: Configure Nebula relays to forward packets between hosts with tricky connectivity issues.
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # relay
 
 :::note
@@ -36,6 +38,8 @@ their own config.
 
 ## relay.relays
 
+<Pill className="mb-24">Reloadable</Pill>
+
 `relays` is a list of Nebula IPs that peers can use to relay packets to this host. IPs in this list must have `am_relay`
 set to `true` in their configs, otherwise they will reject relay requests.
 
@@ -49,6 +53,8 @@ This list of relays is reported to the Lighthouse. When other nodes attempt to h
 will indicate its supported relays in addition to its known IP addresses.
 
 ## relay.am_relay
+
+<Pill className="mb-24">Reloadable</Pill>
 
 Set `am_relay` to true to enable forwarding packets for other hosts. This host will only forward traffic for hosts which
 specify it as a relay in their own config file. The default is false.
