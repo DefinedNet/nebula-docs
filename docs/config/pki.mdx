@@ -41,6 +41,13 @@ pki:
 
 <Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
+:::note
+
+A new certificate will only take effect after a reload if the IP address has not changed, but all other properties of
+the certificate can be changed.
+
+:::
+
 The `cert` is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
 name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
 which informs other hosts on whether to trust a particular host certificate.
