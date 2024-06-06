@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    schedule:
+      interval: 'weekly'
+    directories:
+      - '/'
+    groups:
+      docusaurus-dependencies:
+        patterns:
+          - '@docusaurus/*'
+      react-dependencies:
+        patterns:
+          - 'react-*'
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
