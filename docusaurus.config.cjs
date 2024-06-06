@@ -150,6 +150,7 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     },
+  onBrokenAnchors: 'throw',
 };
 
 module.exports = config;
