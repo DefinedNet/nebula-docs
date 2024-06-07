@@ -12,3 +12,6 @@ behavior it requires multiple Nebula networks with incompatible certs.
 
 Nebula has multiple options for encryption key material: 25519 or p256. It's required that you choose one and only one
 for your network, as different encryption algorithims do not interopt.
+
+What happens when when a nebula host's cert expires? It continues running, but handshakes with other hosts will start to
+fail.
