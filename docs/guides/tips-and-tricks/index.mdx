@@ -15,3 +15,6 @@ one for your network, as different encryption algorithims do not interopt.
 
 What happens when when a nebula host's cert expires? It continues running, but handshakes with other hosts will start to
 fail.
+
+Nebula is a peer-to-peer VPN, meaning by default it only routes to hosts that have the software installed with an
+associated cert. If you want Nebula to function like OpenVPN, set up [unsafe routes](/docs/guides/unsafe_routes/).
