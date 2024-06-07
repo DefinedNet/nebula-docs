@@ -26,8 +26,8 @@ relay:
 
 In order to act as a relay for other hosts, `am_relay` must be set to true (default false.) In order to use relays, a
 host must have `use_relays` set to true (default true.) Any host can be a relay; it does not need to be a lighthouse.
-However, like lighthouses, relay nodes should be deployed with a public internet IP and firewall rules that permit
-Nebula's UDP traffic inbound.
+However, like lighthouses, relay nodes should be deployed with a <UnderlayIP>public internet IP</UnderlayIP> and
+firewall rules that permit Nebula's UDP traffic inbound.
 
 Hosts specify which other hosts may act as a relay when connecting to them via the `relays` option in the config. This
 allows hosts to specify relays that are "close" to them. For example, if you have some Nebula hosts in a private AWS
@@ -40,8 +40,10 @@ their own config.
 
 <Pill className="mb-24">Reloadable</Pill>
 
-`relays` is a list of Nebula IPs that peers can use to relay packets to this host. IPs in this list must have `am_relay`
-set to `true` in their configs, otherwise they will reject relay requests.
+`relays` is a list of <OverlayIP>Nebula IPs</OverlayIP> that peers can use to relay packets to this host.
+
+<OverlayIP>IPs</OverlayIP> in this list must have `am_relay` set to `true` in their configs, otherwise they will reject relay
+requests.
 
 ```yml
 relays:
@@ -50,7 +52,7 @@ relays:
 ```
 
 This list of relays is reported to the Lighthouse. When other nodes attempt to handshake with this host, the Lighthouse
-will indicate its supported relays in addition to its known IP addresses.
+will indicate its supported relays in addition to its <UnderlayIP>known IP addresses</UnderlayIP>.
 
 ## relay.am_relay
 

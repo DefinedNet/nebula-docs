@@ -6,7 +6,7 @@ export function UnderlayIP({ children }) {
       style={{
         textDecorationColor: 'green',
         textDecorationLine: 'underline',
-        textDecorationStyle: 'dotted',
+        textDecorationStyle: 'solid',
         textDecorationThickness: '2px',
       }}
     >
