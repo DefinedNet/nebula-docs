@@ -58,14 +58,15 @@ name resolution by external DNS hosts. To enable listening on IPv6 in addition t
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
 Lighthouses.
 
-`A` records contain the Nebula IP for a host name and can be queried by any host that can reach the DNS listener,
-regardless of whether it is communicating over the Nebula network.
+`A` records contain the <OverlayIP>Nebula IP</OverlayIP> for a host name and can be queried by any host that can reach
+the DNS listener, regardless of whether it is communicating over the Nebula network.
 
 `TXT` records can only be queried over the Nebula network, and contain certificate information for the requested host IP
 address.
 
-For example, if `192.168.100.1` was your Lighthouse node running a DNS server and you wanted to find the Nebula IP
-address of a host named `web01`:
+For example, if `192.168.100.1` was your Lighthouse node running a DNS server and you wanted to find the
+
+<OverlayIP>Nebula IP</OverlayIP> address of a host named `web01`:
 
 ```shell
 $ dig @192.168.100.1 +short web01 A
@@ -101,8 +102,9 @@ firewall:
 ## lighthouse.dns
 
 `dns` is used to configure the address (`host`) and port (`port`) the DNS server should listen on. By listening on the
-host's Nebula IP, you can make the DNS server accessible only on the Nebula network. Alternatively, listening on
-`0.0.0.0` will allow anyone that can reach the host to make queries.
+host's <OverlayIP>Nebula IP</OverlayIP>, you can make the DNS server accessible only on the Nebula network.
+Alternatively, listening on <UnderlayIP>`0.0.0.0`</UnderlayIP> will allow anyone that can reach the host to make
+queries.
 
 The default value for `dns.port` is `53` but you must set an IP address.
 
@@ -135,7 +137,8 @@ This should be empty on lighthouse nodes
 :::
 
 `hosts` is a list of lighthouse hosts this node should report to and query from. The lighthouses listed here should be
-referenced by their **nebula IP**, not by the IPs of their physical network interfaces.
+referenced by their <OverlayIP>**nebula IP**</OverlayIP>, not by the <UnderlayIP>IPs</UnderlayIP> of their physical
+network interfaces.
 
 ```yml
 lighthouse:
@@ -147,11 +150,12 @@ lighthouse:
 
 <Pill className="mb-24">Reloadable</Pill>
 
-`remote_allow_list` allows you to control ip ranges that this node will consider when handshaking to another node. By
-default, any remote IPs are allowed. You can provide CIDRs here with `true` to allow and `false` to deny. The most
-specific CIDR rule applies to each remote. If all rules are "allow", the default will be "deny", and vice-versa. If both
-"allow" and "deny" rules are present, then you MUST set a rule for "0.0.0.0/0" as the default. Similarly if both "allow"
-and "deny" IPv6 rules are present, then you MUST set a rule for "::/0" as the default.
+`remote_allow_list` allows you to control <UnderlayIP>ip ranges</UnderlayIP> that this node will consider when
+handshaking to another node. By default, any <UnderlayIP>remote IPs</UnderlayIP> are allowed. You can provide CIDRs here
+with `true` to allow and `false` to deny. The most specific CIDR rule applies to each remote. If all rules are "allow",
+the default will be "deny", and vice-versa. If both "allow" and "deny" rules are present, then you MUST set a rule for
+"0.0.0.0/0" as the default. Similarly if both "allow" and "deny" IPv6 rules are present, then you MUST set a rule for
+"::/0" as the default.
 
 ```yml
 lighthouse:
@@ -168,10 +172,11 @@ lighthouse:
 
 <Pill className="mb-24">Reloadable</Pill>
 
-`local_allow_list` allows you to filter which local IP addresses we advertise to the lighthouses. This uses the same
-logic as `remote_allow_list`, but additionally, you can specify an `interfaces` map of regular expressions to match
-against interface names. The regexp must match the entire name. All interface rules must be either true or false (and
-the default will be the inverse). CIDR rules are matched after interface name rules. Default is all local IP addresses.
+`local_allow_list` allows you to filter which <UnderlayIP>local IP addresses</UnderlayIP> we advertise to the
+lighthouses. This uses the same logic as `remote_allow_list`, but additionally, you can specify an `interfaces` map of
+regular expressions to match against interface names. The regexp must match the entire name. All interface rules must be
+either true or false (and the default will be the inverse). CIDR rules are matched after interface name rules. Default
+is all <UnderlayIP>local IP addresses</UnderlayIP>.
 
 ```yml
 lighthouse:
@@ -188,11 +193,11 @@ lighthouse:
 
 <Pill className="mb-24">Reloadable</Pill>
 
-`advertise_addrs` are routable addresses that will be included along with discovered addresses to report to the
-lighthouse. The format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its
-place, useful if `listen.port` is set to `0`. This option is mainly useful when there are static IP addresses the host
-can be reached at that nebula can not typically discover on its own (e.g. when port forwarding or when the node has
-multiple paths to the internet.)
+`advertise_addrs` are <UnderlayIP>routable addresses</UnderlayIP> that will be included along with discovered addresses
+to report to the lighthouse. The format is "ip:port". `port` can be `0`, in which case the actual listening port will be
+used in its place, useful if `listen.port` is set to `0`. This option is mainly useful when there are <UnderlayIP>static
+IP addresses</UnderlayIP> the host can be reached at that nebula can not typically discover on its own (e.g. when port
+forwarding or when the node has multiple paths to the internet.)
 
 ## lighthouse.calculated_remotes
 
@@ -205,9 +210,10 @@ might be for a host while it waits for the lighthouse response.
 
 :::
 
-For any Nebula IPs in the range, it will apply the mask and add the calculated IP as the initial remote (while it waits
-for the response from the lighthouse). Both CIDRs must have the same mask size. For example, Nebula IP 10.0.10.123 will
-have a calculated remote of 192.168.1.123.
+For any <OverlayIP>Nebula IPs</OverlayIP> in the range, it will apply the mask and add the <UnderlayIP>calculated
+IP</UnderlayIP> as the initial remote (while it waits for the response from the lighthouse). Both CIDRs must have the
+same mask size. For example, <OverlayIP>Nebula IP 10.0.10.123</OverlayIP> will have a calculated remote of
+<UnderlayIP>192.168.1.123</UnderlayIP>.
 
 ```yml
 calculated_remotes:
