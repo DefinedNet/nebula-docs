@@ -123,9 +123,7 @@ address visible to the internet, only users on your nebula network will be able 
     Nebula supports full unicode strings in the host name, but for hosts to be discovered via Lighthouse DNS, they must
     conform to the DNS spec. https://www.punycoder.com/ is a useful tool for conversion.
 - Are the domain names case-sensitive?
-  - Currently the DNS server matches names case sensitively, though DNS is
-    [meant to resolve case-insensitively](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3).
-    [slackhq/nebula/issues/776](https://github.com/slackhq/nebula/issues/776) is tracking this issue.
+  - No, Nebula is compliant with the [spec](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.3) since version 1.7.0.
 - How do duplicate hostnames get resolved?
   - In nebula, a node's IP address is the only identifier that MUST be globally unique. Therefore, it's possible to have
     two hosts with the same certificate name, but different IP addresses. Unfortunately, this can cause inconsistent
