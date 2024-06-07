@@ -1,0 +1,14 @@
+# Tips and Tricks
+
+Make sure you get your preferred overlay network correct, because you will have to re-cert every host if you want to
+change your subnet.
+
+Nebula doesn't use X509, it has its own custom-built certificate format defined via protobuffs:
+https://github.com/slackhq/nebula/blob/master/cert/cert.proto. The encryption algorithm uses the well tested Noise
+protocol.
+
+Nebula subnets must be contiguous, you cannot have a `10.0.0.0/8` and `172.16.0.0/16` in the same cert, if you want that
+behavior it requires multiple Nebula networks with incompatible certs.
+
+Nebula has multiple options for encryption key material: 25519 or p256. It's required that you choose one and only one
+for your network, as different encryption algorithims do not interopt.
