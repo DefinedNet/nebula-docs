@@ -59,11 +59,11 @@ The possible fields of a firewall rule are:
 - `groups`: Same as `group` but accepts a list of values. Multiple values are AND'd together and a certificate must
   contain all groups to pass.
 
-- `cidr`: a CIDR, `0.0.0.0/0` is any. This restricts which Nebula IP addresses the rule allows.
+- `cidr`: a CIDR, `0.0.0.0/0` is any. This restricts which <OverlayIP>Nebula IP</OverlayIP> addresses the rule allows.
 
-- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This restricts which destination IP addresses, when using
-  unsafe_routes, the rule allows. If unset, the rule will allow access to the specified ports on both the node itself as
-  well as any IP addresses it routes to.
+- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This restricts which <UnderlayIP>destination IP
+  addresses</UnderlayIP>, when using unsafe_routes, the rule allows. If unset, the rule will allow access to the
+  specified ports on both the node itself as well as any <UnderlayIP>IP addresses</UnderlayIP> it routes to.
 
 :::note
 
