@@ -49,7 +49,7 @@ test('should reject generated invalid hostnames', () => {
     fc.property(fc.oneof(fc.ipV4(), fc.ipV6()), (hostname) => {
       assert.is(validateHostname(hostname), INVALID_HOSTNAME_IP);
       return true;
-    })
+    }),
   );
 });
 
