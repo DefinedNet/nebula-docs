@@ -35,7 +35,7 @@
     "docusaurus-plugin-module-alias": "^0.0.2",
     "fast-check": "^3.19.0",
     "postcss-nesting": "^12.1.5",
-    "prettier": "^3.3.1",
+    "prettier": "^3.3.2",
     "tsm": "^2.3.0",
     "typescript": "^5.4.5",
     "uvu": "^0.5.6"
