@@ -59,8 +59,8 @@ devDependencies:
     specifier: ^0.0.2
     version: 0.0.2
   fast-check:
-    specifier: ^3.19.0
-    version: 3.19.0
+    specifier: ^3.20.0
+    version: 3.20.0
   postcss-nesting:
     specifier: ^12.1.5
     version: 12.1.5(postcss@8.4.38)
@@ -5117,8 +5117,8 @@ packages:
       - supports-color
     dev: true
 
-  /fast-check@3.19.0:
-    resolution: {integrity: sha512-CO2JX/8/PT9bDGO1iXa5h5ey1skaKI1dvecERyhH4pp3PGjwd3KIjMAXEg79Ps9nclsdt4oPbfqiAnLU0EwrAQ==}
+  /fast-check@3.20.0:
+    resolution: {integrity: sha512-pZIjqLpOZgdSLecec4GKC3Zq5702MZ34upMKxojnNVSWA0K64V3pXOBT1Wdsrc3AphLtzRBbsi8bRWF4TUGmUg==}
     engines: {node: '>=8.0.0'}
     dependencies:
       pure-rand: 6.1.0
