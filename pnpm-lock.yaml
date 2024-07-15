@@ -45,7 +45,7 @@ devDependencies:
     version: 3.4.0(react-dom@18.3.1)(react@18.3.1)
   '@ianvs/prettier-plugin-sort-imports':
     specifier: ^4.3.0
-    version: 4.3.0(prettier@3.3.2)
+    version: 4.3.0(prettier@3.3.3)
   '@types/node':
     specifier: ^20.14.10
     version: 20.14.10
@@ -65,8 +65,8 @@ devDependencies:
     specifier: ^12.1.5
     version: 12.1.5(postcss@8.4.38)
   prettier:
-    specifier: ^3.3.2
-    version: 3.3.2
+    specifier: ^3.3.3
+    version: 3.3.3
   tsm:
     specifier: ^2.3.0
     version: 2.3.0
@@ -2488,7 +2488,7 @@ packages:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  /@ianvs/prettier-plugin-sort-imports@4.3.0(prettier@3.3.2):
+  /@ianvs/prettier-plugin-sort-imports@4.3.0(prettier@3.3.3):
     resolution: {integrity: sha512-OOMtUcO4J3LoL63dOKAe7bn+lSRRPeit2DqNHpx+wvBp3Grejo2PMaK4Mp1mwy8pnat64ccSgk/lBZbsAdLErw==}
     peerDependencies:
       '@vue/compiler-sfc': 2.7.x || 3.x
@@ -2502,7 +2502,7 @@ packages:
       '@babel/parser': 7.24.7
       '@babel/traverse': 7.24.7
       '@babel/types': 7.24.7
-      prettier: 3.3.2
+      prettier: 3.3.3
       semver: 7.6.2
     transitivePeerDependencies:
       - supports-color
@@ -8001,8 +8001,8 @@ packages:
       picocolors: 1.0.1
       source-map-js: 1.2.0
 
-  /prettier@3.3.2:
-    resolution: {integrity: sha512-rAVeHYMcv8ATV5d508CFdn+8/pHPpXeIid1DdrPwXnaAdH7cqjVbpJaT5eq4yRAFU/lsbwYwSF/n5iNrdJHPQA==}
+  /prettier@3.3.3:
+    resolution: {integrity: sha512-i2tDNA0O5IrMO757lfrdQZCc2jPNDVntV0m/+4whiDfWaTKfMNgR7Qz0NAeGz/nRqF4m5/6CLzbP4/liHt12Ew==}
     engines: {node: '>=14'}
     hasBin: true
     dev: true
