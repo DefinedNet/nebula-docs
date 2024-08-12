@@ -33,7 +33,7 @@
     "alias-hq": "^6.2.3",
     "autoprefixer": "^10.4.20",
     "docusaurus-plugin-module-alias": "^0.0.2",
-    "fast-check": "^3.20.0",
+    "fast-check": "^3.21.0",
     "postcss-nesting": "^13.0.0",
     "prettier": "^3.3.3",
     "tsm": "^2.3.0",
