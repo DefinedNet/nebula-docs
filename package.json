@@ -37,7 +37,7 @@
     "postcss-nesting": "^13.0.0",
     "prettier": "^3.3.3",
     "tsm": "^2.3.0",
-    "typescript": "^5.6.2",
+    "typescript": "^5.6.3",
     "uvu": "^0.5.6"
   },
   "browserslist": {
