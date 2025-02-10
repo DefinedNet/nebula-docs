@@ -47,7 +47,7 @@ importers:
         version: 3.7.0(acorn@8.14.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@ianvs/prettier-plugin-sort-imports':
         specifier: ^4.4.1
-        version: 4.4.1(prettier@3.4.2)
+        version: 4.4.1(prettier@3.5.0)
       '@types/node':
         specifier: ^22.13.0
         version: 22.13.0
@@ -67,8 +67,8 @@ importers:
         specifier: ^13.0.1
         version: 13.0.1(postcss@8.4.49)
       prettier:
-        specifier: ^3.4.2
-        version: 3.4.2
+        specifier: ^3.5.0
+        version: 3.5.0
       tsm:
         specifier: ^2.3.0
         version: 2.3.0
@@ -4578,8 +4578,8 @@ packages:
     resolution: {integrity: sha512-OCVPnIObs4N29kxTjzLfUryOkvZEq+pf8jTF0lg8E7uETuWHA+v7j3c/xJmiqpX450191LlmZfUKkXxkTry7nA==}
     engines: {node: ^10 || ^12 || >=14}
 
-  prettier@3.4.2:
-    resolution: {integrity: sha512-e9MewbtFo+Fevyuxn/4rrcDAaq0IYxPGLvObpQjiZBMAzB9IGmzlnG9RZy3FFas+eBMu2vA0CszMeduow5dIuQ==}
+  prettier@3.5.0:
+    resolution: {integrity: sha512-quyMrVt6svPS7CjQ9gKb3GLEX/rl3BCL2oa/QkNcXv4YNVBC9olt3s+H7ukto06q7B1Qz46PbrKLO34PR6vXcA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -7717,13 +7717,13 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@ianvs/prettier-plugin-sort-imports@4.4.1(prettier@3.4.2)':
+  '@ianvs/prettier-plugin-sort-imports@4.4.1(prettier@3.5.0)':
     dependencies:
       '@babel/generator': 7.26.5
       '@babel/parser': 7.26.7
       '@babel/traverse': 7.26.7
       '@babel/types': 7.26.7
-      prettier: 3.4.2
+      prettier: 3.5.0
       semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
@@ -11492,7 +11492,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prettier@3.4.2: {}
+  prettier@3.5.0: {}
 
   pretty-error@4.0.0:
     dependencies:
