@@ -1,0 +1,23 @@
+# Tips and Tricks
+
+Make sure you get your preferred overlay network correct, because you will have to re-cert every host if you want to
+change your subnet.
+
+Nebula doesn't use X509, it has its own custom-built certificate format defined via protobuffs:
+https://github.com/slackhq/nebula/blob/master/cert/cert.proto. The encryption algorithm uses the well tested Noise
+protocol.
+
+Nebula subnets must be contiguous, you cannot have a `10.0.0.0/8` and `172.16.0.0/16` in the same cert, if you want
+multiple separate subnets it requires multiple Nebula networks with incompatible certs.
+
+Nebula has multiple options for encryption key material: `25519` or `p256`. It's required that you choose one and only
+one for your network, as different encryption algorithims do not interopt.
+
+What happens when when a nebula host's cert expires? It continues running, but handshakes with other hosts will start to
+fail.
+
+Nebula is a [peer-to-peer](https://en.wikipedia.org/wiki/Peer-to-peer) VPN, meaning by default it only routes to hosts
+that have the software installed with an associated cert. If you want Nebula to function like
+[OpenVPN](https://en.wikipedia.org/wiki/OpenVPN), set up [unsafe routes](/docs/guides/unsafe_routes/).
+
+Consider using some/all of `100.64.0.0/10` as your overlay network, `its_free_real_estate.jpg`.
