@@ -1,0 +1,198 @@
+---
+title: Upgrading your IPv4 Cert V1 network to an IPv4/IPv6 Cert V2 network
+summary:
+  This guide describes how to take an existing nebula network and upgrade it to use the new v2 certificates and enable
+  IPv6 addresses.
+---
+
+# Upgrading your IPv4 Cert V1 network to an IPv4/IPv6 Cert V2 network
+
+## Upgrade to nebula nightly
+
+First of all, download the updated nebula version that has v2 certs and IPv6 support from nightly releases, and move all
+of the hosts in your network to it.
+
+[https://hub.docker.com/r/nebulaoss/nebula-nightly](https://hub.docker.com/r/nebulaoss/nebula-nightly)
+
+[https://github.com/NebulaOSS/nebula-nightly/releases](https://github.com/NebulaOSS/nebula-nightly/releases)
+
+## Add a v2 Certificate Authority
+
+Next, create a new CA for your network, and add it to the trust bundle of every host on the network. Creating a new CA
+with the nightly version of nebula will create a v2 CA by default, with support for creating and signing both v1 and v2
+certificates.
+
+```go
+❯ nebula-cert ca -name "Nebula IPv6 Tutorial CA" -encrypt
+Enter passphrase:
+# typed in my password and pressed enter.
+```
+
+Using `nebula-cert print` we can see that this is a v2 certificate authority, with support for IPv6 addresses.
+
+```bash
+❯ nebula-cert print -path ./ca.crt
+{
+        "curve": "CURVE25519",
+        "details": {
+                "groups": null,
+                "isCa": true,
+                "issuer": "",
+                "name": "Nebula IPv6 Tutorial CA",
+                "networks": null,
+                "notAfter": "2026-03-11T12:26:19-05:00",
+                "notBefore": "2025-03-11T12:26:19-05:00",
+                "unsafeNetworks": null
+        },
+        "fingerprint": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+        "publicKey": "4f1200baedc57f39adfc71e1b5409a3a7dc60fab4e1a2c4decaeb347a2ad4d75",
+        "signature": "e46d1f31e4b677fc4bbef9ebcf941261cd49e00fd4bf124e26b9fb7716d23e7588b0b6b87d276e625b30ef6fa32ced0aa46abee7b61d150907007586cd6e2203",
+        "version": 2
+}
+```
+
+Add the public key of the CA to the `pki.ca` list in the config for every nebula host:
+[https://nebula.defined.net/docs/config/pki/#pkica](https://nebula.defined.net/docs/config/pki/#pkica)
+
+## Re-issue v1+v2 certificates for every host with the v2 CA
+
+In order to move to a network where every host has ipv4 and ipv6, or every host has ipv6 only, it's recommended to start
+by re-issuing all hosts certificates with both v1 and v2 certificates for compatibility. Hosts will continue handshaking
+via the v1 cert while the network is being upgraded.
+
+You can create a new v1+v2 cert like this:
+
+```go
+❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24"
+Enter passphrase:
+# Entered my passphrase
+```
+
+By default, nebula-cert will create a v1 and v2 version of the certificate when creating and signing a certificate. This
+allows you to move from v1 to v2 seamlessly. v1 does not support IPv6 though, so we'll move to only v2 soon.
+
+Using `nebula-cert show` we can see that the certificate has both cert format versions:
+
+```go
+❯ nebula-cert print -path nebula.crt
+{
+        "details": {
+                "curve": "CURVE25519",
+                "groups": [],
+                "isCa": false,
+                "issuer": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+                "name": "nebula",
+                "networks": [
+                        "192.168.1.1/24"
+                ],
+                "notAfter": "2026-03-11T12:26:18-05:00",
+                "notBefore": "2025-03-17T14:27:25-05:00",
+                "publicKey": "ba79878d86c88b8d679e2db2382a31f32177d5a27727a167ee94f8ef1e12793b",
+                "unsafeNetworks": []
+        },
+        "fingerprint": "c2292774eaadf83a0a25a051cb0c66a22df56733b8683104b317978547e99cbc",
+        "signature": "064c25cd0d2fe4db2af84c2cd9396053f200e79736c13fcf8abfc2458cb9f40be0a9563c5d05b0192b891ab48aec3a9d82a09527fda8632e6286546170e2700b",
+        "version": 1
+}
+{
+        "curve": "CURVE25519",
+        "details": {
+                "groups": null,
+                "isCa": false,
+                "issuer": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+                "name": "nebula",
+                "networks": [
+                        "192.168.1.1/24"
+                ],
+                "notAfter": "2026-03-11T12:26:18-05:00",
+                "notBefore": "2025-03-17T14:27:25-05:00",
+                "unsafeNetworks": null
+        },
+        "fingerprint": "beef1fd9ea8a78164c53a83f5b3fb362dc1afa4c90ffb5db78c794be64286eca",
+        "publicKey": "ba79878d86c88b8d679e2db2382a31f32177d5a27727a167ee94f8ef1e12793b",
+        "signature": "8ae8314e87a2a8c6c85eb567b1db74f706dca74b9d748ee32f1c7b2ca6ad84946242bcf38c02b2a83a5109f07f4874bf84a331278ad21400c781c874ef392304",
+        "version": 2
+}
+```
+
+## Switch all relays to use v2 certificates
+
+Switch all `am_relay: true` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet.
+
+Now, if a relay initiates a handshake, it will attempt to use a v2 cert first, but this is an uncommon flow.
+
+## Switch all non-lighthouse hosts to use v2 certificates
+
+Switch all `am_lighthouse: false` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Lighthouses
+will reply to v2 hosts using v2 protocols.
+
+## Switch all lighthouses to use v2 certificates
+
+Switch all `am_lighthouse: true` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Now all of your
+hosts should be using their v2 certificate for initiating tunnels.
+
+## Re-issue v2 certificates for the hosts
+
+Now that every host on the network is communicating via v2 certificates, you can remove the v1 certificates by reissuing
+the certificates. Pass `-version 2` to only create certificates in the v2 certificate format. This will enable the non
+backwards compatible features of the v2 certificates.
+
+```go
+❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24" -version 2
+```
+
+```go
+❯ nebula-cert print -path nebula.crt
+{
+        "curve": "CURVE25519",
+        "details": {
+                "groups": null,
+                "isCa": false,
+                "issuer": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+                "name": "nebula",
+                "networks": [
+                        "192.168.1.1/24"
+                ],
+                "notAfter": "2026-03-11T12:26:18-05:00",
+                "notBefore": "2025-03-17T16:06:48-05:00",
+                "unsafeNetworks": null
+        },
+        "fingerprint": "7260e59ca62a6a23ef8c6d5e912790fcb7073ffa1fe5da485d934a99d558c5ab",
+        "publicKey": "05baa0d1af10b89a8336c925a5c9b5fda5599943ee53a5bc742a573aa3e2753d",
+        "signature": "275229cd09228312171450fecc696776745dab88f6686e2a2577b764e4829a6566e3821e1101cdedb035e649fa70dc634300b3e628bf8ea839b6215ff68fdf02",
+        "version": 2
+}
+```
+
+You can also add an IPv6 address to your hosts now.
+
+```go
+❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24,fd0:0:0::1/64" -version 2
+```
+
+```go
+❯ nebula-cert print -path nebula.crt
+{
+        "curve": "CURVE25519",
+        "details": {
+                "groups": null,
+                "isCa": false,
+                "issuer": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+                "name": "nebula",
+                "networks": [
+                        "192.168.1.1/24",
+                        "fd0::1/64"
+                ],
+                "notAfter": "2026-03-11T12:26:18-05:00",
+                "notBefore": "2025-03-17T16:11:30-05:00",
+                "unsafeNetworks": null
+        },
+        "fingerprint": "08e9d282adb0809457ad63982a9f1113a462763da58aa69b76d2b4cb1cd24724",
+        "publicKey": "ae950d4d0db966f93b5f463c9910d3fe9efd69347ddec4f3ed0f379c51712e0f",
+        "signature": "d156b2cd48916377426d8fab3286d176590ea48b83853f44f92089f1fb6d6bca9727b7169d3640e8a3418b3eac74159cb4368d847bd346663249d2dbbd81670e",
+        "version": 2
+}
+```
+
+Once you switch services over to use the new IPv6 addresses, you can decide to deprecate the IPv4 addresses or continue
+to run your overlay network with both IPv4 and IPv6 subnets.
