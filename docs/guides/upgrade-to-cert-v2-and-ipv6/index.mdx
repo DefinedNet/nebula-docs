@@ -139,15 +139,12 @@ on v2 only. For a small network, it may be fine to simply change everything over
 After each step, you may validate that your changes have taken effect by using the `print-tunnel` command within the
 [debug ssh server](/docs/guides/debug-ssh-commands/).
 
-For example:
+For example, when debugging `nebula`'s tunnel to `lighthouse1` where both have both v1 and v2 certs and
+`pki.default_version` is set to `1` on both hosts, we can see that the certificate used in the tunnel is version 1.
 
 ```bash
-calebjasik@nebula > print-tunnel 192.168.1.1
-{"vpnAddrs":["192.168.1.1"],"localIndex":2965094606,"remoteIndex":1285130098,"remoteAddrs":["172.17.0.3:4242"],"cert":{"details":{"curve":"CURVE25519","groups":[],"isCa":fa
-lse,"issuer":"a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c","name":"lighthouse1","networks":["192.168.1.1/24"],"notAfter":"2026-03-11T17:26:18Z","notBef
-ore":"2025-03-18T17:14:43Z","publicKey":"c455bc023b1b3918538edf5f230169df12603703639db158c76da747e0eccc47","unsafeNetworks":[]},"fingerprint":"84cf960de2e49f7560a5c7f876857
-528f02ab201c906f5a094d0d3294732b655","signature":"6b9e98e398fb4c6a89f8e71e6a1378cecb85c500966443673a3ebe8f9d46702d0213dbd4c5028644104eeae49c06a4906058b53cd809e07dec76fcec60
-a4370d","version":1},"messageCounter":3,"currentRemote":"172.17.0.3:4242","currentRelaysToMe":[],"currentRelaysThroughMe":[]}
+steve@nebula > print-tunnel 192.168.1.2
+{"vpnAddrs":["192.168.1.2"],"localIndex":2965094606,"remoteIndex":1285130098,"remoteAddrs":["172.17.0.3:4242"],"cert":{"details":{"curve":"CURVE25519","groups":[],"isCa":false,"issuer":"a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c","name":"lighthouse1","networks":["192.168.1.2/24"],"notAfter":"2026-03-11T17:26:18Z","notBefore":"2025-03-18T17:14:43Z","publicKey":"c455bc023b1b3918538edf5f230169df12603703639db158c76da747e0eccc47","unsafeNetworks":[]},"fingerprint":"84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655","signature":"6b9e98e398fb4c6a89f8e71e6a1378cecb85c500966443673a3ebe8f9d46702d0213dbd4c5028644104eeae49c06a4906058b53cd809e07dec76fcec60a4370d","version":1},"messageCounter":3,"currentRemote":"172.17.0.3:4242","currentRelaysToMe":[],"currentRelaysThroughMe":[]}
 ```
 
 ### Switch all non-lighthouse relays to use v2 certificates
