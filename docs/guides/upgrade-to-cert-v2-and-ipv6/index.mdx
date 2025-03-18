@@ -24,7 +24,7 @@ Next, create a new CA for your network, and add it to the trust bundle of every 
 with the nightly version of nebula will create a v2 CA by default, with support for creating and signing both v1 and v2
 certificates.
 
-```go
+```bash
 ❯ nebula-cert ca -name "Nebula IPv6 Tutorial CA" -encrypt
 Enter passphrase:
 # typed in my password and pressed enter.
@@ -64,7 +64,7 @@ via the v1 cert while the network is being upgraded.
 
 You can create a new v1+v2 cert like this:
 
-```go
+```bash
 ❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24"
 Enter passphrase:
 # Entered my passphrase
@@ -75,7 +75,7 @@ allows you to move from v1 to v2 seamlessly. v1 does not support IPv6 though, so
 
 Using `nebula-cert show` we can see that the certificate has both cert format versions:
 
-```go
+```bash
 ❯ nebula-cert print -path nebula.crt
 {
         "details": {
@@ -139,11 +139,11 @@ Now that every host on the network is communicating via v2 certificates, you can
 the certificates. Pass `-version 2` to only create certificates in the v2 certificate format. This will enable the non
 backwards compatible features of the v2 certificates.
 
-```go
+```bash
 ❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24" -version 2
 ```
 
-```go
+```bash
 ❯ nebula-cert print -path nebula.crt
 {
         "curve": "CURVE25519",
@@ -168,11 +168,11 @@ backwards compatible features of the v2 certificates.
 
 You can also add an IPv6 address to your hosts now.
 
-```go
+```bash
 ❯ nebula-cert sign -name "nebula" -networks "192.168.1.1/24,fd0:0:0::1/64" -version 2
 ```
 
-```go
+```bash
 ❯ nebula-cert print -path nebula.crt
 {
         "curve": "CURVE25519",
