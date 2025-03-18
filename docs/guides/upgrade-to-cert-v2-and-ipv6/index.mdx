@@ -187,15 +187,24 @@ yet.
 
 Now, if a relay initiates a handshake, it will attempt to use a v2 cert first, but this is an uncommon flow.
 
+Try [ssh debugging](/docs/guides/debug-ssh-commands/) with `print-tunnel` now to validate these hosts initiate their
+tunnels with v2 certificates.
+
 ### Switch all non-lighthouse hosts to use v2 certificates
 
 Switch all `am_lighthouse: false` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Lighthouses
 will reply to v2 hosts using v2 protocols.
 
+Try [ssh debugging](/docs/guides/debug-ssh-commands/) with `print-tunnel` now to validate these hosts initiate their
+tunnels with v2 certificates.
+
 ### Switch all lighthouses to use v2 certificates
 
 Switch all `am_lighthouse: true` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Now all of your
 hosts should be using their v2 certificate for initiating tunnels.
+
+Try [ssh debugging](/docs/guides/debug-ssh-commands/) with `print-tunnel` now to validate these hosts initiate their
+tunnels with v2 certificates.
 
 ## Re-issue v2 certificates for the hosts
 
