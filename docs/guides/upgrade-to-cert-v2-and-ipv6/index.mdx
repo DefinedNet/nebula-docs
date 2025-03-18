@@ -116,18 +116,47 @@ Using `nebula-cert show` we can see that the certificate has both cert format ve
 }
 ```
 
-## Switch all relays to use v2 certificates
+## Move all hosts to only contain v2 certificates
 
-Switch all `am_relay: true` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet.
+Removing the v1 certificates allows non-backwards compatible features to be enabled in your nebula network, like IPv6
+and multiple IPv4 and IPv6 network subnets contained within a network overlay.
+
+The first step is to keep v1 certs on your hosts as backup, but to initiate tunnels with their v2 certs by default.
+Turning this setting on in steps allows you to detect issues with your config and reduce downtime in the case of a
+misconfig.
+
+What follows is a suggested order of operations, but the general goal is to slowly roll out these changes, starting with
+the hosts that you don't expect to be initiating tunnels. We leave the lighthouses for last, since they're the
+coordinating nodes, and hosts still on v1 only will not be able to communicate with the network with their lighthouse is
+on v2 only. For a small network, it may be fine to simply change everything over in one go!
+
+After each step, you may validate that your changes have taken effect by using the `print-tunnel` command within the
+[debug ssh server](/docs/guides/debug-ssh-commands/).
+
+For example:
+
+```bash
+calebjasik@nebula > print-tunnel 192.168.1.1
+{"vpnAddrs":["192.168.1.1"],"localIndex":2965094606,"remoteIndex":1285130098,"remoteAddrs":["172.17.0.3:4242"],"cert":{"details":{"curve":"CURVE25519","groups":[],"isCa":fa
+lse,"issuer":"a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c","name":"lighthouse1","networks":["192.168.1.1/24"],"notAfter":"2026-03-11T17:26:18Z","notBef
+ore":"2025-03-18T17:14:43Z","publicKey":"c455bc023b1b3918538edf5f230169df12603703639db158c76da747e0eccc47","unsafeNetworks":[]},"fingerprint":"84cf960de2e49f7560a5c7f876857
+528f02ab201c906f5a094d0d3294732b655","signature":"6b9e98e398fb4c6a89f8e71e6a1378cecb85c500966443673a3ebe8f9d46702d0213dbd4c5028644104eeae49c06a4906058b53cd809e07dec76fcec60
+a4370d","version":1},"messageCounter":3,"currentRemote":"172.17.0.3:4242","currentRelaysToMe":[],"currentRelaysThroughMe":[]}
+```
+
+### Switch all non-lighthouse relays to use v2 certificates
+
+Switch all `am_relay: true && am_lighthouse: false` hosts' `pki.default_version` to `2` or add it if it doesn't exist
+yet.
 
 Now, if a relay initiates a handshake, it will attempt to use a v2 cert first, but this is an uncommon flow.
 
-## Switch all non-lighthouse hosts to use v2 certificates
+### Switch all non-lighthouse hosts to use v2 certificates
 
 Switch all `am_lighthouse: false` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Lighthouses
 will reply to v2 hosts using v2 protocols.
 
-## Switch all lighthouses to use v2 certificates
+### Switch all lighthouses to use v2 certificates
 
 Switch all `am_lighthouse: true` hosts' `pki.default_version` to `2` or add it if it doesn't exist yet. Now all of your
 hosts should be using their v2 certificate for initiating tunnels.
