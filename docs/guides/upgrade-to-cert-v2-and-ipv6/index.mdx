@@ -180,6 +180,12 @@ steve@nebula > print-tunnel 192.168.1.2
 }
 ```
 
+You may also look in the host logs for the `certVersion` field in handshakes, ex:
+
+```perl
+time="2025-03-27T16:50:26-05:00" level=info msg="Handshake message received" certName=lighthouse1 certVersion=1 durationNs=63460958 fingerprint=84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655 handshake="map[stage:2 style:ix_psk0]" initiatorIndex=530355834 issuer=a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c remoteIndex=530355834 responderIndex=3163624101 sentCachedPackets=1 udpAddr="172.17.0.3:4242" vpnAddrs="[192.168.1.2]"
+```
+
 ### Switch all non-lighthouse relays to use v2 certificates
 
 Switch all `am_relay: true && am_lighthouse: false` hosts' `pki.default_version` to `2` or add it if it doesn't exist
