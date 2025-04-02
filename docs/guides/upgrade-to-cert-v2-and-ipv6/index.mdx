@@ -123,9 +123,9 @@ Using `nebula-cert print` we can see that the file contains both versions of the
 ```
 
 Update the corresponding [`pki.cert` field](https://nebula.defined.net/docs/config/pki/#pkicert) with the contents of
-the entire file, and **restart** Nebula. Nebula will continue to use the v1 certificate when initiating tunnels until
-we update the `pki.default_version` config option. When another host initiates a tunnel, Nebula will respond with the
-same certificate version it was presented.
+the entire file, and **restart** Nebula. Nebula will continue to use the v1 certificate when initiating tunnels until we
+update the `pki.default_version` config option. When another host initiates a tunnel, Nebula will respond with the same
+certificate version it was presented.
 
 :::note
 
@@ -141,7 +141,7 @@ certificate. To do this, we set the `pki.default_version` config option to 2.
 
 We recommend slow rolling this change by starting with a small subset of hosts and verifying the change before rolling
 it out widely. After updating the config option, reloading Nebula, and establishing a tunnel you can verify the v2
-certificate is in use via the  `print-tunnel` command from [debug SSH server](/docs/guides/debug-ssh-commands/).
+certificate is in use via the `print-tunnel` command from [debug SSH server](/docs/guides/debug-ssh-commands/).
 
 In this example we've updated host-1 (192.168.1.1) with `pki.default_version` set to 2 and restarted Nebula. Since its
 default version is set to 2, it'll use the v2 certificate when handshaking with the Lighthouse. Because the Lighthouse
@@ -150,10 +150,10 @@ to 1.
 
 :::note
 
-If the Lighthouse were configured with only a v1 certificate, host-1 would not be able to connect, even though it has
-a v1+v2 certificate bundle configured. This is because `pki.default_version` indicates the certificate version that
-should be used in outgoing handshakes. If the receiving end does not support v2 certificates, the initiator will not
-fallback on a v1 certificate.
+If the Lighthouse were configured with only a v1 certificate, host-1 would not be able to connect, even though it has a
+v1+v2 certificate bundle configured. This is because `pki.default_version` indicates the certificate version that should
+be used in outgoing handshakes. If the receiving end does not support v2 certificates, the initiator will not fallback
+on a v1 certificate.
 
 :::
 
