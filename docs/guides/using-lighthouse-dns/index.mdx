@@ -86,12 +86,14 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 
 ## Limitations
 
-- The built-in DNS server will only respond to queries for known Nebula hosts and will not make upstream queries to a
-  secondary DNS server (e.g. for supporting both internal DNS and public DNS.)
+- The built-in DNS server will only respond to queries for known Nebula hosts (i.e. hosts which have handshaked with the
+  lighthouse - this means lighthouses themselves are not included.)
 - A host's hostname is restricted to the name in its certificate.
 - There is no way to register additional hostnames (e.g. additional CNAMEs for a given Nebula host, or additional A
   records for managing non-Nebula hosts.)
-- Duplicate names in certificates will result in non-stable answers from the DNS server.
+- There is no way to make upstream requests to a secondary DNS server (e.g. for supporting both internal DNS and public
+  DNS.)
+- Duplicate names (i.e. the same name in multiple certificates) will result in non-stable answers from the DNS server.
 - If the name in the Nebula certificate is not a [valid hostname](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1),
   Lighthouse DNS will return an empty result.
 
