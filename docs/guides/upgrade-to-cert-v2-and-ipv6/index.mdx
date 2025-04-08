@@ -1,0 +1,267 @@
+---
+title: Upgrading a Nebula network to IPv6 overlay addresses
+summary:
+  This guide describes how to upgrade an existing nebula network to the v2 certificate format and enable IPv6 addresses.
+---
+
+# Upgrading a Nebula network to IPv6 overlay addresses
+
+The upcoming release of Nebula (tenatively v1.10) will add support for IPv6-addressed Nebula hosts. To support the
+feature, Nebula has upgraded to a v2 certificate format. While v1 certificates support only a single IPv4 address for a
+given host, the v2 format allows multiple IPv4 and/or IPv6 addresses. In this guide we will describe how to upgrade a
+network to the v2 certificate format with IPv6 support.
+
+Since Nebula v1.10 has yet to be released, we will first need to update every host on the network with a nightly build
+of Nebula. Next, we will issue backwards-compatible v1+v2 certificate bundles to each host. After updating each host's
+config with the new certificate bundle we will take a careful approach to switching over to the v2 certificate.
+
+The basic steps are:
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
+## Upgrade Nebula
+
+First, update each host in your network to a nightly build of Nebula with support for v2 certificates.
+
+- [https://github.com/NebulaOSS/nebula-nightly/releases](https://github.com/NebulaOSS/nebula-nightly/releases)
+- [https://hub.docker.com/r/nebulaoss/nebula-nightly](https://hub.docker.com/r/nebulaoss/nebula-nightly)
+
+## Create a v2 Certificate Authority
+
+Next, create a v2 Certificate Authority and add it to the trust bundle of every host on the network. Creating a new CA
+with the nightly version of Nebula will create a v2 CA by default. v2 CAs support creating and signing both v1 and v2
+certificates.
+
+```bash
+❯ nebula-cert ca -name "My Nebula CA" -encrypt
+Enter passphrase:
+```
+
+Using `nebula-cert print` we can see that this is a v2 certificate authority.
+
+```bash
+❯ nebula-cert print -path ./ca.crt
+{
+	"curve": "CURVE25519",
+	"details": {
+		"groups": null,
+		"isCa": true,
+		"issuer": "",
+		"name": "My Nebula CA",
+		"networks": null,
+		"notAfter": "2026-04-01T17:02:36-04:00",
+		"notBefore": "2025-04-01T17:02:36-04:00",
+		"unsafeNetworks": null
+	},
+	"fingerprint": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
+	"publicKey": "08edff75a4c83418ecac57f3c6f4c54d7a379c095c6fed161e947b471c5d63d8",
+	"signature": "6b5cf89afca09f5136f1fd6dd8edea9bf0a92f369e03fa54ec3b9ac75292aa367fdd7940d220f0ceae545e00ff93ccbac7dacf1c642c017c72f7ea4b38723205",
+	"version": 2
+}
+```
+
+Append the new CA certificate to the [`pki.ca` trust bundle](https://nebula.defined.net/docs/config/pki/#pkica) in the
+config of every Nebula host and reload Nebula.
+
+## Issue v1+v2 certificates bundles
+
+Once the trust bundle of all hosts has been updated, we will issue v1+v2 certificate bundles using the new CA. We'll
+configure hosts with both certificates, but continue to use the v1 certificate for now.
+
+By default, nebula-cert will create both v1 and v2 versions of the certificate when creating and signing a certificate.
+
+```bash
+❯ nebula-cert sign -name "host-1" -networks "192.168.1.1/24"
+Enter passphrase:
+# Entered my passphrase
+```
+
+Using `nebula-cert print` we can see that the file contains both versions of the certificate:
+
+```bash
+❯ nebula-cert print -path nebula.crt
+{
+	"details": {
+		"curve": "CURVE25519",
+		"groups": [],
+		"isCa": false,
+		"issuer": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
+		"name": "host-1",
+		"networks": [
+			"192.168.1.1/24"
+		],
+		"notAfter": "2026-04-01T17:02:35-04:00",
+		"notBefore": "2025-04-01T17:08:37-04:00",
+		"publicKey": "d368c3db5290f603c1f8456278b36d7854d49abfa183fb0d0e75b067c1b65d18",
+		"unsafeNetworks": []
+	},
+	"fingerprint": "e8b9a645bd09a472ddb66efa01ce871b40008f4299b1c82d78d5c0a806c5272a",
+	"signature": "6530d35de280f80a7d5c12657c6a31438d984588d0a107e053be86812da3dacdf6e4f83106dc3ecdd4cb1a6a325cefb4ae8dac61b5c95af85bd41d5574996b08",
+	"version": 1
+}
+{
+	"curve": "CURVE25519",
+	"details": {
+		"groups": null,
+		"isCa": false,
+		"issuer": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
+		"name": "host-1",
+		"networks": [
+			"192.168.1.1/24"
+		],
+		"notAfter": "2026-04-01T17:02:35-04:00",
+		"notBefore": "2025-04-01T17:08:37-04:00",
+		"unsafeNetworks": null
+	},
+	"fingerprint": "e93af78e6c24340d260fcf8127b3138f45c93963572423d1931faca11bf68b85",
+	"publicKey": "d368c3db5290f603c1f8456278b36d7854d49abfa183fb0d0e75b067c1b65d18",
+	"signature": "21863ad3d8b62779f80ea3ef9ae4d85bf6a8f557c6c272eefda0962cd856a3625a088e08e209d200f2fae0087ff095377622b3ac09bba5d9c7a2c1d03baef00b",
+	"version": 2
+}
+```
+
+Update the corresponding [`pki.cert` field](https://nebula.defined.net/docs/config/pki/#pkicert) with the contents of
+the entire file, and **restart** Nebula. Nebula will continue to use the v1 certificate when initiating tunnels until we
+update the `pki.initiating_version` config option. When another host initiates a tunnel, Nebula will respond with the
+same certificate version it was presented.
+
+:::note
+
+When adding or removing either a v1 or v2 certificate from the `pki.cert` field, Nebula must be restarted. A reload is
+insufficient for this change.
+
+:::
+
+## Start handshaking with v2 certificates
+
+Once all hosts are configured with a v1+v2 certificate bundle, we can switch over to handshaking with the v2
+certificate. To do this, we set the `pki.initiating_version` config option to 2.
+
+We recommend slow rolling this change by starting with a small subset of hosts and verifying the change before rolling
+it out widely. After updating the config option, reloading Nebula, and establishing a tunnel you can verify the v2
+certificate is in use via the `print-tunnel` command from [debug SSH server](/docs/guides/debug-ssh-commands/).
+
+In this example we've updated host-1 (192.168.1.1) with `pki.initiating_version` set to 2 and restarted Nebula. Since
+its default version is set to 2, it'll use the v2 certificate when handshaking with the Lighthouse. Because the
+Lighthouse has a v1+v2 bundle configured it is able to complete the connection, even though its `pki.initiating_version`
+is still set to 1.
+
+:::note
+
+If the Lighthouse were configured with only a v1 certificate, host-1 would not be able to connect, even though it has a
+v1+v2 certificate bundle configured. This is because `pki.initiating_version` indicates the certificate version that
+should be used in outgoing handshakes. If the receiving end does not support v2 certificates, the initiator will not
+fallback on a v1 certificate.
+
+:::
+
+```bash
+steve@nebula > print-tunnel 192.168.1.2
+{
+  "vpnAddrs": [
+    "192.168.1.2"
+  ],
+  "localIndex": 2965094606,
+  "remoteIndex": 1285130098,
+  "remoteAddrs": [
+    "172.17.0.3:4242"
+  ],
+  "cert": {
+    "details": {
+      "curve": "CURVE25519",
+      "groups": [],
+      "isCa": false,
+      "issuer": "a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c",
+      "name": "lighthouse1",
+      "networks": [
+        "192.168.1.2/24"
+      ],
+      "notAfter": "2026-03-11T17:26:18Z",
+      "notBefore": "2025-03-18T17:14:43Z",
+      "publicKey": "c455bc023b1b3918538edf5f230169df12603703639db158c76da747e0eccc47",
+      "unsafeNetworks": []
+    },
+    "fingerprint": "84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655",
+    "signature": "6b9e98e398fb4c6a89f8e71e6a1378cecb85c500966443673a3ebe8f9d46702d0213dbd4c5028644104eeae49c06a4906058b53cd809e07dec76fcec60a4370d",
+    "version": 2
+  },
+  "messageCounter": 3,
+  "currentRemote": "172.17.0.3:4242",
+  "currentRelaysToMe": [],
+  "currentRelaysThroughMe": []
+}
+```
+
+You may also look in the host logs for the `certVersion` field in handshakes, ex:
+
+```bash
+time="2025-03-27T16:50:26-05:00" level=info msg="Handshake message received" certName=lighthouse1 certVersion=2 durationNs=63460958 fingerprint=84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655 handshake="map[stage:2 style:ix_psk0]" initiatorIndex=530355834 issuer=a95ed86f7754fc5b0fcaf38473504403748d6dc422b16bc3e29fcae32af9a73c remoteIndex=530355834 responderIndex=3163624101 sentCachedPackets=1 udpAddr="172.17.0.3:4242" vpnAddrs="[192.168.1.2]"
+```
+
+## Remove v1 certificates from hosts
+
+Now that every host on the network is communicating via v2 certificates, you can remove the v1 certificates by reissuing
+the certificates. Pass `-version 2` to only create certificates in the v2 certificate format.
+
+```bash
+❯ nebula-cert sign -name "host-1" -networks "192.168.1.1/24" -version 2
+```
+
+```bash
+❯ nebula-cert print -path host-1.crt
+{
+	"curve": "CURVE25519",
+	"details": {
+		"groups": null,
+		"isCa": false,
+		"issuer": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
+		"name": "host-1",
+		"networks": [
+			"192.168.1.1/24"
+		],
+		"notAfter": "2026-04-01T17:02:35-04:00",
+		"notBefore": "2025-04-01T20:40:00-04:00",
+		"unsafeNetworks": null
+	},
+	"fingerprint": "05930841ba198874b932504de1cceb26e8d84b931ea29c673e22e0be06fb75f0",
+	"publicKey": "501410109bd531fc5af3c75019cd2ed8349abfb56e3299a30ff72773300d1a4a",
+	"signature": "fa1db2751fcbd6db73133364075f1577e17c3db4009bb84a7d82f159aaa4e17bb3b43636295567abda3ba9c9ad4cd5ed6357fffb8c93ebc299f3f8809e3aeb0e",
+	"version": 2
+}
+```
+
+At this point, you may wish to assign an IPv6 address:
+
+```bash
+❯ nebula-cert sign -name "host-1" -networks "192.168.1.1/24,fdc8:d0db:a315:cb00::1/64" -version 2
+```
+
+```bash
+❯ nebula-cert print -path host-1.crt
+{
+	"curve": "CURVE25519",
+	"details": {
+		"groups": null,
+		"isCa": false,
+		"issuer": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
+		"name": "host-1",
+		"networks": [
+			"192.168.1.1/24",
+			"fdc8:d0db:a315:cb00::1/64"
+		],
+		"notAfter": "2026-04-01T17:02:35-04:00",
+		"notBefore": "2025-04-01T20:38:21-04:00",
+		"unsafeNetworks": null
+	},
+	"fingerprint": "2eda0f2dc5c5f8b097a09027fc896c9b6ba78d8fdac1559878caccd4c947e3ff",
+	"publicKey": "d8ebf7a93e62044eee4bc504aa2e82e80d79db11cfee37c75b3769df261d343b",
+	"signature": "5a5987e2e7e0e8619b0b111d951b3297f2c704387a032f84876172a3f1864e7fb2a5bf2ce48f3fa48ff6f60d39749ba3444b073485f6a9d41c6d3c9d7856f104",
+	"version": 2
+}
+```
+
+Once you switch services over to use the new IPv6 addresses, you can decide to deprecate the IPv4 addresses or continue
+to run your overlay network with both IPv4 and IPv6 subnets. If you decide to switch to IPv6-only, don't forget to
+update your `static_host_map`.
