@@ -34,7 +34,7 @@
     "autoprefixer": "^10.4.21",
     "docusaurus-plugin-module-alias": "^0.0.2",
     "fast-check": "^4.1.1",
-    "postcss-nesting": "^13.0.1",
+    "postcss-nesting": "^13.0.2",
     "prettier": "^3.5.3",
     "tsm": "^2.3.0",
     "typescript": "^5.8.3",
