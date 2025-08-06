@@ -104,7 +104,7 @@ const config = {
               },
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/nebulaoss/shared_invite/enQtOTA5MDI4NDg3MTg4LTkwY2EwNTI4NzQyMzc0M2ZlODBjNWI3NTY1MzhiOThiMmZlZjVkMTI0NGY4YTMyNjUwMWEyNzNkZTJmYzQxOGU',
+                href: 'https://join.slack.com/t/nebulaoss/shared_invite/zt-39pk4xopc-CUKlGcb5Z39dQ0cK1v7ehA',
               },
             ],
           },
@@ -122,10 +122,6 @@ const config = {
               {
                 label: 'Docs',
                 href: 'https://docs.defined.net',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/DefinedNet',
               },
             ],
           },
