@@ -141,10 +141,11 @@ file paths as the old key and cert you won't need to make any changes to your Ne
 ### Step 3. Configure Nebula firewall on Linux host (LAN)
 
 In addition to adding a CIDR to the `subnets` field of our new cert, you also need to add inbound firewall rules to the
-Linux host in this example for any port that you want to access _through this host._
+Linux host in this example for any ports that you want to access _through this host._
 
 For example, if you want to access a printer on the LAN, you will need to add a rule to allow TCP port 631. Edit the
-Linux host's Nebula configuration file (commonly located at `/etc/nebula/config.yml`).
+Linux host's Nebula configuration file (commonly located at `/etc/nebula/config.yml`). Since v1.10, you must set
+`local_cidr` in order for the rule to apply to unsafe_routes.
 
 ```yaml
 firewall:
@@ -152,6 +153,7 @@ firewall:
     - port: 631
       host: any
       proto: tcp
+      local_cidr: 192.168.86.1/32
 ```
 
 You may need to add additional ports depending on your printer. The easiest way to make sure you can fully access any
@@ -164,6 +166,7 @@ firewall:
     - port: any
       host: any
       proto: any
+      local_cidr: 192.168.86.0/24 # note that 0.0.0.0/0 would apply to the router node as well
   outbound:
     - host: any
       port: any
