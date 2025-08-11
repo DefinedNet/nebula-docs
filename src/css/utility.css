@@ -1,3 +1,11 @@
 .mb-24 {
   margin-bottom: 24px;
 }
+
+.underlay-ip {
+  color: green;
+}
+
+.overlay-ip {
+  color: purple;
+}
