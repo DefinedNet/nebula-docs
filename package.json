@@ -29,7 +29,7 @@
     "@docusaurus/tsconfig": "^3.8.1",
     "@docusaurus/types": "^3.8.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
-    "@types/node": "^24.3.0",
+    "@types/node": "^24.4.0",
     "alias-hq": "^6.2.4",
     "autoprefixer": "^10.4.21",
     "docusaurus-plugin-module-alias": "^0.0.2",
