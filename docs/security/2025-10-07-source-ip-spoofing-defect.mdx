@@ -1,11 +1,15 @@
 ---
 sidebar_position: 1
-description: Nebula v1.9.4 to v1.9.6 contains an issue where Nebula could incorrectly accept and process a packet from an erroneous source IP when the sender's certificate is configured with unsafe_routes.
+description:
+  Nebula v1.9.4 to v1.9.6 contains an issue where Nebula could incorrectly accept and process a packet from an erroneous
+  source IP when the sender's certificate is configured with unsafe_routes.
 ---
 
 # 2025-10-07 - Source IP Spoofing Defect
 
-Due to a bug in Nebula’s packet validation logic, hosts configured with a certificate that includes unsafe_routes (cert v1 / cert v2) or multiple IP addresses can spoof the source IP of packets sent to other hosts running an affected version of Nebula. We do not believe that it is possible to receive return traffic for the spoofed packets.
+Due to a bug in Nebula’s packet validation logic, hosts configured with a certificate that includes unsafe_routes (cert
+v1 / cert v2) or multiple IP addresses can spoof the source IP of packets sent to other hosts running an affected
+version of Nebula. We do not believe that it is possible to receive return traffic for the spoofed packets.
 
 ## Affected Versions
 
@@ -14,22 +18,43 @@ Due to a bug in Nebula’s packet validation logic, hosts configured with a cert
 
 ## Details
 
-The Nebula v1 certificate format contains the fields “Ips” and “Subnets.” The “Ips” field is used to denote the Nebula VPN network and the address used by the host (e.g. 192.168.0.1/24). The “Subnets” field is used to denote CIDRs that a router host may provide unsafe_routes for.
+The Nebula v1 certificate format contains the fields “Ips” and “Subnets.” The “Ips” field is used to denote the Nebula
+VPN network and the address used by the host (e.g. 192.168.0.1/24). The “Subnets” field is used to denote CIDRs that a
+router host may provide unsafe_routes for.
 
-The Nebula v2 certificate (available only in nightly builds) renames “Ips” to “Networks” and “Subnets” to “UnsafeNetworks.” Nebula v2 allows for multiple Nebula IP addresses in the “Networks” field in order to support dual IPv4/IPv6 addresses.
+The Nebula v2 certificate (available only in nightly builds) renames “Ips” to “Networks” and “Subnets” to
+“UnsafeNetworks.” Nebula v2 allows for multiple Nebula IP addresses in the “Networks” field in order to support dual
+IPv4/IPv6 addresses.
 
-Before processing firewall rules, Nebula validates each incoming packet against the certificate used to handshake with the peer. The expected behavior is that the source IP address of an incoming packet must be equal to an IP address defined in the “Ips” / “Networks” field (e.g. 192.168.0.1) or any IP address contained within a CIDR listed in the “Subnets” / “UnsafeNetworks” field, if configured.
+Before processing firewall rules, Nebula validates each incoming packet against the certificate used to handshake with
+the peer. The expected behavior is that the source IP address of an incoming packet must be equal to an IP address
+defined in the “Ips” / “Networks” field (e.g. 192.168.0.1) or any IP address contained within a CIDR listed in the
+“Subnets” / “UnsafeNetworks” field, if configured.
 
-In affected versions of Nebula, when the peer’s certificate contained multiple entries in the “Ips” / “Networks” field or at least one entry in the “Subnets” / “UnsafeNetworks” field, Nebula erroneously compared the source IP against the entire subnet defined in the “Ips” field instead of the specific IP address assigned to the node. This means that a host configured as an unsafe_routes router, with an IP address of 192.168.0.1, denoted in the “Ips” field as 192.168.0.1/24, and any CIDR configured in the “Subnets” field, could send packets with a source IP equal to any address inside of 192.168.0.0/24 (e.g. 192.168.0.2) and the packet would be considered valid for that peer’s certificate.
+In affected versions of Nebula, when the peer’s certificate contained multiple entries in the “Ips” / “Networks” field
+or at least one entry in the “Subnets” / “UnsafeNetworks” field, Nebula erroneously compared the source IP against the
+entire subnet defined in the “Ips” field instead of the specific IP address assigned to the node. This means that a host
+configured as an unsafe_routes router, with an IP address of 192.168.0.1, denoted in the “Ips” field as 192.168.0.1/24,
+and any CIDR configured in the “Subnets” field, could send packets with a source IP equal to any address inside of
+192.168.0.0/24 (e.g. 192.168.0.2) and the packet would be considered valid for that peer’s certificate.
 
 ## Impact
 
-After validating the packet, Nebula will still apply any firewall policies, including groups, host, and port restrictions, using information from the peer’s certificate (with the exception of cidr which comes from the packet.)
+After validating the packet, Nebula will still apply any firewall policies, including groups, host, and port
+restrictions, using information from the peer’s certificate (with the exception of cidr which comes from the packet.)
 
-While a misbehaving node can spoof packets from an erroneous IP under these conditions, there is no known way for it to receive return traffic. Nebula will use its normal routing logic to determine the correct destination peer for outgoing packets. This likely precludes any TCP traffic from being spoofed as a three-way TCP handshake cannot be completed.
+While a misbehaving node can spoof packets from an erroneous IP under these conditions, there is no known way for it to
+receive return traffic. Nebula will use its normal routing logic to determine the correct destination peer for outgoing
+packets. This likely precludes any TCP traffic from being spoofed as a three-way TCP handshake cannot be completed.
 
-For users running a released version of Nebula, it is unlikely that any host other than an unsafe_routes router can spoof the source IP of packets. This is because nebula-cert has never included the capability to issue certificates with multiple entries in the “Ips” field of v1 certificates. If you are using a custom CA to programmatically issue certificates, you should verify that it never issues certificates with multiple entries in the “Ips” field.
+For users running a released version of Nebula, it is unlikely that any host other than an unsafe_routes router can
+spoof the source IP of packets. This is because nebula-cert has never included the capability to issue certificates with
+multiple entries in the “Ips” field of v1 certificates. If you are using a custom CA to programmatically issue
+certificates, you should verify that it never issues certificates with multiple entries in the “Ips” field.
 
-For users running Nebula nightly with the new cert v2 format, any host with both an IPv4 and IPv6 address - or multiple addresses of only one type - will be able to spoof the source IP of packets when sending traffic to affected versions of Nebula.
+For users running Nebula nightly with the new cert v2 format, any host with both an IPv4 and IPv6 address - or multiple
+addresses of only one type - will be able to spoof the source IP of packets when sending traffic to affected versions of
+Nebula.
 
-While the impact is relatively small, all users are recommended to upgrade Nebula to v1.9.7 (stable), v1.10-nightly20251009 (nightly) or later.
+While the impact is relatively small, all users are recommended to upgrade Nebula to v1.9.7 (stable),
+v1.10-nightly20251009 (nightly) or later.
