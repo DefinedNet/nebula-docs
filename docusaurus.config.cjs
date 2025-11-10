@@ -6,6 +6,22 @@ const darkCodeTheme = require('./src/prism-dark.cjs');
 const lightCodeTheme = require('./src/prism-light.cjs');
 const hq = require('alias-hq');
 
+let gtag;
+
+// Only enable google analytics in prod.  Note: this is a CF Workers environment variable.
+if (process.env.GTAG_TRACKING_ID) {
+  /* eslint-disable-next-line no-console -- Allow build config to log what's happening */
+  console.log('Google Analytics enabled');
+  gtag = {
+    trackingID: process.env.GTAG_TRACKING_ID,
+    anonymizeIP: true,
+  };
+} else {
+  /* eslint-disable-next-line no-console -- Allow build config to log what's happening */
+  console.log('Google Analytics disabled');
+  gtag = undefined;
+}
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Nebula Docs',
@@ -52,6 +68,7 @@ const config = {
             require.resolve('./src/css/utility.css'),
           ],
         },
+        gtag,
       }),
     ],
   ],
