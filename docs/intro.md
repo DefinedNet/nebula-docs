@@ -10,7 +10,7 @@ with on-demand, encrypted tunnels that work across any IP networks and without o
 
 [Download Nebula on GitHub](https://github.com/slackhq/nebula)
 
-:::tip[Managed Nebula available]
+:::tip[Looking for a hosted solution?]
 
 Managed Nebula is Nebula with automated certificate management, SSO integration, and a web UI — ideal for teams that
 want Nebula without running the infrastructure themselves.
