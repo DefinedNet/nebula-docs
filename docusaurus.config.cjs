@@ -86,7 +86,7 @@ const config = {
     {
       image: 'img/nebula-docs-og.png',
       navbar: {
-        title: 'Nebula Docs',
+        title: '',
         logo: {
           alt: 'Defined Networking logo',
           href: '/docs/',

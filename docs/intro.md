@@ -5,15 +5,17 @@ sidebar_position: 1
 
 # Nebula: Open source overlay networking
 
-Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
+Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts
+with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
 
 [Download Nebula on GitHub](https://github.com/slackhq/nebula)
 
 :::tip[Managed Nebula available]
 
-Managed Nebula is Nebula with automated certificate management, SSO integration, and a web UI — ideal for teams that want Nebula without running the infrastructure themselves.
+Managed Nebula is Nebula with automated certificate management, SSO integration, and a web UI — ideal for teams that
+want Nebula without running the infrastructure themselves.
 
-[Connect 100 devices for free](https://admin.defined.net/signup)
+[Connect up to 100 devices for free](https://admin.defined.net/signup)
 
 :::
 
@@ -128,6 +130,8 @@ to the project.
 
 ## About Defined Networking
 
-Nebula's creators, Ryan Huber and Nate Brown, founded Defined Networking in 2020 to focus on Nebula development and to broaden the adoption of overlay networking in organizations.
+Nebula's creators, Ryan Huber and Nate Brown, founded Defined Networking in 2020 to focus on Nebula development and to
+broaden the adoption of overlay networking in organizations.
 
-As of early 2021, Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is publishing this official documentation with their support.
+As of early 2021, Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is
+publishing this official documentation with their support.
