@@ -134,5 +134,5 @@ to the project.
 Nebula's creators, Ryan Huber and Nate Brown, founded Defined Networking in 2020 to focus on Nebula development and to
 broaden the adoption of overlay networking in organizations.
 
-As of early 2021, Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is
-publishing this official documentation with their support.
+Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is publishing this
+official documentation with their support.
