@@ -1,4 +1,5 @@
 ---
+title: Introduction to Nebula
 slug: /
 sidebar_position: 1
 ---
