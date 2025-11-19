@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;700;900&display=swap');
-@import url('https://use.typekit.net/qpe4spv.css');
-
 /**
  * Any CSS included here will be global. The classic template
  * bundles Infima by default. Infima is a CSS framework designed to
@@ -9,13 +6,13 @@
 
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: var(--dn-color-cyan-30);
-  --ifm-color-primary-dark: var(--dn-color-cyan-20);
-  --ifm-color-primary-darker: var(--don-color-cyan-10);
-  --ifm-color-primary-darkest: var(--dn-color-cyan-10);
-  --ifm-color-primary-light: var(--dn-color-cyan-50);
-  --ifm-color-primary-lighter: var(--dn-color-cyan-60);
-  --ifm-color-primary-lightest: var(--dn-color-cyan-70);
+  --ifm-color-primary: var(--dn-color-purple-30);
+  --ifm-color-primary-dark: var(--dn-color-purple-20);
+  --ifm-color-primary-darker: var(--don-color-purple-10);
+  --ifm-color-primary-darkest: var(--dn-color-purple-10);
+  --ifm-color-primary-light: var(--dn-color-purple-50);
+  --ifm-color-primary-lighter: var(--dn-color-purple-60);
+  --ifm-color-primary-lightest: var(--dn-color-purple-70);
   --ifm-code-font-size: 0.875em;
   --docusaurus-highlighted-code-line-bg: hsla(0, 0%, 0%, 0.1);
   --ifm-footer-background-color: var(--dn-color-gray-95);
@@ -25,13 +22,13 @@
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 html[data-theme='dark'] {
-  --ifm-color-primary: var(--dn-color-cyan-70);
-  --ifm-color-primary-dark: var(--dn-color-cyan-60);
-  --ifm-color-primary-darker: var(--dn-color-cyan-50);
-  --ifm-color-primary-darkest: var(--dn-color-cyan-40);
-  --ifm-color-primary-light: var(--dn-color-cyan-80);
-  --ifm-color-primary-lighter: var(--dn-color-cyan-90);
-  --ifm-color-primary-lightest: var(--dn-color-cyan-95);
+  --ifm-color-primary: var(--dn-color-purple-70);
+  --ifm-color-primary-dark: var(--dn-color-purple-60);
+  --ifm-color-primary-darker: var(--dn-color-purple-50);
+  --ifm-color-primary-darkest: var(--dn-color-purple-40);
+  --ifm-color-primary-light: var(--dn-color-purple-80);
+  --ifm-color-primary-lighter: var(--dn-color-purple-90);
+  --ifm-color-primary-lightest: var(--dn-color-purple-95);
   --ifm-footer-background-color: var(--dn-color-gray-10);
   --ifm-background-surface-color: var(--dn-color-gray-15);
   --ifm-hover-overlay: var(--dn-color-gray-20);

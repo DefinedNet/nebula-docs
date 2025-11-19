@@ -1,14 +1,24 @@
 ---
+title: Introduction to Nebula
 slug: /
 sidebar_position: 1
 ---
 
-# Nebula: Open Source Overlay Networking
+# Nebula: Open source overlay networking
 
-Nebula is an overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts with
-on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
+Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts
+with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
 
 [Download Nebula on GitHub](https://github.com/slackhq/nebula)
+
+:::tip[Looking for a hosted solution?]
+
+Managed Nebula is Nebula with automated certificate management, SSO integration, and a web UI — ideal for teams that
+want Nebula without running the infrastructure themselves.
+
+[Connect up to 100 devices for free](https://admin.defined.net/signup)
+
+:::
 
 ## Core features
 
@@ -17,7 +27,7 @@ on-demand, encrypted tunnels that work across any IP networks and without openin
 - Host firewall with groups-based rules engine for overlay traffic
 - Route discovery and NAT traversal assisted by simple "lookup" hosts
 
-### Identity and Authorization
+### Identity and authorization
 
 Nebula uses a PKI model for establishing trust between hosts and networks.
 
@@ -38,7 +48,7 @@ Nebula is written in Go and is designed for portability.
 - At least one host in overlay network should be a _Lighthouse_, which helps hosts discover routes to one another and
   assists in NAT traversal.
 
-## Getting Started
+## Getting started
 
 _How to create your first overlay network_ is a step-by-step guide that explains how to deploy Nebula. It's a great
 place to get started and learn how to connect a few hosts.
@@ -83,7 +93,7 @@ network offered by cloud infrastructure providers.
 Inspired by a number of existing tools and projects, Nebula was created to make it much easier to design, deploy, and
 manage overlay networks that were highly performant, portable, and secure.
 
-## Technical Details
+## Technical details
 
 Nebula is a mutually authenticated peer-to-peer software defined network based on the Noise Protocol Framework. Nebula
 uses certificates to assert a node's IP address, name, and membership within user-defined groups. Nebula's user-defined
@@ -98,7 +108,7 @@ Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its d
 Nebula was created to provide a mechanism for groups hosts to communicate securely, even across the internet, while
 enabling expressive firewall definitions similar in style to cloud security groups.
 
-## News & Press
+## News & press
 
 [Listen](https://techsnap.systems/419) a discussion Nebula on TechSNAP Episode 419.
 
@@ -124,5 +134,5 @@ to the project.
 Nebula's creators, Ryan Huber and Nate Brown, founded Defined Networking in 2020 to focus on Nebula development and to
 broaden the adoption of overlay networking in organizations.
 
-As of early 2021, Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is
-publishing this official documentation with their support.
+Slack continues to be a primary sponsor of the Nebula open source project. Defined Networking is publishing this
+official documentation with their support.
