@@ -59,11 +59,12 @@ The possible fields of a firewall rule are:
 - `groups`: Same as `group` but accepts a list of values. Multiple values are AND'd together and a certificate must
   contain all groups to pass.
 
-- `cidr`: a CIDR, `0.0.0.0/0` is any. This restricts which Nebula IP addresses the rule allows.
+- `cidr`: a remote CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
 
-- `local_cidr`: a local CIDR, `0.0.0.0/0` is any. This restricts which destination IP addresses, when using
-  unsafe_routes, the rule allows. If unset, the rule will only allow access to the port on the local node, not the
-  unsafe_routes it serves, unless `default_local_cidr_any` is true.
+- `local_cidr`: a local CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
+  This can be used to filter destinations when using unsafe_routes. By default, this is set to only the VPN (overlay)
+  networks assigned via the certificate networks field unless `default_local_cidr_any` is set to true. If there are
+  unsafe_routes present in this config file, `local_cidr` should be set appropriately for the intended use case.
 
 :::note
 
