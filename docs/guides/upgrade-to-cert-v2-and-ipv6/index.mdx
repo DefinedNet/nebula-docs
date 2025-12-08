@@ -29,8 +29,7 @@ First, update each host in your network to Nebula v1.10 or later with support fo
 ## Create a v2 Certificate Authority
 
 Next, create a v2 Certificate Authority and add it to the trust bundle of every host on the network. Creating a new CA
-with Nebula v1.10 will create a v2 CA by default. v2 CAs support creating and signing both v1 and v2
-certificates.
+with Nebula v1.10 will create a v2 CA by default. v2 CAs support creating and signing both v1 and v2 certificates.
 
 ```bash
 ❯ nebula-cert ca -name "My Nebula CA" -encrypt
@@ -42,21 +41,21 @@ Using `nebula-cert print` we can see that this is a v2 certificate authority.
 ```bash
 ❯ nebula-cert print -path ./ca.crt
 {
-	"curve": "CURVE25519",
-	"details": {
-		"groups": null,
-		"isCa": true,
-		"issuer": "",
-		"name": "My Nebula CA",
-		"networks": null,
-		"notAfter": "2026-04-01T17:02:36-04:00",
-		"notBefore": "2025-04-01T17:02:36-04:00",
-		"unsafeNetworks": null
-	},
-	"fingerprint": "62aabc872783f1036c7075fa49302c306baa1efb2afe9966f08401f157b6ae75",
-	"publicKey": "08edff75a4c83418ecac57f3c6f4c54d7a379c095c6fed161e947b471c5d63d8",
-	"signature": "6b5cf89afca09f5136f1fd6dd8edea9bf0a92f369e03fa54ec3b9ac75292aa367fdd7940d220f0ceae545e00ff93ccbac7dacf1c642c017c72f7ea4b38723205",
-	"version": 2
+        "curve": "CURVE25519",
+        "details": {
+                "groups": null,
+                "isCa": true,
+                "issuer": "",
+                "name": "My Nebula CA",
+                "networks": null,
+                "notAfter": "2026-12-08T16:23:39-06:00",
+                "notBefore": "2025-12-08T16:23:39-06:00",
+                "unsafeNetworks": null
+        },
+        "fingerprint": "b9e1dd7394a8750c38cda2fe4349616dc494dad8e645a37b25957e11dd7e3b4e",
+        "publicKey": "23d7445299428cc8cd3fec0d1cfc5c971d21fe403301960ec70bdaad8995e558",
+        "signature": "d6a90fcd1eb2fc23d71f5561190e7f87e59ccbd0dfa6ccc2013cc68df615d08df2361bf938dcff8711be26cfc23fa524228319008b743da14441c0e2d0ed680c",
+        "version": 2
 }
 ```
 
