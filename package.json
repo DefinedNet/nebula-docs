@@ -31,7 +31,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@types/node": "^24.10.0",
     "alias-hq": "^6.2.4",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.22",
     "docusaurus-plugin-module-alias": "^0.0.2",
     "fast-check": "^4.3.0",
     "postcss-nesting": "^13.0.2",
