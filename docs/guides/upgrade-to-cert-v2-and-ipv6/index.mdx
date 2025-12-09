@@ -172,7 +172,7 @@ After updating, **restart** Nebula. The host will now use its v2 certificate for
 If you added IPv6 addresses to your certificates, you'll need to update any configuration that references Nebula overlay
 IP addresses.
 
-**Static host map** for lighthouses:
+[**Static host map**](/docs/config/static-host-map/) for lighthouses:
 
 ```yaml
 # Dual-stack configuration (both IPv4 and IPv6 overlay addresses)
@@ -181,7 +181,7 @@ static_host_map:
   'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
 ```
 
-**Unsafe routes** that point to Nebula IPs:
+[**Unsafe routes**](/docs/config/tun/#tununsafe_routes) that point to Nebula IPs:
 
 ```yaml
 tun:
@@ -193,7 +193,7 @@ tun:
       via: fdc8:d0db:a315:cb00::5 # IPv6 via address (if dual-stack)
 ```
 
-**Relay configurations** if using relays:
+[**Relay configurations**](/docs/config/relay/#relayrelays) if using relays:
 
 ```yaml
 relay:
@@ -202,7 +202,7 @@ relay:
     - fdc8:d0db:a315:cb00::3 # IPv6 relay
 ```
 
-**Lighthouse configurations**:
+[**Lighthouse configurations**](/docs/config/lighthouse/#lighthousehosts):
 
 ```yaml
 lighthouse:
