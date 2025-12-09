@@ -20,16 +20,23 @@ import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />
 
-## Upgrade Nebula
+## Upgrade all hosts to Nebula v1.10+
 
-First, update each host in your network to Nebula v1.10 or later with support for v2 certificates.
+First, update every host in your network to Nebula v1.10 or later with support for v2 certificates. This ensures all
+hosts can handle v2 certificates when they encounter them.
 
 - [https://github.com/slackhq/nebula/releases](https://github.com/slackhq/nebula/releases)
 - [https://hub.docker.com/r/nebulaoss/nebula](https://hub.docker.com/r/nebulaoss/nebula)
 - [https://github.com/NebulaOSS/nebula-nightly/releases](https://github.com/NebulaOSS/nebula-nightly/releases)
 - [https://hub.docker.com/r/nebulaoss/nebula-nightly](https://hub.docker.com/r/nebulaoss/nebula-nightly)
 
-## Create a new v2 Certificate Authority
+:::important
+
+All hosts must be upgraded to v1.10+ before proceeding. Older versions cannot validate v2 certificates.
+
+:::
+
+## Create a v2 Certificate Authority
 
 Create a new v2 Certificate Authority that will coexist with your existing v1 CA during the migration. Creating a new CA
 with Nebula v1.10 will create a v2 CA by default.
@@ -62,7 +69,7 @@ Using `nebula-cert print` we can verify this is a v2 certificate authority:
 }
 ```
 
-## Add the v2 CA to the trust bundle
+## Add the v2 CA to all hosts
 
 Append the new v2 CA certificate to the [`pki.ca` trust bundle](https://nebula.defined.net/docs/config/pki/#pkica) in
 the config of every Nebula host. This allows hosts to trust certificates signed by both the old v1 CA and the new v2 CA.
@@ -70,11 +77,9 @@ the config of every Nebula host. This allows hosts to trust certificates signed 
 ```yaml
 pki:
   ca: |
-    # Original v1 CA certificate
     -----BEGIN NEBULA CERTIFICATE-----
     [your existing v1 CA certificate content]
     -----END NEBULA CERTIFICATE-----
-    # New v2 CA certificate
     -----BEGIN NEBULA CERTIFICATE-----
     [your new v2 CA certificate content]
     -----END NEBULA CERTIFICATE-----
@@ -83,56 +88,61 @@ pki:
 After updating the trust bundle, **reload** Nebula on all hosts. At this point, hosts can validate certificates from
 either CA, but are still using their v1 certificates.
 
-## Issue v2 certificates for all hosts
+## Gradually migrate hosts to v2 certificates
 
-Using the new v2 CA, create v2 certificates for each host. A v2 CA creates v2 certificates by default:
+Now you can begin migrating hosts to v2 certificates one by one or in small groups. This gradual approach minimizes risk
+and allows for easy rollback if issues arise.
 
-```bash
-❯ nebula-cert sign -ca-crt ca.crt -ca-key ca.key -name "host-1" -networks "192.168.1.1/24"
-Enter passphrase:
-```
+### Create v2 certificates with IPv6 addresses
 
-If you want to add IPv6 addresses at this stage, you can do so:
+For each host you want to migrate, create a v2 certificate using the new CA. A v2 CA creates v2 certificates by default.
+This is the perfect time to add IPv6 addresses to your certificates.
+
+**Option 1: Add IPv6 while keeping IPv4 (dual-stack):**
 
 ```bash
 ❯ nebula-cert sign -ca-crt ca.crt -ca-key ca.key -name "host-1" -networks "192.168.1.1/24,fdc8:d0db:a315:cb00::1/64"
 Enter passphrase:
 ```
 
+**Option 2: Keep IPv4 only for now:**
+
+```bash
+❯ nebula-cert sign -ca-crt ca.crt -ca-key ca.key -name "host-1" -networks "192.168.1.1/24"
+Enter passphrase:
+```
+
 Verify the certificate is v2:
 
 ```bash
-nebula-cert print -path host-1.crt
+❯ nebula-cert print -path host-1.crt
 {
-       "curve": "CURVE25519",
-       "details": {
-               "groups": null,
-               "isCa": false,
-               "issuer": "59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911",
-               "name": "host-1",
-               "networks": [
-                       "192.168.1.1/24",
-                       "fdc8:d0db:a315:cb00::1/64"
-               ],
-               "notAfter": "2026-12-08T17:05:36-06:00",
-               "notBefore": "2025-12-08T17:07:37-06:00",
-               "unsafeNetworks": null
-       },
-       "fingerprint": "673a36f22efc6716b61f28fc532a1cc1b74131264f76ebf06c59c7e4b13df1da",
-       "publicKey": "2a93840b9b1f9cdec3efddbcb35ec2190f86b8478f278a5ade03373984414408",
-       "signature": "05f7b249e46d35e3d072a5eec425c76f12d12b34ef18376e513038395d224ff0b4b13beb50c30547fccf1344e197c2b4e316c483e4e6921f11bbb66dc646d008",
-       "version": 2
+	"curve": "CURVE25519",
+	"details": {
+		"groups": null,
+		"isCa": false,
+		"issuer": "59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911",
+		"name": "host-1",
+		"networks": [
+			"192.168.1.1/24",
+			"fdc8:d0db:a315:cb00::1/64"
+		],
+		"notAfter": "2026-12-08T17:05:36-06:00",
+		"notBefore": "2025-12-08T17:07:37-06:00",
+		"unsafeNetworks": null
+	},
+	"fingerprint": "673a36f22efc6716b61f28fc532a1cc1b74131264f76ebf06c59c7e4b13df1da",
+	"publicKey": "2a93840b9b1f9cdec3efddbcb35ec2190f86b8478f278a5ade03373984414408",
+	"signature": "05f7b249e46d35e3d072a5eec425c76f12d12b34ef18376e513038395d224ff0b4b13beb50c30547fccf1344e197c2b4e316c483e4e6921f11bbb66dc646d008",
+	"version": 2
 }
 ```
 
-## Roll out v2 certificates to hosts
+### Deploy v2 certificates to hosts
 
-Now update each host with its new v2 certificate. Update the
+Update each host with its new v2 certificate. Update the
 [`pki.cert`](https://nebula.defined.net/docs/config/pki/#pkicert) and
 [`pki.key`](https://nebula.defined.net/docs/config/pki/#pkikey) fields with the new v2 certificate and key.
-
-Additionally, set the [`pki.initiating_version`](https://nebula.defined.net/docs/config/pki/#pkiinitiating_version) to 2
-to ensure the host uses v2 certificates when initiating handshakes:
 
 ```yaml
 pki:
@@ -145,25 +155,75 @@ pki:
     [v2 CA certificate]
     -----END NEBULA CERTIFICATE-----
   cert: |
-    # New v2 certificate only
     -----BEGIN NEBULA CERTIFICATE-----
-    [v2 certificate content]
+    [new v2 certificate content]
     -----END NEBULA CERTIFICATE-----
   key: |
-    # New v2 private key
     -----BEGIN NEBULA ED25519 PRIVATE KEY-----
-    [v2 private key content]
+    [new v2 private key content]
     -----END NEBULA ED25519 PRIVATE KEY-----
   initiating_version: 2
 ```
 
 After updating, **restart** Nebula. The host will now use its v2 certificate for all connections.
 
+### Update configuration for IPv6 addresses
+
+If you added IPv6 addresses to your certificates, you'll need to update any configuration that references Nebula overlay
+IP addresses.
+
+**Static host map** for lighthouses:
+
+```yaml
+# Dual-stack configuration (both IPv4 and IPv6 overlay addresses)
+static_host_map:
+  '192.168.1.2': ['lighthouse.example.com:4242']
+  'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
+```
+
+**Unsafe routes** that point to Nebula IPs:
+
+```yaml
+tun:
+  unsafe_routes:
+    # Update to include IPv6 addresses for route destinations
+    - route: 10.0.0.0/24
+      via: 192.168.1.5 # IPv4 via address
+    - route: 10.0.0.0/24
+      via: fdc8:d0db:a315:cb00::5 # IPv6 via address (if dual-stack)
+```
+
+**Relay configurations** if using relays:
+
+```yaml
+relay:
+  relays:
+    - 192.168.1.3 # IPv4 relay
+    - fdc8:d0db:a315:cb00::3 # IPv6 relay
+```
+
+**Lighthouse configurations**:
+
+```yaml
+lighthouse:
+  hosts:
+    - '192.168.1.2' # IPv4 lighthouse
+    - 'fdc8:d0db:a315:cb00::2' # IPv6 lighthouse
+```
+
+Basically, anywhere your configuration references a Nebula overlay IP address needs to be updated to include the new
+IPv6 addresses when using dual-stack, or replaced entirely when moving to IPv6-only.
+
 :::tip
 
-Roll this change out gradually, starting with a small subset of hosts. Verify connectivity between upgraded and
-non-upgraded hosts before proceeding with the full rollout. Since all hosts trust both CAs, v1 and v2 hosts can
-communicate during the migration period.
+Roll this change out gradually:
+
+1. Start with non-critical hosts to verify the process
+2. Migrate your lighthouses next
+3. Then migrate the rest of your hosts in batches
+4. Verify connectivity between upgraded and non-upgraded hosts at each step
+
+Since all hosts trust both CAs, v1 and v2 hosts can communicate during the migration period.
 
 :::
 
@@ -176,7 +236,8 @@ After updating a host, you can verify it's using v2 certificates via the `print-
 steve@nebula > print-tunnel 192.168.1.2
 {
   "vpnAddrs": [
-    "192.168.1.2"
+    "192.168.1.2",
+    "fdc8:d0db:a315:cb00::2"
   ],
   "localIndex": 2965094606,
   "remoteIndex": 1285130098,
@@ -188,7 +249,7 @@ steve@nebula > print-tunnel 192.168.1.2
       "curve": "CURVE25519",
       "groups": [],
       "isCa": false,
-      "issuer": "b9e1dd7394a8750c38cda2fe4349616dc494dad8e645a37b25957e11dd7e3b4e",
+      "issuer": "59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911",
       "name": "lighthouse1",
       "networks": [
         "192.168.1.2/24",
@@ -213,67 +274,56 @@ steve@nebula > print-tunnel 192.168.1.2
 You can also check the logs for the `certVersion` field in handshakes:
 
 ```bash
-time="2025-03-27T16:50:26-05:00" level=info msg="Handshake message received" certName=lighthouse1 certVersion=2 durationNs=63460958 fingerprint=84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655 handshake="map[stage:2 style:ix_psk0]" initiatorIndex=530355834 issuer=b9e1dd7394a8750c38cda2fe4349616dc494dad8e645a37b25957e11dd7e3b4e remoteIndex=530355834 responderIndex=3163624101 sentCachedPackets=1 udpAddr="172.17.0.3:4242" vpnAddrs="[192.168.1.2]"
+time="2025-03-27T16:50:26-05:00" level=info msg="Handshake message received" certName=lighthouse1 certVersion=2 durationNs=63460958 fingerprint=84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655 handshake="map[stage:2 style:ix_psk0]" initiatorIndex=530355834 issuer=59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911 remoteIndex=530355834 responderIndex=3163624101 sentCachedPackets=1 udpAddr="172.17.0.3:4242" vpnAddrs="[192.168.1.2 fdc8:d0db:a315:cb00::2]"
 ```
 
-## Clean up the v1 CA
+## Optional: Transition to IPv6-only
 
-Once all hosts have been migrated to v2 certificates and you've verified the network is stable:
+Once all hosts are on v2 certificates and have IPv6 addresses, you can optionally transition to an IPv6-only network.
+
+### Remove IPv4 dependencies from configuration
+
+First, update all configuration to rely only on IPv6 addresses while hosts still have both IPv4 and IPv6 addresses. This
+ensures connectivity won't break when IPv4 is removed.
+
+Update `static_host_map` to use only IPv6:
+
+```yaml
+static_host_map:
+  'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
+```
+
+Remove IPv4 entries from `tun.unsafe_routes`, relay configurations, and any other configuration that references Nebula
+overlay IPs. Verify the network is stable with these configuration changes before proceeding.
+
+### Remove IPv4 addresses from certificates
+
+Once all configuration has been updated to use IPv6 addresses exclusively, reissue certificates with only IPv6
+addresses:
+
+```bash
+❯ nebula-cert sign -ca-crt ca.crt -ca-key ca.key -name "host-1" -networks "fdc8:d0db:a315:cb00::1/64"
+Enter passphrase:
+```
+
+Deploy these certificate changes gradually and verify connectivity at each step, just as with the v2 migration.
+
+## Clean up
+
+Once all hosts have been migrated to v2 certificates and the network is stable:
 
 1. Remove the v1 CA certificate from the `pki.ca` trust bundle on all hosts
-2. Remove any backup files containing v1 certificates and keys
-3. **Reload** Nebula on all hosts
+2. **Reload** Nebula on all hosts
+3. Remove any backup files containing v1 certificates and keys
 
-Your network is now fully migrated to v2 certificates with IPv6 support.
-
-## IPv6 considerations
-
-With v2 certificates supporting multiple addresses, you have several options:
-
-- **Dual-stack**: Keep both IPv4 and IPv6 addresses for maximum compatibility
-- **IPv6-only**: Transition fully to IPv6 by removing IPv4 addresses from certificates
-- **Gradual transition**: Start with dual-stack and gradually phase out IPv4
-
-If moving to IPv6-only, remember to:
-
-- Update your `static_host_map` to use IPv6 overlay addresses
-- Ensure your underlying network infrastructure supports IPv6
-- Update any firewall rules or security groups to allow IPv6 traffic
-- Test connectivity thoroughly before removing IPv4 support
-
-### Example static_host_map configurations
-
-**Original IPv4-only configuration:**
-
-```yaml
-static_host_map:
-  '192.168.1.2': ['lighthouse.example.com:4242']
-```
-
-**Dual-stack configuration (both IPv4 and IPv6 overlay addresses):**
-
-```yaml
-static_host_map:
-  '192.168.1.2': ['lighthouse.example.com:4242']
-  'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
-```
-
-**IPv6-only configuration:**
-
-```yaml
-static_host_map:
-  'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
-```
-
-Note that the left side of `static_host_map` is the Nebula overlay address (IPv4 or IPv6), while the right side remains
-the physical underlay address where the lighthouse can be reached.
+Your network is now fully migrated to v2 certificates with IPv6 support!
 
 ## Rollback procedure
 
 If issues arise during migration, you can rollback by:
 
-1. If only some hosts are upgraded: Simply restart the affected hosts with their original v1 certificates
-2. If all hosts are upgraded but experiencing issues:
+1. **If only some hosts are upgraded**: Simply restart the affected hosts with their original v1 certificates
+2. **If all hosts are upgraded but experiencing issues**:
    - Keep both CAs in the trust bundle
    - Revert the `pki.cert` and `pki.key` fields to the v1 certificates
    - Remove or set `pki.initiating_version` to 1
