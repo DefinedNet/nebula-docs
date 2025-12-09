@@ -81,3 +81,10 @@ stolen or compromised.
 <Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.
+
+## pki.initiating_version
+
+<Pill className="mb-24">Default: 1 unless only v2 cert available, then 2</Pill>
+
+`pki.initiating_version` determines which nebula cert version to use when initiating new connections. If unset, it
+will default to v1 if any v1 cert is available, otherwise it will default to v2.
