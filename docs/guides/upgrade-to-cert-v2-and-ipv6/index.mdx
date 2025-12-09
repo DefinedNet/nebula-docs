@@ -211,8 +211,8 @@ lighthouse:
     - 'fdc8:d0db:a315:cb00::2' # IPv6 lighthouse
 ```
 
-Basically, anywhere your configuration references a Nebula overlay IP address needs to be updated to include the new
-IPv6 addresses when using dual-stack, or replaced entirely when moving to IPv6-only.
+Anywhere your configuration references a Nebula overlay IP address should be updated to include the new IPv6 addresses
+when using dual-stack, or replaced entirely when moving to IPv6-only.
 
 :::tip
 
@@ -293,8 +293,8 @@ static_host_map:
   'fdc8:d0db:a315:cb00::2': ['lighthouse.example.com:4242']
 ```
 
-Remove IPv4 entries from `tun.unsafe_routes`, relay configurations, and any other configuration that references Nebula
-overlay IPs. Verify the network is stable with these configuration changes before proceeding.
+Remove IPv4 entries from `lighthouse.hosts`, `tun.unsafe_routes`, `relay.relays`, and any other configuration that
+references Nebula overlay IPs. Verify the network is stable with these configuration changes before proceeding.
 
 ### Remove IPv4 addresses from certificates
 
