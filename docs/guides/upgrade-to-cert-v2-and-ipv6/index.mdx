@@ -248,39 +248,31 @@ After updating a host, you can verify it's using v2 certificates via the `print-
 [debug SSH server](/docs/guides/debug-ssh-commands/):
 
 ```bash
-steve@nebula > print-tunnel 192.168.1.2
+alex@nebula > print-tunnel 192.168.1.2
 {
-  "vpnAddrs": [
-    "192.168.1.2",
-    "fdc8:d0db:a315:cb00::2"
-  ],
-  "localIndex": 2965094606,
-  "remoteIndex": 1285130098,
-  "remoteAddrs": [
-    "172.17.0.3:4242"
-  ],
+  "vpnAddrs": ["192.168.1.2", "fdc8:d0db:a315:cb00::2"],
+  "localIndex": 2138029252,
+  "remoteIndex": 2098516474,
+  "remoteAddrs": ["100.0.0.151:4242"],
   "cert": {
+    "curve": "CURVE25519",
     "details": {
-      "curve": "CURVE25519",
-      "groups": [],
+      "groups": null,
       "isCa": false,
-      "issuer": "59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911",
-      "name": "lighthouse1",
-      "networks": [
-        "192.168.1.2/24",
-        "fdc8:d0db:a315:cb00::2/64"
-      ],
-      "notAfter": "2026-03-11T17:26:18Z",
-      "notBefore": "2025-03-18T17:14:43Z",
-      "publicKey": "c455bc023b1b3918538edf5f230169df12603703639db158c76da747e0eccc47",
-      "unsafeNetworks": []
+      "issuer": "74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c",
+      "name": "lighthouse",
+      "networks": ["192.168.1.2/24", "fdc8:d0db:a315:cb00::2/64"],
+      "notAfter": "2026-12-09T12:34:34-06:00",
+      "notBefore": "2025-12-09T12:39:44-06:00",
+      "unsafeNetworks": null
     },
-    "fingerprint": "84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655",
-    "signature": "6b9e98e398fb4c6a89f8e71e6a1378cecb85c500966443673a3ebe8f9d46702d0213dbd4c5028644104eeae49c06a4906058b53cd809e07dec76fcec60a4370d",
+    "fingerprint": "2fbf4b456d6759b42a3479676149ee438e6888e3a405aa48ea14b45d04222972",
+    "publicKey": "63a0ec7427540c0b3996254f2b7d0f90afbc6a1a94befb3d36c0b66db1847811",
+    "signature": "e0be1d62ac8652f4682e371e51723d71b97128e4f687f7e2c2366c37a0df7471f2aaef21644dc8a6cc524c2a857cf6e288d156ecb34a109d660adb8c5bdca008",
     "version": 2
   },
-  "messageCounter": 3,
-  "currentRemote": "172.17.0.3:4242",
+  "messageCounter": 4,
+  "currentRemote": "100.0.0.151:4242",
   "currentRelaysToMe": [],
   "currentRelaysThroughMe": []
 }
@@ -289,7 +281,7 @@ steve@nebula > print-tunnel 192.168.1.2
 You can also check the logs for the `certVersion` field in handshakes:
 
 ```bash
-time="2025-03-27T16:50:26-05:00" level=info msg="Handshake message received" certName=lighthouse1 certVersion=2 durationNs=63460958 fingerprint=84cf960de2e49f7560a5c7f876857528f02ab201c906f5a094d0d3294732b655 handshake="map[stage:2 style:ix_psk0]" initiatorIndex=530355834 issuer=59221e34fca969fe913e0edc8b73d8411620cfacb9b8c30378d590c7e3a39911 remoteIndex=530355834 responderIndex=3163624101 sentCachedPackets=1 udpAddr="172.17.0.3:4242" vpnAddrs="[192.168.1.2 fdc8:d0db:a315:cb00::2]"
+time="2025-12-09T22:23:33Z" level=info msg="Handshake message received" certName=host-1 certVersion=2 fingerprint=1376f30ea6ec555bde413be57eb3a3fad58ff7f6e31a87890e24a4a65b22c688 from="192.168.65.1:16583" handshake="map[stage:1 style:ix_psk0]" initiatorIndex=2138029252 issuer=74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c remoteIndex=0 responderIndex=0 vpnAddrs="[192.168.1.1 fdc8:d0db:a315:cb00::1]"
 ```
 
 ## Optional: Transition to IPv6-only
