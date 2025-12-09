@@ -328,6 +328,3 @@ If issues arise during migration, you can rollback by:
    - Revert the `pki.cert` and `pki.key` fields to the v1 certificates
    - Remove or set `pki.initiating_version` to 1
    - Restart Nebula
-
-The dual-CA approach ensures hosts can communicate regardless of which certificate version they're using, as long as
-both CAs remain in the trust bundle during the migration period.
