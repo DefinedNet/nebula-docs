@@ -84,7 +84,7 @@ stolen or compromised.
 
 ## pki.initiating_version
 
-<Pill className="mb-24">Default: 1 unless only v2 cert available, then 2</Pill>
+<Pill className="mb-24">Default: 0</Pill>
 
-`pki.initiating_version` determines which nebula cert version to use when initiating new connections. If unset, it will
-default to v1 if any v1 cert is available, otherwise it will default to v2.
+`pki.initiating_version` determines which nebula cert version to use when initiating new connections. If unset (or set
+to 0), it will default to v1 if any v1 cert is available, otherwise it will default to v2.
