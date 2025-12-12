@@ -1,8 +1,12 @@
 # build output
 build
+dist
 
 # ignore docusaurus cache files
 .docusaurus
+
+# ignore astro cache files
+.astro/
 
 # Logs
 logs
