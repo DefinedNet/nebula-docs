@@ -11,6 +11,7 @@ export default defineConfig({
         alt: 'Nebula Docs',
         light: './src/assets/mark.svg',
         dark: './src/assets/mark-dark.svg',
+        replacesTitle: true,
       },
       sidebar: [
         {
