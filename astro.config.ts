@@ -14,6 +14,18 @@ export default defineConfig({
         dark: './src/assets/mark-dark.svg',
         replacesTitle: true,
       },
+      social: [
+        {
+          icon: 'github',
+          label: 'GitHub',
+          href: 'https://github.com/slackhq/nebula',
+        },
+        {
+          icon: 'slack',
+          label: 'Slack',
+          href: 'https://join.slack.com/t/nebulaoss/shared_invite/zt-39pk4xopc-CUKlGcb5Z39dQ0cK1v7ehA',
+        },
+      ],
       sidebar: [
         {
           label: 'Introduction to Nebula',
