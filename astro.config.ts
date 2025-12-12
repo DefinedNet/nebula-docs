@@ -20,14 +20,17 @@ export default defineConfig({
         {
           label: 'Guides',
           autogenerate: { directory: 'guides' },
+          collapsed: true,
         },
         {
           label: 'Security Bulletins',
           autogenerate: { directory: 'security' },
+          collapsed: true,
         },
         {
           label: 'Config Reference',
           autogenerate: { directory: 'config' },
+          collapsed: true,
         },
       ],
     }),
