@@ -6,7 +6,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   integrations: [
     starlight({
-      title: '',
+      title: 'Nebula',
       logo: {
         alt: 'Nebula Docs',
         light: './src/assets/mark.svg',
