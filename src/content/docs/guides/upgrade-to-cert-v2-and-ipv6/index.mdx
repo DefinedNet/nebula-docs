@@ -17,9 +17,11 @@ config with the new certificate bundle we will take a careful approach to switch
 
 The basic steps are:
 
-import TOCInline from '@theme/TOCInline';
-
-<TOCInline toc={toc} />
+1. [Upgrade Nebula](#upgrade-nebula)
+2. [Create a v2 Certificate Authority](#create-a-v2-certificate-authority)
+3. [Issue v1+v2 certificates bundles](#issue-v1v2-certificates-bundles)
+4. [Start handshaking with v2 certificates](#start-handshaking-with-v2-certificates)
+5. [Remove v1 certificates from hosts](#remove-v1-certificates-from-hosts)
 
 ## Upgrade Nebula
 
