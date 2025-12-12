@@ -12,6 +12,9 @@
       ],
       "@components/*": [
         "src/components/*"
+      ],
+      "@theme/*": [
+        "src/components/*"
       ]
     },
     "jsx": "react-jsx",

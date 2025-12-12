@@ -10,4 +10,11 @@ export default defineConfig({
     }),
     react(),
   ],
+  vite: {
+    resolve: {
+      alias: {
+        '@theme': '/src/components',
+      },
+    },
+  },
 });

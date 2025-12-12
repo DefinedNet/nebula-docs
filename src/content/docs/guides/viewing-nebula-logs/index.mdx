@@ -2,7 +2,7 @@
 title: Viewing Nebula Logs
 ---
 
-import ThemedImage from '@theme/ThemedImage';
+import ThemedImage from '@theme/ThemedImage/ThemedImage.astro';
 
 # Viewing Nebula Logs
 
@@ -117,8 +117,8 @@ should be able to see the status and start or stop the service.
   alt="Services app showing the status of the nebula service"
   loading="lazy"
   sources={{
-    light: require('./windows-nebula-service-status.png').default,
-    dark: require('./windows-nebula-service-status.png').default,
+    light: (await import('./windows-nebula-service-status.png')).default,
+    dark: (await import('./windows-nebula-service-status.png')).default,
   }}
 />
 
@@ -141,7 +141,7 @@ Logs are cleared each time a site is started.
   alt="Nebula site details page in the mobile app, shows a 'Logs' option third from the top"
   loading="lazy"
   sources={{
-    light: require('./viewing-logs-on-mobile.png').default,
-    dark: require('./viewing-logs-on-mobile.png').default,
+    light: (await import('./viewing-logs-on-mobile.png')).default,
+    dark: (await import('./viewing-logs-on-mobile.png')).default,
   }}
 />

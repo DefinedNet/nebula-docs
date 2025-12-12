@@ -1,0 +1,105 @@
+---
+import { Picture } from 'astro:assets';
+
+export interface Props {
+  sources: {
+    light: ImageMetadata | string;
+    dark: ImageMetadata | string;
+  };
+  alt: string;
+  loading?: 'lazy' | 'eager';
+  className?: string;
+  style?: Record<string, any>;
+  width?: number;
+  height?: number;
+  sizes?: string;
+  formats?: string[];
+}
+
+const {
+  sources,
+  alt,
+  loading = 'lazy',
+  className,
+  style,
+  width,
+  height,
+  sizes,
+  formats = ['webp', 'png']
+} = Astro.props;
+---
+
+<div class="themed-image" class:list={[className]} style={style}>
+  <Picture
+    src={sources.light}
+    alt={alt}
+    loading={loading}
+    width={width}
+    height={height}
+    sizes={sizes}
+    formats={formats}
+    class="light-image"
+  />
+  <Picture
+    src={sources.dark}
+    alt={alt}
+    loading={loading}
+    width={width}
+    height={height}
+    sizes={sizes}
+    formats={formats}
+    class="dark-image"
+  />
+</div>
+
+<style>
+  .themed-image {
+    position: relative;
+  }
+
+  .dark-image {
+    display: none;
+  }
+
+  .light-image {
+    display: block;
+  }
+
+  /* Dark mode styles */
+  @media (prefers-color-scheme: dark) {
+    .dark-image {
+      display: block;
+    }
+
+    .light-image {
+      display: none;
+    }
+  }
+
+  /* Support for manual theme switching via data attribute */
+  :global([data-theme="dark"]) .themed-image .dark-image,
+  :global(.dark) .themed-image .dark-image {
+    display: block;
+  }
+
+  :global([data-theme="dark"]) .themed-image .light-image,
+  :global(.dark) .themed-image .light-image {
+    display: none;
+  }
+
+  :global([data-theme="light"]) .themed-image .light-image,
+  :global(.light) .themed-image .light-image {
+    display: block;
+  }
+
+  :global([data-theme="light"]) .themed-image .dark-image,
+  :global(.light) .themed-image .dark-image {
+    display: none;
+  }
+
+  /* Ensure images maintain aspect ratio and responsive behavior */
+  .themed-image img {
+    max-width: 100%;
+    height: auto;
+  }
+</style>
