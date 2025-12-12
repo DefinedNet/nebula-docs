@@ -1,7 +1,8 @@
 ---
 title: Introduction to Nebula
 slug: /
-sidebar_position: 1
+sidebar:
+  order: 1
 ---
 
 # Nebula: Open source overlay networking
