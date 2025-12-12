@@ -1,14 +1,20 @@
 {
-  // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@docusaurus/tsconfig",
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "baseUrl": ".",
     "incremental": true,
-    // If you add any more aliases here, be sure to also add it to .prettierc.cjs
     "paths": {
-      "@docs/*": ["docs/*"],
-      "@src/*": ["src/*"],
-      "@components/*": ["src/components/*"]
-    }
+      "@docs/*": [
+        "docs/*"
+      ],
+      "@src/*": [
+        "src/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ]
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   }
 }
