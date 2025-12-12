@@ -7,6 +7,24 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Nebula Docs',
+      sidebar: [
+        {
+          label: 'Introduction to Nebula',
+          link: '/',
+        },
+        {
+          label: 'Guides',
+          autogenerate: { directory: 'guides' },
+        },
+        {
+          label: 'Security Bulletins',
+          autogenerate: { directory: 'security' },
+        },
+        {
+          label: 'Config Reference',
+          autogenerate: { directory: 'config' },
+        },
+      ],
     }),
     react(),
   ],
