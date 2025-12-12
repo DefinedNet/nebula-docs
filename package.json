@@ -5,6 +5,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "postinstall": "pnpm parse-domain-update",
+    "start-astro": "astro dev",
     "start": "docusaurus start",
     "build-astro": "astro build",
     "build": "pnpm parse-domain-update && docusaurus build",
