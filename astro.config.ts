@@ -14,6 +14,7 @@ export default defineConfig({
         dark: './src/assets/mark-dark.svg',
         replacesTitle: true,
       },
+      customCss: ['./src/css/base.css', './src/css/theme.css', './src/css/utility.css'],
       editLink: {
         baseUrl: 'https://github.com/DefinedNet/nebula-docs/edit/main/',
       },
