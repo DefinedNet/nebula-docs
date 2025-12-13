@@ -7,8 +7,6 @@ description:
   source IP when the sender's certificate is configured with unsafe_routes.
 ---
 
-# 2025-10-07 - Source IP Spoofing Defect
-
 Due to a bug in Nebula’s packet validation logic, hosts configured with a certificate that includes unsafe_routes (cert
 v1 / cert v2) or multiple IP addresses can spoof the source IP of packets sent to other hosts running an affected
 version of Nebula. We do not believe that it is possible to receive return traffic for the spoofed packets.
