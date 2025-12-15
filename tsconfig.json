@@ -4,18 +4,10 @@
     "baseUrl": ".",
     "incremental": true,
     "paths": {
-      "@docs/*": [
-        "docs/*"
-      ],
-      "@src/*": [
-        "src/*"
-      ],
-      "@components/*": [
-        "src/components/*"
-      ],
-      "@theme/*": [
-        "src/components/*"
-      ]
+      "@docs/*": ["docs/*"],
+      "@src/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@theme/*": ["src/components/*"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "react"
