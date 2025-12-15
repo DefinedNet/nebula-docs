@@ -7,9 +7,9 @@
 /** Override Starlight's default theme colors */
 :root {
   --sl-hue-orange: var(--dn-color-orange-hue);
-  --sl-color-orange-low: hsl(var(--dn-color-orange-hs), 22%);
-  --sl-color-orange: hsl(var(--dn-color-orange-hs), 63%);
-  --sl-color-orange-high: hsl(var(--dn-color-orange-hs), 87%);
+  --sl-color-orange-low: hsl(var(--dn-color-orange-hs), 70%);
+  --sl-color-orange: hsl(var(--dn-color-orange-hs), 80%);
+  --sl-color-orange-high: hsl(var(--dn-color-orange-hs), 90%);
   --sl-hue-green: var(--dn-color-green-hue);
   --sl-color-green-low: hsl(var(--dn-color-green-hs), 22%);
   --sl-color-green: hsl(var(--dn-color-green-hs), 63%);
