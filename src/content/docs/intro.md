@@ -61,18 +61,8 @@ in 2020.
 
 [Creating a Fast, Secure, Location Agnostic Mesh Network with Nebula](https://www.youtube.com/watch?v=qy2cgqglt3o)
 
-<div
-  width="100%"
-  height={0}
-  style={{
-    paddingBottom: "56.25%",
-    overflow: "hidden",
-    position: "relative",
-    marginBottom: 16
-  }}
->
   <iframe
-    style={{ position: "absolute" }}
+    style="aspect-ratio: 16/9;"
     src="https://www.youtube.com/embed/qy2cgqglt3o"
     title="All Things Open YouTube video"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -81,7 +71,6 @@ in 2020.
     height="100%"
     frameBorder={0}
   />
-</div>
 
 ### What’s an overlay network?
 
