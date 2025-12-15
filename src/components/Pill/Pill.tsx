@@ -7,7 +7,7 @@ type Props = {
   variant?: 'info';
 };
 
-export function Pill({ children, className, variant = 'info' }) {
+export function Pill({ children, className, variant = 'info' }: Props) {
   const variantClass = styles[`Pill___${variant}`];
 
   return <span className={`${styles.Pill} ${variantClass} ${className}`.trim()}>{children}</span>;
