@@ -37,7 +37,40 @@ export default defineConfig({
         },
         {
           label: 'Guides',
-          autogenerate: { directory: 'guides' },
+          items: [
+            {
+              label: 'Quick Start',
+              link: '/guides/quick-start',
+            },
+            {
+              label: 'Debugging with Nebula SSH commands',
+              link: '/guides/debug-ssh-commands',
+            },
+            {
+              label: 'Rotating a Certificate Authority',
+              link: '/guides/rotating-certificate-authority',
+            },
+            {
+              label: 'Signing a Certificate Without a Private Key',
+              link: '/guides/sign-certificates-with-public-keys',
+            },
+            {
+              label: 'Extend network access beyond overlay hosts',
+              link: '/guides/unsafe_routes',
+            },
+            {
+              label: 'Upgrading a Nebula network to IPv6 overlay addresses',
+              link: '/guides/upgrade-to-cert-v2-and-ipv6',
+            },
+            {
+              label: 'Using Experimental Lighthouse DNS with Nebula',
+              link: '/guides/using-lighthouse-dns',
+            },
+            {
+              label: 'Viewing Nebula Logs',
+              link: '/guides/viewing-nebula-logs',
+            },
+          ],
           collapsed: true,
         },
         {
@@ -54,6 +87,9 @@ export default defineConfig({
     }),
     react(),
   ],
+  server: {
+    port: 3000,
+  },
   vite: {
     resolve: {
       alias: {
