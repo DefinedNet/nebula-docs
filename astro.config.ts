@@ -5,6 +5,8 @@ import { defineConfig } from 'astro/config';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://nebula.defined.net',
+  // Match Docusaurus, we can change this later.
+  outDir: 'build',
   integrations: [
     starlight({
       title: 'Nebula',
