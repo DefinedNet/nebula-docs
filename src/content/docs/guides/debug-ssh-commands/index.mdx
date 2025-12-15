@@ -39,7 +39,7 @@ Next, either run `kill -HUP <nebula PID>` or restart nebula and ssh via `ssh 127
 
 Now you can debug your nebula installation, querying things like your hostmap:
 
-```ssh
+```console
 > list-hostmap
 10.128.1.1: [205.133.20.81:4242]
 10.128.1.2: [153.231.31.111:4242]
@@ -47,7 +47,7 @@ Now you can debug your nebula installation, querying things like your hostmap:
 
 You should be able to run `help` once you're logged in.
 
-```ssh
+```console
 steeeeve@nebula > help
 Available commands:
 change-remote - Changes the remote address used in the tunnel for the provided vpn ip
@@ -76,7 +76,7 @@ version - Prints the currently running version of nebula
 
 You can discover additional information about each command by running `help <command>`.
 
-```ssh
+```console
 > help list-hostmap
 list-hostmap - List all known previously connected hosts
   -by-index
