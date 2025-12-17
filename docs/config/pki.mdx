@@ -81,7 +81,8 @@ In order to use PKCS11 with Nebula, a few pre-requisites must be met.
 - Your HSM must permit the output of the derivation to be extracted (`CKA_EXTRACTABLE == CK_TRUE`). Nebula is not
   capable of using the HSM for symmetric cryptography, and we do not plan to add support for this.
 
-:::note Why is Curve25519 not supported?
+:::note 
+Why is Curve25519 not supported?
 
 If you're using PKCS11, it's probably because you need to be NIST compliant, and if you need to be NIST compliant, you
 (at time of writing) cannot use Curve25519 for key agreement. Even if you aren't bound by this restriction, your HSM
