@@ -60,6 +60,34 @@ The `key` is a private key unique to every host on a Nebula network. It is used 
 to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other
 hosts.
 
+### PKCS11 Support
+
+It is possible to use a PKCS11 URL as a reference to your private key, like in this example:
+
+```yml
+pki:
+  key: "pkcs11:id=1234;object=nebula%20key?module-path=/usr/lib64/pkcs11/my-module.so&pin-source=/path/to/pin-file"
+  # or, you can specify the pin directly
+  # key: "pkcs11:id=1234;object=nebula%20key?module-path=/usr/lib64/pkcs11/my-module.so&pin-value=1234"
+```
+
+In order to use PKCS11 with Nebula, a few pre-requisites must be met.
+* `nebula` must be built from source, with the `cgo` and `pkcs11` tags. `make bin-pkcs11` will accomplish this for you.
+* Today, only P256 is supported with PKCS11. You cannot use Nebula's default Curve25519.
+* Your key must be able to be uniquely identified via the `id` and `object` parameters of the PKCS11 URL.
+* Your key's `CKA_DERIVE` attribute must be `CK_TRUE`
+* Derivations must be possible via the `CKM_ECDH1_DERIVE` mechanism
+* Your HSM must permit the output of the derivation to be extracted (`CKA_EXTRACTABLE == CK_TRUE`). Nebula is not capable of using the HSM for symmetric cryptography, and we do not plan to add support for this.
+
+:::note
+Why is Curve25519 not supported?
+
+If you're using PKCS11, it's probably because you need to be NIST compliant,
+and if you need to be NIST compliant, you (at time of writing) cannot use Curve25519 for key agreement.
+Even if you aren't bound by this restriction, your HSM likely is.
+If you have the need for Curve25519, PKCS11, and Nebula, please get in touch and we can discuss adding support!
+:::
+
 ## pki.blocklist
 
 <Pill className="mb-24">Reloadable</Pill>
