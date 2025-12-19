@@ -44,6 +44,18 @@ the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/pr
 `/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is
 used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
 
+## listen.send_recv_error
+
+<Pill className="mb-24">Reloadable</Pill> <Pill className="mb-24">Default: `always`</Pill>
+<Pill className="mb-24">Added in v1.6.0</Pill>
+
+By default, Nebula replies to packets it has no tunnel for with a `recv_error` packet. This packet helps speed up
+reconnection in the case that Nebula on either side did not shut down cleanly. This response can be abused however as a
+way to discover if Nebula is running on a host. `send_recv_error` lets you configure if you want to send `recv_error`
+packets `always`, `never`, or only to `private` network remotes.
+
+Valid values: `always`, `never`, `private`
+
 ## listen.so_mark
 
 <Pill className="mb-24">Added in v1.10.0</Pill>
