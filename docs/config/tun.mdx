@@ -62,12 +62,14 @@ Default is 500.
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
 
+See below for per-route overrides ([`tun.routes`](#tunroutes)).
+
 ## tun.routes
 
 <Pill className="mb-24">Reloadable</Pill>
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
-here.
+here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis.
 
 ```yml
 tun:
