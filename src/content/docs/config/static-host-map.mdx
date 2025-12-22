@@ -1,0 +1,19 @@
+---
+title: static_host_map
+sidebar:
+  order: 2
+description: Define the static host map to enable peer discovery on the Nebula network.
+---
+
+The static host map defines a set of hosts with fixed IP addresses on the internet (or any network). A host can have
+multiple fixed IP addresses defined here, and nebula will try each when establishing a tunnel. The syntax is:
+
+`"<nebula ip>": ["<routable ip/dns name>:<routable port>"]`
+
+Example, if your lighthouse has the nebula IP of 192.168.100.1 and has the real ip address of 100.64.22.11 and runs on
+port 4242:
+
+```yml
+static_host_map:
+  '192.168.100.1': ['100.64.22.11:4242']
+```

@@ -5,7 +5,7 @@
   font-weight: 600;
   line-height: 1;
   border-radius: 10rem;
-  background-color: var(--ifm-color-emphasis-200);
+  background-color: var(--sl-color-bg-inline-code);
   padding: 4px 8px;
 
   &:global(.no-transform),
@@ -15,5 +15,5 @@
 }
 
 .Pill___info {
-  color: var(--ifm-color-secondary-contrast-foreground);
+  color: var(--sl-color-text);
 }

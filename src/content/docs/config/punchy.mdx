@@ -1,0 +1,53 @@
+---
+title: punchy
+sidebar:
+  order: 6
+description: Configuration of keep-alive packets to avoid expiration of firewall and NAT mappings
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+`punchy` configures the sending of inbound/outbound packets at a regular interval to avoid expiration of firewall NAT
+mappings.
+
+Regardless of how `punchy` is configured, the Lighthouse will notify hosts when a peer is attempting to handshake with
+it and Nebula will issue an "empty" packet to the initiating peer's IP addresses in an attempt to punch a hole through
+its own NAT.
+
+```yml
+punchy:
+  punch: true
+  delay: 1s
+  respond: true
+  respond_delay: 5s
+```
+
+## punchy.punch
+
+<Pill className="mb-24">Default: False</Pill>
+
+When enabled, Nebula will periodically send "empty" packets to the underlay IP addresses of hosts it has established
+tunnels to in order to maintain the "hole" punched in the NAT's firewall.
+
+## punchy.delay
+
+<Pill className="mb-24">Default: 1s</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+`delay` is the period of time Nebula waits between receiving a Lighthouse handshake notification and sending an empty
+packet in order to try to punch a hole in the NAT firewall. This is helpful in some NAT race condition situations.
+
+## punchy.respond
+
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+When enabled, the node will attempt a handshake to the initiating peer in response to the Lighthouse's notification of
+the peer attempting to handshake with it. This can be useful when a node is behind a difficult NAT for which regular
+hole punching does not work. Some combinations of NAT still will not work and [relays](/docs/config/relay/) can be used
+for this scenario.
+
+## punchy.respond_delay
+
+<Pill className="mb-24">Default: 5s</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+`respond_delay` is the period of time Nebula waits between receiving a Lighthouse handshake notification and attempting
+its own "reverse" handshake with the initiating peer.

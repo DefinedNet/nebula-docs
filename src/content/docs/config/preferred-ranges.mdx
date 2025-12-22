@@ -1,0 +1,56 @@
+---
+title: preferred_ranges
+sidebar:
+  order: 8
+description: Configure the priority order of underlay IP addresses to increase performance and reduce latency.
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+<Pill className="mb-24">Reloadable</Pill>
+
+`preferred_ranges` sets the priority order for underlay IP addresses. Two hosts on the same LAN would likely benefit
+from having their tunnels use the LAN IP addresses rather than the public IP addresses the lighthouse may have learned
+for them. `preferred_ranges` accepts a list of [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing)
+ranges admitted as a set of preferred ranges of IP addresses.
+
+> An underlay network is the network that a nebula [overlay network](https://en.wikipedia.org/wiki/Overlay_network) maps
+> onto. It is the LAN network that a host is connected to in addition to the wider internet.
+
+## How nebula orders underlay IP addresses it learns about
+
+<figure>
+<figcaption>
+
+Ordered from highest to lowest priority:
+
+</figcaption>
+
+1. IP address is in `preferred_ranges` set and is [ipv6](https://en.wikipedia.org/wiki/IPv6)
+1. IP address is in `preferred_ranges` set and is [public ipv4](https://en.wikipedia.org/wiki/IPv4)
+1. IP address is in `preferred_ranges` set and is [private ipv4](https://en.wikipedia.org/wiki/IPv4#Private_networks)
+1. IP address is ipv6
+1. IP address is public ipv4
+1. IP address is private ipv4
+1. Route is via a [relay](/docs/config/relay/) (experimental)
+
+</figure>
+
+To set up a host that prefers local network `172.16.0.0/24` first, then `ipv6` then `public ipv4` then `private ipv4`,
+specify:
+
+```yml
+preferred_ranges: ['172.16.0.0/24']
+```
+
+This would add the network range `172.16.0.0/24` to the `preferred_ranges` set, which nebula will use to influence its
+ranking of options for underlay connections. If multiple types of ranges are specified, such as a private ipv4 range and
+an ipv6 range, they will be sorted as shown above. So, the ipv6 would be given priority, no matter its position in the
+`preferred_ranges` set.
+
+:::info
+
+The previous option [`local_range`](/docs/config/local-range/) only allowed definition of a single range and has been
+deprecated and replaced by `preferred_ranges`.
+
+:::

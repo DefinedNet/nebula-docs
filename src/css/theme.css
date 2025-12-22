@@ -4,6 +4,60 @@
  * work well for content-centric websites.
  */
 
+/** Override Starlight's default theme colors */
+:root {
+  --sl-hue-orange: var(--dn-color-orange-hue);
+  --sl-color-orange-low: hsl(var(--dn-color-orange-hs), 70%);
+  --sl-color-orange: hsl(var(--dn-color-orange-hs), 80%);
+  --sl-color-orange-high: hsl(var(--dn-color-orange-hs), 90%);
+  --sl-hue-green: var(--dn-color-green-hue);
+  --sl-color-green-low: hsl(var(--dn-color-green-hs), 22%);
+  --sl-color-green: hsl(var(--dn-color-green-hs), 63%);
+  --sl-color-green-high: hsl(var(--dn-color-green-hs), 80%);
+  --sl-hue-blue: var(--dn-color-blue-hue);
+  --sl-color-blue-low: hsl(var(--dn-color-blue-hs), 54%, 20%);
+  --sl-color-blue: hsl(var(--dn-color-blue-hs), 50%);
+  --sl-color-blue-high: hsl(var(--dn-color-blue-hs), 60%);
+  --sl-hue-purple: var(--dn-color-purple-hue);
+  --sl-color-purple-low: hsl(var(--dn-color-purple-hs), 70%);
+  --sl-color-purple: hsl(var(--dn-color-purple-hs), 80%);
+  --sl-color-purple-high: hsl(var(--dn-color-purple-hs), 95%);
+  --sl-hue-red: var(--dn-color-red-hue);
+  --sl-color-red-low: hsl(var(--dn-color-red-hs), 60%);
+  --sl-color-red: hsl(var(--dn-color-red-hs), 70%);
+  --sl-color-red-high: hsl(var(--dn-color-red-hs), 90%);
+}
+
+/* Dark mode colors. */
+:root {
+  --sl-color-accent-low: var(--dn-color-purple-50);
+  --sl-color-accent: var(--dn-color-purple-70);
+  --sl-color-accent-high: var(--dn-color-purple-90);
+  --sl-color-white: white;
+  --sl-color-gray-1: var(--dn-color-gray-80);
+  --sl-color-gray-2: var(--dn-color-gray-70);
+  --sl-color-gray-3: var(--dn-color-gray-60);
+  --sl-color-gray-4: var(--dn-color-gray-30);
+  --sl-color-gray-5: var(--dn-color-gray-20);
+  --sl-color-gray-6: var(--dn-color-gray-10);
+  --sl-color-black: var(--dn-color-gray-05);
+}
+/* Light mode colors. */
+:root[data-theme='light'] {
+  --sl-color-accent-low: var(--dn-color-purple-50);
+  --sl-color-accent: var(--dn-color-purple-40);
+  --sl-color-accent-high: var(--dn-color-purple-20);
+  --sl-color-white: var(--dn-color-gray-05);
+  --sl-color-gray-1: var(--dn-color-gray-20);
+  --sl-color-gray-2: var(--dn-color-gray-30);
+  --sl-color-gray-3: var(--dn-color-gray-50);
+  --sl-color-gray-4: var(--dn-color-gray-60);
+  --sl-color-gray-5: var(--dn-color-gray-70);
+  --sl-color-gray-6: var(--dn-color-gray-90);
+  --sl-color-gray-7: var(--dn-color-gray-95);
+  --sl-color-black: white;
+}
+
 /* You can override the default Infima variables here. */
 :root {
   --ifm-color-primary: var(--dn-color-purple-30);

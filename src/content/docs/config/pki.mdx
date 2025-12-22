@@ -1,0 +1,94 @@
+---
+title: pki
+sidebar:
+  order: 1
+description: Configure the node's certificate, private key, CA trust bundle, and blocklist.
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+Defines the path of each file required for a Nebula host: CA certificate, host certificate, and host key. Each of these
+files can also be stored inline as YAML multiline strings.
+
+```yml
+pki:
+  ca: /etc/nebula/ca.crt
+  cert: /etc/nebula/host.crt
+  key: /etc/nebula/host.key
+  blocklist:
+    - c99d4e650533b92061b09918e838a5a0a6aaee21eed1d12fd937682865936c72
+```
+
+## pki.ca
+
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+The `ca` is a collection of one or more certificate authorities this host should trust. In the above example,
+`/etc/nebula/ca.crt` contains PEM-encoded data for each CA we should trust, concatenated into a single file. The
+following example shows a CA cert inlined as a YAML multiline string.
+
+```yml
+pki:
+  ca: |
+    -----BEGIN NEBULA CERTIFICATE-----
+    CkgKFlRoZSBPbmUtSG91ciBOZWJ1bGEgQ0Eo/pL7jAYwjq/7jAY6IDIi7yqkRV9F
+    1+tozxvnHCmuuuwdArt7YbMMdCR4AYm/QAESQHBitbcetbJ06RQckqGi+hXJXd/U
+    TXKEul4TxP4Qxmd7g+cHDE6oYZhRwup+1xg/Sv9bMg2E2/LNXKV3rNf1Yw8=
+    -----END NEBULA CERTIFICATE-----
+```
+
+## pki.cert
+
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+:::note
+
+A new certificate will only take effect after a reload if the IP address has not changed, but all other properties of
+the certificate can be changed.
+
+:::
+
+The `cert` is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
+name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
+which informs other hosts on whether to trust a particular host certificate.
+
+## pki.key
+
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+The `key` is a private key unique to every host on a Nebula network. It is used in conjunction with the host certificate
+to prove a host’s identity to other members of the Nebula network. The private key should never be shared with other
+hosts.
+
+## pki.blocklist
+
+<Pill className="mb-24">Reloadable</Pill>
+
+:::note
+
+The blocklist is _not_ distributed via Lighthouses. To ensure access to your entire network is blocked you must
+distribute the full blocklist to every host in your network. This is typically done via tooling such as Ansible, Chef,
+or Puppet.
+
+:::
+
+The `blocklist` contains a list of individual hosts' certificate fingerprints which should be blocked even if the
+certificate is otherwise valid (signed by a trusted CA and unexpired.) This should be used if a host's credentials are
+stolen or compromised.
+
+## pki.disconnect_invalid
+
+<Pill className="mb-24">Default: False</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+`disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.
+
+## pki.initiating_version
+
+<Pill className="mb-24">Default: 0</Pill>
+
+`pki.initiating_version` determines which nebula cert version to use when initiating new connections. This setting only
+applies if both a v1 and a v2 certificate are configured, in which case it will default to `1`. Once all hosts in the
+mesh are configured with both a v1 and v2 certificate then this will default to `2`. After all hosts in the mesh are
+using a v2 certificate then v1 certificates are no longer needed.
+
+Added in Nebula v1.10.0

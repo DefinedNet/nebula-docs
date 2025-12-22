@@ -44,11 +44,16 @@
   --dn-color-gray-05: hsl(var(--dn-color-gray-hs), 5%);
   /* darkest */
 
-  --dn-color-green-hs: 135, 64%;
-  --dn-color-orange-hs: 29, 90%;
-  --dn-color-blue-hs: 209, 71%;
-  --dn-color-red-hs: 11, 77%;
-  --dn-color-yellow-hs: 47, 90%;
+  --dn-color-green-hue: 135;
+  --dn-color-green-hs: var(--dn-color-green-hue), 64%;
+  --dn-color-orange-hue: 29;
+  --dn-color-orange-hs: var(--dn-color-orange-hue), 90%;
+  --dn-color-blue-hue: 209;
+  --dn-color-blue-hs: var(--dn-color-blue-hue), 71%;
+  --dn-color-red-hue: 11;
+  --dn-color-red-hs: var(--dn-color-red-hue), 77%;
+  --dn-color-yellow-hue: 47;
+  --dn-color-yellow-hs: var(--dn-color-yellow-hue), 90%;
 }
 
 /* Fonts */

@@ -1,0 +1,22 @@
+---
+title: cipher
+sidebar:
+  order: 7
+description: Selection of cipher used to encrypt Nebula network traffic
+---
+
+:::danger
+
+This value must be identical on ALL nodes and lighthouses. Nebula does not support the use of different ciphers
+simultaneously!
+
+:::
+
+`cipher` allows you to choose between the available ciphers for your network. You may choose `chachapoly` to use the
+ChaCha20-Poly1305 cipher or `aes` for AES256-GCM.
+
+Because most devices have hardware support for the AES instruction set (e.g. AES-NI), this is the recommended option.
+
+```yml
+cipher: aes
+```

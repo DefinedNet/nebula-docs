@@ -1,9 +1,0 @@
-{
-  "label": "Security Bulletins",
-  "position": 3,
-  "link": {
-    "type": "generated-index",
-    "description": "Security bulletins for Nebula.",
-    "slug": "/security"
-  }
-}

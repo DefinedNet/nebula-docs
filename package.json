@@ -5,8 +5,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "postinstall": "pnpm parse-domain-update",
-    "start": "docusaurus start",
-    "build": "pnpm parse-domain-update && docusaurus build",
+    "start": "astro dev",
+    "build": "pnpm parse-domain-update && astro build",
     "preview": "docusaurus serve",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -14,14 +14,20 @@
     "test": "uvu -r tsm --dir ."
   },
   "dependencies": {
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/starlight": "^0.37.1",
     "@docusaurus/core": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
     "@mdx-js/react": "^3.1.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "astro": "^5.16.5",
     "clsx": "^2.1.1",
     "parse-domain": "^8.2.2",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.9.2",
