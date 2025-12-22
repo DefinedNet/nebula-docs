@@ -63,6 +63,7 @@ hosts.
 ### PKCS11 Support
 
 <Pill>Added in v1.10</Pill>
+
 It is possible to use a PKCS11 URL as a reference to your private key, like in this example:
 
 ```yml
@@ -117,11 +118,12 @@ stolen or compromised.
 
 ## pki.initiating_version
 
-<Pill className="mb-24">Default: 0</Pill>
+<Pill className="mb-24">Default: 0</Pill> <Pill className="mb-24">Added in v1.10.0</Pill>
 
 `pki.initiating_version` determines which nebula cert version to use when initiating new connections. This setting only
 applies if both a v1 and a v2 certificate are configured, in which case it will default to `1`. Once all hosts in the
 mesh are configured with both a v1 and v2 certificate then this will default to `2`. After all hosts in the mesh are
 using a v2 certificate then v1 certificates are no longer needed.
 
-Added in Nebula v1.10.0
+In most instances this config option should not be needed, as Nebula will automatically select the correct certificate
+version to use.
