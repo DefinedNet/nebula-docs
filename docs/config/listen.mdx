@@ -43,3 +43,40 @@ Configure socket buffers for the udp side (outside), leave unset to use the syst
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and
 `/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is
 used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
+
+## listen.send_recv_error
+
+<Pill className="mb-24">Reloadable</Pill> <Pill className="mb-24">Default: `always`</Pill>
+<Pill className="mb-24">Added in v1.6.0</Pill>
+
+By default, Nebula replies to packets it has no tunnel for with a `recv_error` packet. This packet helps speed up
+reconnection in the case that Nebula on either side did not shut down cleanly. This response can be abused however as a
+way to discover if Nebula is running on a host. `send_recv_error` lets you configure if you want to send `recv_error`
+packets `always`, `never`, or only to `private` network remotes.
+
+Valid values: `always`, `never`, `private`
+
+## listen.so_mark
+
+<Pill className="mb-24">Added in v1.10.0</Pill>
+
+On Linux systems, Nebula can now mark packets using the
+[SO_MARK socket option](<https://www.man7.org/linux/man-pages/man7/socket.7.html#:~:text=SO_MARK%20(since%20Linux,Linux%205.17)%20capability.>)
+to enable advanced routing scenarios. This is particularly useful for full subnet routing (including `0.0.0.0/0`)
+without the complexity of network namespaces, allowing administrators to route Nebula traffic through custom routing
+tables.
+
+```yaml
+# Mark Nebula packets with firewall mark 4242
+listen:
+  so_mark: 4242
+```
+
+Example setup for `0.0.0.0/0` routing through Nebula:
+
+```console
+# Create routing rules to handle marked traffic
+ip rule add not from all fwmark 4242 lookup 4242
+ip rule add from all lookup main suppress_prefixlength 0
+ip route add default dev nebula1 via &lt;nebula_unsafe_route_gw&gt; table 4242
+```

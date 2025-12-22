@@ -62,12 +62,14 @@ Default is 500.
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
 
+See below for per-route overrides ([`tun.routes`](#tunroutes)).
+
 ## tun.routes
 
 <Pill className="mb-24">Reloadable</Pill>
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
-here.
+here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis.
 
 ```yml
 tun:
@@ -101,6 +103,35 @@ tun:
 ```
 
 For more information, see the [Extend network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide.
+
+### ECMP support for `unsafe_routes`
+
+<Pill className="mb-24">Added in v1.10.0</Pill>
+
+[Equal-Cost Multi-Path routing](https://en.wikipedia.org/wiki/Equal-cost_multi-path_routing) is now available for
+unsafe_routes, enabling load balancing and redundancy within a single host. You can now configure multiple gateways for
+the same route on one host, with optional weighting for unequal load distribution.
+
+```yaml
+unsafe_routes:
+  # Multiple gateways with equal weighting (default weight: 1)
+  - route: 192.168.100.0/24
+    via:
+      - gateway: 10.0.0.1
+      - gateway: 10.0.0.2
+
+  # Multiple gateways with custom weights
+  - route: 192.168.101.0/24
+    via:
+      - gateway: 10.0.0.1
+        weight: 10
+      - gateway: 10.0.0.2
+        weight: 5
+```
+
+The implementation uses [hash-threshold mapping](https://tools.ietf.org/html/rfc2992) (similar to the Linux kernel) to
+distribute traffic based on packet hashing. When a gateway becomes unreachable, traffic automatically fails over to the
+remaining available gateways, though load balancing may become uneven until the failed gateway recovers.
 
 ## tun.use_system_route_table
 
