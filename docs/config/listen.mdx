@@ -67,7 +67,7 @@ without the complexity of network namespaces, allowing administrators to route N
 tables.
 
 ```yaml
-# Mark Nebula packets with firewall mark 4242
+# Mark Nebula packets with firewall mark 4242 (choose a number to associate with Nebula)
 listen:
   so_mark: 4242
 ```
@@ -75,7 +75,7 @@ listen:
 Example setup for `0.0.0.0/0` routing through Nebula:
 
 ```console
-# Create routing rules to handle marked traffic
+# Create routing rules to handle marked traffic (use the number you marked Nebula traffic with)
 ip rule add not from all fwmark 4242 lookup 4242
 ip rule add from all lookup main suppress_prefixlength 0
 ip route add default dev nebula1 via &lt;nebula_unsafe_route_gw&gt; table 4242

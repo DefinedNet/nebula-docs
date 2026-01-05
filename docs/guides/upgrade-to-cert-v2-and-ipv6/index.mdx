@@ -142,7 +142,9 @@ Verify the certificate is v2:
 
 Update each host with its new v2 certificate. Update the
 [`pki.cert`](https://nebula.defined.net/docs/config/pki/#pkicert) and
-[`pki.key`](https://nebula.defined.net/docs/config/pki/#pkikey) fields with the new v2 certificate and key.
+[`pki.key`](https://nebula.defined.net/docs/config/pki/#pkikey) fields with the new v2 certificate and key. With a
+network of **all** v1.10 Nebula hosts, you can run with a mix of v1 and v2 certificates, allowing for a smooth
+transition as you update the cert version on each host in the network gradually.
 
 ```yaml
 pki:
@@ -164,6 +166,15 @@ pki:
     -----END NEBULA ED25519 PRIVATE KEY-----
   initiating_version: 2
 ```
+
+:::note
+
+Nebula can run with a v1 and a v2 certificate at the same time, which can be useful for a smooth transition period when
+some hosts are straggling behind the upgrade to v1.10. Nebula v1.10 will initiate connections with the v1 certificate,
+but will accept connections asking for a v2 certificate as well. We recommend that you update all hosts to v1.10 before
+removing the v1 certificate from the trust bundle.
+
+:::
 
 After updating, **restart** Nebula. The host will now use its v2 certificate for all connections.
 
