@@ -4,7 +4,7 @@ import styles from './Pill.module.css';
 type Props = {
   children: React.ReactNode;
   className?: string;
-  variant?: 'info';
+  variant?: 'info' | 'warning';
 };
 
 export function Pill({ children, className, variant = 'info' }) {

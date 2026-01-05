@@ -5,15 +5,20 @@
   font-weight: 600;
   line-height: 1;
   border-radius: 10rem;
-  background-color: var(--ifm-color-emphasis-200);
   padding: 4px 8px;
 
   &:global(.no-transform),
-  & :global(.no-transform) {
+  &:global(.no-transform) {
     text-transform: none;
   }
 }
 
 .Pill___info {
   color: var(--ifm-color-secondary-contrast-foreground);
+  background-color: var(--ifm-color-secondary-contrast-background);
+}
+
+.Pill___warning {
+  background-color: var(--ifm-color-warning-contrast-background);
+  color: var(--ifm-color-warning-contrast-foreground);
 }
