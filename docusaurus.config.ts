@@ -92,6 +92,7 @@ const config: Config = {
           href: 'https://defined.net',
           label: 'Defined Networking',
           position: 'right',
+          rel: 'noopener',
         },
       ],
     },
