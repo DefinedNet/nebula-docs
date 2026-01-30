@@ -16,7 +16,7 @@ with on-demand, encrypted tunnels that work across any IP networks and without o
 Managed Nebula is Nebula with automated certificate management, SSO integration, and a web UI — ideal for teams that
 want Nebula without running the infrastructure themselves.
 
-[Connect up to 100 devices for free](https://admin.defined.net/signup)
+<a href="https://admin.defined.net/signup" target="_blank" rel="noopener">Connect up to 100 devices for free</a>
 
 :::
 
