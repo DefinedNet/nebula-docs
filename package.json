@@ -16,6 +16,7 @@
   "dependencies": {
     "@docusaurus/core": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
+    "@docusaurus/theme-common": "3.9.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
     "parse-domain": "^8.2.2",
@@ -41,16 +42,8 @@
     "uvu": "^0.5.6"
   },
   "browserslist": {
-    "production": [
-      ">0.5%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "production": [">0.5%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   },
   "packageManager": "pnpm@9.7.0",
   "engines": {
