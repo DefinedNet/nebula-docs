@@ -1,13 +1,11 @@
-import Link from '@docusaurus/Link';
-import { useAnchorTargetClassName } from '@docusaurus/theme-common';
-import type { Props } from '@theme/MDXComponents/A';
-import clsx from 'clsx';
+import type { WrapperProps } from '@docusaurus/types';
+import A from '@theme-original/MDXComponents/A';
+import type AType from '@theme/MDXComponents/A';
 import React, { type ReactNode } from 'react';
 
-export default function MDXA(props: Props): ReactNode {
-  // MDX Footnotes have ids such as <a id="user-content-fn-1-953011" ...>
-  const anchorTargetClassName = useAnchorTargetClassName(props.id);
+type Props = WrapperProps<typeof AType>;
 
+export default function AWrapper(props: Props): ReactNode {
   // Customize rel attribute for *.defined.net links
   let customRel = props.rel;
   let customTarget = props.target;
@@ -25,7 +23,5 @@ export default function MDXA(props: Props): ReactNode {
     }
   }
 
-  return (
-    <Link {...props} rel={customRel} target={customTarget} className={clsx(anchorTargetClassName, props.className)} />
-  );
+  return <A rel={customRel} target={customTarget} {...props} />;
 }
