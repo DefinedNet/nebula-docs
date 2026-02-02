@@ -134,14 +134,17 @@ const config: Config = {
             {
               label: 'Home',
               href: 'https://defined.net',
+              rel: 'noopener',
             },
             {
               label: 'Blog',
               href: 'https://defined.net/blog',
+              rel: 'noopener',
             },
             {
               label: 'Docs',
               href: 'https://docs.defined.net',
+              rel: 'noopener',
             },
           ],
         },
