@@ -1,9 +1,8 @@
-import type { WrapperProps } from '@docusaurus/types';
 import A from '@theme-original/MDXComponents/A';
 import type AType from '@theme/MDXComponents/A';
-import React, { type ReactNode } from 'react';
+import React, { type ComponentProps, type ReactNode } from 'react';
 
-type Props = WrapperProps<typeof AType>;
+type Props = ComponentProps<typeof AType>;
 
 export default function AWrapper(props: Props): ReactNode {
   // Customize rel attribute for *.defined.net links
