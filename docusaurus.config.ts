@@ -164,7 +164,7 @@ const config: Config = {
       contextualSearch: false,
 
       // Optional: path for search page that enabled by default (`false` to disable it)
-      searchPagePath: 'false',
+      searchPagePath: false,
     },
     prism: {
       theme: lightCodeTheme,
