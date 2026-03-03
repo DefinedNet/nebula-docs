@@ -3,7 +3,7 @@
   "position": 3,
   "link": {
     "type": "generated-index",
-    "description": "Security bulletins for Nebula.",
+    "description": "Security advisories and vulnerability disclosures for the Nebula overlay networking tool.",
     "slug": "/security"
   }
 }

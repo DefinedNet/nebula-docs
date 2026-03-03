@@ -3,7 +3,7 @@
   "position": 4,
   "link": {
     "type": "generated-index",
-    "description": "Configuration options for Nebula.",
+    "description": "Complete reference for all Nebula configuration options including PKI, firewall rules, lighthouse, relay, tun, and more.",
     "slug": "/config"
   }
 }
