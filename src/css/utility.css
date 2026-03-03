@@ -2,6 +2,8 @@
   margin-bottom: 24px;
 }
 
+/* Hide navbar title visually while keeping it in the DOM for crawlers */
+
 .navbar__title {
   display: none;
 }
