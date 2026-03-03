@@ -1,5 +1,8 @@
 ---
 title: Introduction to Nebula
+description:
+  Nebula is an open source overlay networking tool for building fast, secure, and scalable networks. Connect hosts with
+  encrypted tunnels across any IP network.
 slug: /
 sidebar_position: 1
 ---

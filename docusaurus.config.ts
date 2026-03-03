@@ -22,7 +22,7 @@ if (process.env.GTAG_TRACKING_ID) {
 
 const config: Config = {
   title: 'Nebula Docs',
-  tagline: 'Learn about Nebula here',
+  tagline: 'Documentation for Nebula, an open source overlay networking tool',
   url: 'https://nebula.defined.net',
   // For deploy previews, don't set a baseUrl
   baseUrl: '/',
@@ -79,8 +79,9 @@ const config: Config = {
 
   themeConfig: {
     image: 'img/nebula-docs-og.png',
+    metadata: [{ name: 'keywords', content: 'nebula, overlay network, VPN, mesh networking, defined networking' }],
     navbar: {
-      title: '',
+      title: 'Nebula Documentation',
       logo: {
         alt: 'Nebula logo',
         href: '/docs/',
