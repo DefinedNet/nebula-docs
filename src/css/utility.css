@@ -1,3 +1,7 @@
 .mb-24 {
   margin-bottom: 24px;
 }
+
+.navbar__title {
+  display: none;
+}

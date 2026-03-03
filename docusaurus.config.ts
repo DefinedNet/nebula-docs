@@ -81,7 +81,7 @@ const config: Config = {
     image: 'img/nebula-docs-og.png',
     metadata: [{ name: 'keywords', content: 'nebula, overlay network, VPN, mesh networking, defined networking' }],
     navbar: {
-      title: 'Nebula Docs',
+      title: 'Nebula Documentation',
       logo: {
         alt: 'Nebula logo',
         href: '/docs/',
@@ -164,7 +164,7 @@ const config: Config = {
       contextualSearch: false,
 
       // Optional: path for search page that enabled by default (`false` to disable it)
-      searchPagePath: 'search',
+      searchPagePath: 'false',
     },
     prism: {
       theme: lightCodeTheme,
