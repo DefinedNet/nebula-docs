@@ -7,7 +7,7 @@ slug: /
 sidebar_position: 1
 ---
 
-# Nebula: Open source overlay networking
+# Nebula: open source overlay networking
 
 Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts
 with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
