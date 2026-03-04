@@ -1,5 +1,5 @@
 ---
-title: Rotating a Certificate Authority
+title: Rotating a certificate authority
 description: How to rotate an expiring Nebula certificate authority without downtime.
 summary:
   This guide will teach you how to migrate from an expiring certificate authority by creating a new certificate
@@ -33,7 +33,7 @@ bundle, giving you as much time as possible to rollback and fix any issues befor
 
 ## Let's get started!
 
-### Step 1: Generate a new Certificate Authority
+### Step 1: generate a new certificate authority
 
 The first thing we need to do is create a new certificate authority with an expiration in the future. The new CA should
 use the exact same CIDR, group, and subnet restrictions as the original certificate. You can use `nebula-cert print` to
@@ -78,7 +78,7 @@ passphrase. Keep it safe - you will be prompted for it each time you sign a host
 **Before proceeding,** we strongly recommend you set a reminder for yourself to rotate your CA again in the future.
 Consider setting a reminder in your team's shared calendar for 2-3 months prior to your new CA's expiration.
 
-### Step 2: Updating your existing host's trust bundle
+### Step 2: updating your existing host's trust bundle
 
 Before issuing new certificates for each host, it's important to update the trust bundle in all of your existing hosts'
 configs. This will ensure that as hosts are moved over to certificates signed by the new CA, these new certificates will
@@ -116,7 +116,7 @@ time="2022-07-27T11:32:04-04:00" level=info msg="Trusted CA certificates refresh
 
 For extra credit, you can verify that your newly minted CA's fingerprint appears in the log line shown above.
 
-### Step 3: Signing new host certificates
+### Step 3: signing new host certificates
 
 Now that all of your hosts have been updated to trust the new CA, it's time to issue new host certificates. You'll need
 to iterate all existing certificates and issue a new certificate using the same information as before:
@@ -157,7 +157,7 @@ Even though this host is using a different CA than the rest of your network you 
 the rest of your hosts because its certificate is signed by a CA in their trust bundle. You can issue a `ping` to test
 this now. Don't forget that your [firewall](/docs/config/firewall/) must allow pings from this host.
 
-### Step 4: Removing the old CA from the trust bundle
+### Step 4: removing the old CA from the trust bundle
 
 You did it! All of your hosts have updated certificates and are communicating with each other. At this point, you can
 safely remove the original CA from the trust bundle so that only the new CA exists:
