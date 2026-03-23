@@ -56,6 +56,17 @@ packets `always`, `never`, or only to `private` network remotes.
 
 Valid values: `always`, `never`, `private`
 
+## listen.accept_recv_error
+
+<Pill className="mb-24">Reloadable</Pill> <Pill className="mb-24">Default: `always`</Pill>
+<Pill className="mb-24">Added in v1.10.1</Pill>
+
+Controls whether Nebula accepts `recv_error` packets from remote hosts. This is the counterpart to
+[`send_recv_error`](#listensend_recv_error) — while `send_recv_error` controls whether your node _sends_ these packets,
+`accept_recv_error` controls whether your node _acts on_ them when received.
+
+Valid values: `always`, `never`, `private`
+
 ## listen.so_mark
 
 <Pill className="mb-24">Added in v1.10.0</Pill>

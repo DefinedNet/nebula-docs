@@ -1,0 +1,33 @@
+---
+sidebar_position: 11
+description: Configure tunnel lifecycle management for Nebula mesh networking.
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# tunnels
+
+<Pill className="mb-24">Added in v1.9.6</Pill>
+
+`tunnels` configures tunnel lifecycle management, allowing Nebula to automatically drop tunnels that have been inactive
+for a period of time.
+
+```yml
+tunnels:
+  drop_inactive: false
+  inactivity_timeout: 10m
+```
+
+## tunnels.drop_inactive
+
+<Pill className="mb-24">Reloadable</Pill> <Pill className="mb-24">Default: false</Pill>
+
+Controls whether inactive tunnels are maintained or dropped after the `inactivity_timeout` period has elapsed. In
+general, it is a good idea to enable this setting. It will be enabled by default in a future release.
+
+## tunnels.inactivity_timeout
+
+<Pill className="mb-24">Reloadable</Pill> <Pill className="mb-24">Default: 10m</Pill>
+
+Controls how long a tunnel must not see any inbound or outbound traffic before being considered inactive and eligible to
+be dropped. Only applies when [`tunnels.drop_inactive`](#tunnelsdrop_inactive) is enabled.

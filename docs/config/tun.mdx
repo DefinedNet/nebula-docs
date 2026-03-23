@@ -136,8 +136,20 @@ remaining available gateways, though load balancing may become uneven until the 
 ## tun.use_system_route_table
 
 <Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Added in v1.7.0</Pill>
 
 This option is only supported on Linux.
 
 Set to true to manage unsafe routes directly on the system route table with gateway routes instead of in nebula
 configuration files.
+
+## tun.use_system_route_table_buffer_size
+
+<Pill className="mb-24">Default: 0</Pill>
+<Pill className="mb-24">Added in v1.10.0</Pill>
+
+This option is only supported on Linux.
+
+Buffer size for reading route updates. `0` means the system default buffer size is used
+(`/proc/sys/net/core/rmem_default`). If using massive route updates, for example BGP, you may need to increase this
+value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise the system wide max.
