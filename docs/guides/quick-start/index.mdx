@@ -1,5 +1,5 @@
 ---
-title: Quick Start
+title: Quick start
 description: How to create your first overlay network using a Certificate Authority, Lighthouse, and Hosts
 summary:
   This section will walk you through setting up a simple nebula network for testing. The examples will need to be
@@ -16,7 +16,7 @@ sidebar_position: 1
 In Nebula, a lighthouse is a Nebula host that is responsible for keeping track of all of the other Nebula hosts, and
 helping them find each other within a Nebula network.
 
-### Certificate Authority
+### Certificate authority
 
 In its simplest form, a Nebula Certificate Authority (CA) consists of two files, a CA certificate, and an associated
 private key. A CA certificate is distributed to, and trusted by, every host on the network. The CA private key should
@@ -41,7 +41,7 @@ to suit your particular environment.
 To start, you'll need to download Nebula for your specific platform(s). Specifically you'll need `nebula-cert` and the
 specific `nebula` binary for each platform you use.
 
-#### Desktop and Server
+#### Desktop and server
 
 Check the [releases](https://github.com/slackhq/nebula/releases/latest) page for downloads
 
@@ -117,7 +117,7 @@ would generate a CA valid for just under two years.
 
 ## Building a Nebula network
 
-### Establishing a Lighthouse
+### Establishing a lighthouse
 
 Nebula lighthouses allow hosts to find each other, anywhere in the world. Lighthouses are the only hosts in a Nebula
 network whose IP addresses should not change. Running a lighthouse requires very few compute resources, and you can
@@ -127,7 +127,7 @@ of us have used $5/mo [DigitalOcean](https://digitalocean.com) droplets as light
 Once you have launched an instance, ensure that Nebula UDP traffic (default port udp/4242) can reach it over the
 internet and is not blocked by any inbound firewall.
 
-### Creating Keys and Certificates
+### Creating keys and certificates
 
 This assumes you have three hosts, which we will name `lighthouse1`, `laptop`, and `server`. You can name the hosts any
 way you'd like, including FQDN. You'll also need to choose the Nebula IP address for each host when generating its

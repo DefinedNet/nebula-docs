@@ -56,7 +56,7 @@ name resolution by external DNS hosts. To enable listening on IPv6 in addition t
 `'[::]'`.
 
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
-Lighthouses.
+lighthouses.
 
 `A` records contain the Nebula IP for a host name and can be queried by any host that can reach the DNS listener,
 regardless of whether it is communicating over the Nebula network.
@@ -64,7 +64,7 @@ regardless of whether it is communicating over the Nebula network.
 `TXT` records can only be queried over the Nebula network, and contain certificate information for the requested host IP
 address.
 
-For example, if `192.168.100.1` was your Lighthouse node running a DNS server and you wanted to find the Nebula IP
+For example, if `192.168.100.1` was your lighthouse node running a DNS server and you wanted to find the Nebula IP
 address of a host named `web01`:
 
 ```shell
