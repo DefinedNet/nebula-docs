@@ -5,6 +5,7 @@ description:
 summary:
   On Linux, Nebula does not need to run as root. This guide shows how to run it as a dedicated unprivileged user by
   granting the CAP_NET_ADMIN capability, either through systemd or with file capabilities on the binary.
+sidebar_position: 2
 ---
 
 # Running Nebula as a non-root user
@@ -17,8 +18,8 @@ what `CAP_NET_ADMIN` allows, rather than full root.
 
 Everything else Nebula does is unprivileged, with one exception: binding a listener to a port below 1024 additionally
 requires `CAP_NET_BIND_SERVICE`. This applies to any of Nebula's listeners you configure on a privileged port, e.g.
-[Lighthouse DNS](/docs/guides/using-lighthouse-dns/) on the default DNS port 53, the main UDP listener (e.g. `listen.port: 443`
-to traverse restrictive networks), the Prometheus [stats](/docs/config/stats/) endpoint, or the debug
+[Lighthouse DNS](/docs/guides/using-lighthouse-dns/) on the default DNS port 53, the main UDP listener (e.g.
+`listen.port: 443` to traverse restrictive networks), the Prometheus [stats](/docs/config/stats/) endpoint, or the debug
 [sshd](/docs/config/sshd/). Outbound-only features such as Graphite stats need nothing extra.
 
 :::note
@@ -43,8 +44,9 @@ sudo chmod 0700 /etc/nebula
 ## Option 1: systemd ambient capabilities (recommended)
 
 If you manage Nebula with systemd, add `User`, `Group`, and the two capability directives to the `[Service]` section of
-your unit. This is the [example unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service)
-from the Nebula repository with those four lines added:
+your unit. This is the
+[example unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service) from the Nebula
+repository with those four lines added:
 
 ```systemd
 [Unit]
@@ -69,8 +71,8 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-`AmbientCapabilities` is what grants `CAP_NET_ADMIN` to the non-root process. `CapabilityBoundingSet` additionally
-drops every other capability from the service, so even a compromised process cannot regain them.
+`AmbientCapabilities` is what grants `CAP_NET_ADMIN` to the non-root process. `CapabilityBoundingSet` additionally drops
+every other capability from the service, so even a compromised process cannot regain them.
 
 Reload and restart:
 
@@ -123,9 +125,9 @@ $ grep CapEff /proc/$(pidof nebula)/status
 CapEff:	0000000000001000
 ```
 
-`0000000000001000` decodes to exactly `cap_net_admin` (`capsh --decode=0000000000001000`); with
-`CAP_NET_BIND_SERVICE` added it is `0000000000001400`. Confirm the interface and any
-[`unsafe_routes`](/docs/guides/unsafe_routes/) are present with `ip link show nebula1` and `ip route`.
+`0000000000001000` decodes to exactly `cap_net_admin` (`capsh --decode=0000000000001000`); with `CAP_NET_BIND_SERVICE`
+added it is `0000000000001400`. Confirm the interface and any [`unsafe_routes`](/docs/guides/unsafe_routes/) are present
+with `ip link show nebula1` and `ip route`.
 
 ## Troubleshooting
 
@@ -133,11 +135,11 @@ CapEff:	0000000000001000
 the unit's `AmbientCapabilities` line (or `getcap` output on the binary) and that you restarted the service after
 `systemctl daemon-reload`. Nebula exits immediately on this error.
 
-**`bind: permission denied`** — a listener (here Lighthouse DNS: `Failed to start server: listen udp 0.0.0.0:53: bind:
-permission denied`) is configured on a privileged port but the process only has `CAP_NET_ADMIN`; add
-`CAP_NET_BIND_SERVICE`. Note that for the DNS responder this error is
-_non-fatal_: the service stays running with a working tun device and only the DNS responder is down, so watch the logs
-rather than the service state.
+**`bind: permission denied`** — a listener (here Lighthouse DNS:
+`Failed to start server: listen udp 0.0.0.0:53: bind: permission denied`) is configured on a privileged port but the
+process only has `CAP_NET_ADMIN`; add `CAP_NET_BIND_SERVICE`. Note that for the DNS responder this error is _non-fatal_:
+the service stays running with a working tun device and only the DNS responder is down, so watch the logs rather than
+the service state.
 
 **`bind: address already in use` on port 53** — the capability is working, but something else already owns the port. On
 distributions with `systemd-resolved`, its stub listener on `127.0.0.53:53` conflicts with binding `0.0.0.0:53`; bind
