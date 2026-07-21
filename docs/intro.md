@@ -7,7 +7,7 @@ slug: /
 sidebar_position: 1
 ---
 
-# Nebula: Open source overlay networking
+# Nebula: open source overlay networking
 
 Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts
 with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
@@ -48,7 +48,7 @@ Nebula is written in Go and is designed for portability.
 - Efficiently runs on x86, ARM, MIPS, PPC, and RISC hardware (32 & 64-bit)
 - A single `nebula` executable runs host firewall and service
 - Host config file defines CA trust, host cert & key, and firewall rules
-- At least one host in overlay network should be a _Lighthouse_, which helps hosts discover routes to one another and
+- At least one host in overlay network should be a _lighthouse_, which helps hosts discover routes to one another and
   assists in NAT traversal.
 
 ## Getting started

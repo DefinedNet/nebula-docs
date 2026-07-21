@@ -81,7 +81,7 @@ const config: Config = {
     image: 'img/nebula-docs-og.png',
     metadata: [{ name: 'keywords', content: 'nebula, overlay network, VPN, mesh networking, defined networking' }],
     navbar: {
-      title: 'Nebula Documentation',
+      title: 'Nebula documentation',
       logo: {
         alt: 'Nebula logo',
         href: '/docs/',
@@ -107,11 +107,11 @@ const config: Config = {
               to: '/docs/guides/',
             },
             {
-              label: 'Config Reference',
+              label: 'Config reference',
               to: '/docs/config/',
             },
             {
-              label: 'Docs Github',
+              label: 'Docs GitHub',
               href: 'https://github.com/DefinedNet/nebula-docs',
             },
           ],

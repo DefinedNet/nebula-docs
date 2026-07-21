@@ -39,7 +39,7 @@ All hosts must be upgraded to v1.10+ before proceeding. Older versions cannot va
 
 :::
 
-## Create a v2 Certificate Authority
+## Create a v2 certificate authority
 
 Create a new v2 Certificate Authority that will coexist with your existing v1 CA during the migration. Creating a new CA
 with Nebula v1.10 will create a v2 CA by default.
@@ -298,7 +298,7 @@ You can also check the logs for the `certVersion` field in handshakes:
 time="2025-12-09T22:23:33Z" level=info msg="Handshake message received" certName=host-1 certVersion=2 fingerprint=1376f30ea6ec555bde413be57eb3a3fad58ff7f6e31a87890e24a4a65b22c688 from="192.168.65.1:16583" handshake="map[stage:1 style:ix_psk0]" initiatorIndex=2138029252 issuer=74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c remoteIndex=0 responderIndex=0 vpnAddrs="[192.168.1.1 fdc8:d0db:a315:cb00::1]"
 ```
 
-## Optional: Transition to IPv6-only
+## Optional: transition to IPv6-only
 
 Once all hosts are on v2 certificates and have IPv6 addresses, you can optionally transition to an IPv6-only network.
 

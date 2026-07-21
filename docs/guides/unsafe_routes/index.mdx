@@ -64,7 +64,7 @@ nebula-cert print -json -path ca.crt | jq .details
 }
 ```
 
-## Example Network
+## Example network
 
 The following IP addresses, hostnames, and subnets are used throughout this guide to illustate a valid configuration for
 our use case.
@@ -93,7 +93,7 @@ This is the overlay network that will be used by hosts running Nebula.
 | `192.168.100.10` | `home-raspi`     | Linux host that will route traffic between LAN and overlay |
 | `192.168.100.11` | `laptop-mac`     | Mac that will access printer _via_ `home-raspi`            |
 
-## Configuration Steps
+## Configuration steps
 
 Using the example network and hosts referenced above, the following steps explain how to configure the macOS host
 (`laptop-mac`, `192.168.100.11`) to route traffic through the Linux host (`home-raspi`, `192.168.100.10`) in order to
