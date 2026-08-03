@@ -52,8 +52,8 @@ configured to be lighthouses in your network
 <Pill className="mb-24">Default: False</Pill>
 
 `serve_dns` optionally starts a DNS listener that responds to `A` and `TXT` queries and can even be delegated to for
-name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set `lighthouse.dns.host` to
-`'[::]'`.
+name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set
+[`lighthouse.dns.host`](#lighthousedns) to `'[::]'`.
 
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
 Lighthouses.
@@ -104,7 +104,7 @@ firewall:
 host's Nebula IP, you can make the DNS server accessible only on the Nebula network. Alternatively, listening on
 `0.0.0.0` will allow anyone that can reach the host to make queries.
 
-The default value for `dns.port` is `53` but you must set an IP address.
+The default value for [`lighthouse.dns.port`](#lighthousedns) is `53` but you must set an IP address.
 
 See the [`serve_dns`](#lighthouseserve_dns) docs for more information.
 
@@ -169,9 +169,10 @@ lighthouse:
 <Pill className="mb-24">Reloadable</Pill>
 
 `local_allow_list` allows you to filter which local IP addresses we advertise to the lighthouses. This uses the same
-logic as `remote_allow_list`, but additionally, you can specify an `interfaces` map of regular expressions to match
-against interface names. The regexp must match the entire name. All interface rules must be either true or false (and
-the default will be the inverse). CIDR rules are matched after interface name rules. Default is all local IP addresses.
+logic as [`lighthouse.remote_allow_list`](#lighthouseremote_allow_list), but additionally, you can specify an
+`interfaces` map of regular expressions to match against interface names. The regexp must match the entire name. All
+interface rules must be either true or false (and the default will be the inverse). CIDR rules are matched after
+interface name rules. Default is all local IP addresses.
 
 ```yml
 lighthouse:
@@ -190,9 +191,14 @@ lighthouse:
 
 `advertise_addrs` are routable addresses that will be included along with discovered addresses to report to the
 lighthouse. The format is "ip:port". `port` can be `0`, in which case the actual listening port will be used in its
-place, useful if `listen.port` is set to `0`. This option is mainly useful when there are static IP addresses the host
-can be reached at that nebula can not typically discover on its own (e.g. when port forwarding or when the node has
-multiple paths to the internet.)
+place, useful if [`listen.port`](/docs/config/listen/#listenport) is set to `0`. This option is mainly useful when there
+are static IP addresses the host can be reached at that nebula can not typically discover on its own (e.g. when port
+forwarding or when the node has multiple paths to the internet.)
+
+Unlike [`static_host_map`](/docs/config/static-host-map/) entries, which must be added to every peer's config,
+[`lighthouse.advertise_addrs`](#lighthouseadvertise_addrs) is set once on the host itself and propagates to peers
+through the lighthouses. See [How hosts find each other](/docs/guides/host-discovery/) for a comparison of the two
+mechanisms.
 
 ## lighthouse.calculated_remotes
 

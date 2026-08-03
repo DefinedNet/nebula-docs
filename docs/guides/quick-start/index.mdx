@@ -168,9 +168,12 @@ cp config.yml config.yaml
 
 #### Lighthouse configuration (`config-lighthouse.yaml`)
 
-On the lighthouse host, you'll need to ensure `am_lighthouse: true` is set. Generally, a lighthouse will not have any
-entries in its `static_host_map`, because all hosts will report themselves to a lighthouse. If you use multiple
-lighthouses, they do not generally need to know about each other.
+On the lighthouse host, you'll need to ensure [`am_lighthouse: true`](/docs/config/lighthouse/#lighthouseam_lighthouse)
+is set. Generally, a lighthouse will not have any entries in its [`static_host_map`](/docs/config/static-host-map/),
+because all hosts will report themselves to a lighthouse. If you use multiple lighthouses, they do not generally need to
+know about each other. (For why lighthouses appear in every other host's
+[`static_host_map`](/docs/config/static-host-map/) but not their own, see
+[How hosts find each other](/docs/guides/host-discovery/).)
 
 ```yaml
 static_host_map:
@@ -181,8 +184,9 @@ lighthouse:
 
 #### Host configuration (`config.yaml`)
 
-On the individual hosts, ensure the lighthouse is defined properly in the `static_host_map` section, and is added to the
-lighthouse `hosts` section.
+On the individual hosts, ensure the lighthouse is defined properly in the
+[`static_host_map`](/docs/config/static-host-map/) section, and is added to the
+[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) section.
 
 ```yaml
 static_host_map:
