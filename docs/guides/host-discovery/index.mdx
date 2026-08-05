@@ -1,0 +1,152 @@
+---
+sidebar_position: 2
+title: How Hosts Find Each Other
+description:
+  The two mechanisms Nebula hosts use to discover each other's routable addresses — the static host map and lighthouse
+  discovery — and when to use each.
+summary:
+  Every Nebula host has an overlay IP that is not routable on the internet. This guide explains the two mechanisms a
+  host uses to learn where a peer can actually be reached — static host map entries and lighthouse discovery — and how
+  to choose between them for each host in your network.
+---
+
+# How Hosts Find Each Other
+
+Every host in your network has a Nebula IP, but that address only exists inside the overlay. To establish a tunnel with
+a peer, a host needs the peer's _underlay_ address — a routable IP and port like `203.0.113.42:4242` — to send packets
+to. Host discovery is how a host learns that address.
+
+There are two ways a host can learn where to reach a peer:
+
+1. **The static path** — the peer is listed in the host's own [`static_host_map`](/docs/config/static-host-map/), so the
+   host dials the listed address directly.
+2. **The dynamic path** — the host asks a [lighthouse](/docs/config/lighthouse/), which keeps track of where every host
+   was last reachable.
+
+The two paths work together: static entries let hosts reach the lighthouses in the first place, and lighthouses handle
+everything that moves — laptops changing networks, hosts behind NATs, dynamic IPs.
+
+## The static path: `static_host_map`
+
+A static host map entry maps a peer's Nebula IP to one or more addresses where it can be dialed directly:
+
+```yml
+static_host_map:
+  '192.168.100.1': ['203.0.113.42:4242']
+  '192.168.100.5': ['server.example.com:4242', '[2001:db8::5]:4242']
+```
+
+When establishing a tunnel to one of these peers, nebula tries each listed address until a handshake succeeds. Entries
+can be literal IPv4 addresses, DNS names, or bracketed IPv6 literals, and a single host can list several — useful when a
+peer is reachable over multiple paths.
+
+Because the addresses come from local config, no lighthouse is involved: a statically mapped peer stays reachable even
+while every lighthouse is down. The cost is maintenance. An entry only helps hosts whose config contains it, so making
+one host statically reachable means editing every peer's config — and if the address changes and an entry goes stale,
+peers waste handshake attempts dialing it.
+
+DNS names in the static host map are re-resolved periodically, not just at startup. The
+[`static_map`](/docs/config/static-map/) settings control the re-resolution cadence, the lookup timeout, and which IP
+version is used — the default is IPv4-only, so IPv6-only hosts must set
+[`static_map.network`](/docs/config/static-map/#static_mapnetwork) to `ip6` or `ip`.
+
+## The dynamic path: lighthouse discovery
+
+Every host (except lighthouses themselves) reports to its lighthouses on a timer — every
+[`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) seconds, 10 by default:
+
+```yml
+lighthouse:
+  am_lighthouse: false
+  hosts:
+    - '192.168.100.1' # nebula IP of the lighthouse to report to
+```
+
+Each report carries the addresses the host knows about itself: the IPs on its local interfaces (filtered by
+[`lighthouse.local_allow_list`](/docs/config/lighthouse/#lighthouselocal_allow_list)) plus anything listed in
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs).
+
+But a host behind a NAT doesn't know its own public address — so the lighthouse learns it another way: it looks at the
+source IP and port on the report packets as they arrive. That observed address is usually exactly what other peers need
+to dial to reach the host through its NAT, and it's why a NAT'd host becomes discoverable without configuring anything.
+
+When a host wants to handshake with a peer it has no static entry for, it asks its lighthouses where that peer was last
+seen, then tries the returned addresses (filtered by
+[`lighthouse.remote_allow_list`](/docs/config/lighthouse/#lighthouseremote_allow_list)).
+
+### When discovery needs help: `advertise_addrs`
+
+Sometimes neither self-inspection nor packet observation produces the right address. Common cases:
+
+- **Port forwarding** — your router forwards public port `5555` to the host's listening port `4242`; peers must dial
+  `:5555`, but the host only knows about `:4242`.
+- **Multiple paths to the internet** — only the path used to reach the lighthouse gets observed; the others are
+  invisible.
+
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) fixes this from the affected host's
+own config: the listed addresses ride along in its lighthouse reports and propagate to peers automatically — no other
+host's config changes.
+
+```yml
+lighthouse:
+  advertise_addrs:
+    - '203.0.113.42:5555' # the forwarded public port, not the local listening port
+```
+
+## Why lighthouses must be in every static host map
+
+A lighthouse is the discovery service — and you can't discover the discovery service. Before a host has talked to a
+lighthouse, the static host map is the only source of addresses it has, so every host's config must carry a static entry
+for every lighthouse:
+
+```yml
+static_host_map:
+  '192.168.100.1': ['203.0.113.42:4242'] # the lighthouse
+
+lighthouse:
+  am_lighthouse: false
+  hosts:
+    - '192.168.100.1' # matches the static entry above
+```
+
+Lighthouses themselves are on the receiving end of this arrangement: every host comes to them, so their own
+[`static_host_map`](/docs/config/static-host-map/) is typically empty, and multiple lighthouses generally don't need to
+know about each other.
+
+## Choosing for each host
+
+- **A lighthouse** — must have a fixed, routable address, listed in every other host's
+  [`static_host_map`](/docs/config/static-host-map/). This is not optional; it's what makes discovery work.
+- **A stable server** (fixed public IP or DNS name) — works fine with dynamic discovery alone, but adding it to peers'
+  static host maps means those peers can reach it directly and keep reaching it during a lighthouse outage. Weigh that
+  against maintaining the entry in every peer's config.
+- **A host whose advertised address differs from what nebula can see** (port forwarding, multiple internet paths) — set
+  [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) on that host. One config change,
+  propagates everywhere.
+- **Everything else** (laptops, NAT'd workstations, anything with a changing address) — dynamic discovery handles it
+  with no configuration at all.
+
+| Mechanism                                                                          | Configured where               | Propagates                             | Best for                                                        |
+| ---------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------- | --------------------------------------------------------------- |
+| [`static_host_map`](/docs/config/static-host-map/)                                 | Every peer that dials the host | Manually, with each peer's config edit | Lighthouses (required); stable servers (optional)               |
+| [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) | The host being reached         | Automatically, via lighthouse reports  | Port forwarding, multiple paths, addresses nebula can't observe |
+| Automatic discovery                                                                | Nothing to configure           | Automatically, observed by lighthouses | Everything else                                                 |
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), each host's **static addresses** setting is inserted into every peer's
+generated config as its [`static_host_map`](/docs/config/static-host-map/) entry automatically — you never edit the map
+by hand, and lighthouses are required to have a static address for the reasons above.
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) is available through a host's
+advanced config overrides.
+
+:::
+
+## See also
+
+- [`static_host_map` reference](/docs/config/static-host-map/)
+- [`static_map` reference](/docs/config/static-map/)
+- [`lighthouse` reference](/docs/config/lighthouse/)
+- [`listen` reference](/docs/config/listen/)

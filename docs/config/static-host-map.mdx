@@ -5,8 +5,15 @@ description: Define the static host map to enable peer discovery on the Nebula n
 
 # static_host_map
 
-The static host map defines a set of hosts with fixed IP addresses on the internet (or any network). A host can have
-multiple fixed IP addresses defined here, and nebula will try each when establishing a tunnel. The syntax is:
+The static host map defines a set of hosts with fixed IP addresses (or DNS names) on the internet (or any network).
+Entries listed here are dialed directly, without lighthouse mediation, which makes the static host map the bootstrap
+path for connectivity: it works before — and without — any lighthouse being reachable. Every host must have an entry for
+each [lighthouse](/docs/config/lighthouse/) in the network, because the discovery service itself cannot be discovered
+dynamically. See [How hosts find each other](/docs/guides/host-discovery/) for when to list other hosts here versus
+relying on lighthouse discovery or [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs).
+
+A host can have multiple fixed IP addresses defined here, and nebula will try each when establishing a tunnel. The
+syntax is:
 
 `"<nebula ip>": ["<routable ip/dns name>:<routable port>"]`
 
@@ -17,3 +24,13 @@ port 4242:
 static_host_map:
   '192.168.100.1': ['100.64.22.11:4242']
 ```
+
+Entries may mix literal IPs, DNS names, and IPv6 addresses (bracketed):
+
+```yml
+static_host_map:
+  '192.168.100.1': ['100.64.22.11:4242', 'lighthouse.example.com:4242', '[2001:db8::1]:4242']
+```
+
+DNS names are re-resolved periodically; the [static_map](/docs/config/static-map/) settings control the resolution
+cadence, lookup timeout, and which IP version is used to reach static hosts.
