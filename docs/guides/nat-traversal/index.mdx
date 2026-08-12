@@ -103,7 +103,10 @@ rely on relays when punching fails.
 **Short UDP timeouts.** A mapping that expires between packets looks like a tunnel that "randomly" stops passing traffic
 until the next handshake. This can happen on any NAT type. Enable [`punchy.punch`](/docs/config/punchy/#punchypunch)
 (and consider [`punchy.respond`](/docs/config/punchy/#punchyrespond)) on affected hosts before touching firewall
-timeouts.
+timeouts. Short timeouts also age the address a lighthouse has on file: when a mapping expires and the next outbound
+packet creates a new one, peers keep dialing the old address until the host's next report. Lowering
+[`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) below the network's UDP timeout shrinks that stale
+window and keeps the mapping toward the lighthouse alive in the first place.
 
 **Different paths, different rules.** Two paths out of the same network can behave differently, because wired and
 wireless VLANs often pass through different firewall zones or NAT rules. A tunnel that comes up on one VLAN and fails on
