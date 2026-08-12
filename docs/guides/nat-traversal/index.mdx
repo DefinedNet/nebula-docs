@@ -12,8 +12,8 @@ summary:
 
 # NAT Traversal and Firewalls
 
-Nebula sends everything over a single UDP socket: handshakes, tunneled traffic, and reports to
-[lighthouses](/docs/config/lighthouse/). Connections always start from the inside out. Because of this, most hosts
+Nebula sends handshakes, tunneled traffic, and reports to [lighthouses](/docs/config/lighthouse/) over a single UDP
+socket. Connections always start from the inside out. Because of this, most hosts
 behind home routers and office firewalls can build direct tunnels with no changes to those devices at all. This guide is
 for the cases where that doesn't happen. It explains what Nebula needs from the network path, which firewall and NAT
 (network address translation) behaviors break hole punching, and what to reach for when a direct tunnel isn't possible.
@@ -21,7 +21,7 @@ for the cases where that doesn't happen. It explains what Nebula needs from the 
 ## How hole punching works
 
 [Host discovery](/docs/guides/host-discovery/) gives each host a list of addresses where a peer might be reachable. The
-list includes the source address a lighthouse saw on the peer's report packets — what that peer looks like from the
+list includes the source address a lighthouse saw on the peer's report packets. That's what the peer looks like from the
 public side of its NAT.
 
 When host A wants to tunnel to host B:
@@ -34,12 +34,12 @@ When host A wants to tunnel to host B:
    two hosts.
 
 Neither side needs an inbound firewall rule, because each NAT saw outbound traffic first. But step 2 only works if other
-peers can actually use the address the lighthouse saw. That depends on how the NAT hands out mappings, which is what the
-[NAT types](#nat-types) below are about.
+peers can actually use the address the lighthouse saw, and that depends on how the NAT hands out mappings. The
+[NAT types](#nat-types) below cover that.
 
 ## What Nebula needs from the network
 
-If Nebula hosts sit behind a firewall you manage, this is the checklist:
+If Nebula hosts sit behind a firewall you manage, make sure it allows the following:
 
 - **Outbound UDP, with return traffic.** Hosts must be able to send UDP to lighthouse and [relay](/docs/config/relay/)
   ports, and to the (usually random) ports of other peers. Nebula has no TCP fallback. Most deep-inspection firewalls
@@ -57,15 +57,15 @@ If Nebula hosts sit behind a firewall you manage, this is the checklist:
 ## NAT types
 
 Whether hole punching succeeds depends on how each side's NAT hands out external mappings. From Nebula's point of view,
-every host falls into one of three types. A tunnel's fate is a property of the _pair_ of types
-([see the table below](#what-to-expect-pair-by-pair)), not of either host alone.
+every host falls into one of three types. What happens to a tunnel depends on the _pair_ of types
+([see the table below](#what-to-expect-pair-by-pair)), not on either host alone.
 
 ### Public address
 
 The host can be reached at a fixed, known address, so no punching is involved. Either the host has its own public IP, or
 a port forward points at it and the forwarded address is advertised with
 [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs). A port forward needs a fixed
-[`listen.port`](/docs/config/listen/) behind it — the default is a random port that changes on restart, which silently
+[`listen.port`](/docs/config/listen/) behind it. The default is a random port that changes on restart, which silently
 breaks the forward. Lighthouses and relays must have a public address. For any other host it's optional, but it skips
 NAT traversal entirely.
 
@@ -83,18 +83,18 @@ pairing in the table below says "usually," not "always."
 ### Hard NAT (symmetric NAT, CGNAT)
 
 The NAT creates a fresh external port for each new destination. The address a lighthouse sees is then only valid for
-traffic to that lighthouse — peers that dial it hit a dead mapping. Two hosts behind hard NAT cannot punch a tunnel at
+traffic to that lighthouse. Peers that dial it hit a dead mapping. Two hosts behind hard NAT cannot punch a tunnel at
 all. When only one side is affected, enabling [`punchy.respond`](/docs/config/punchy/#punchyrespond) sometimes rescues
 the handshake by having the difficult side start it in reverse.
 
 Enterprise firewalls often default to this behavior. On Palo Alto firewalls, for example, the standard Dynamic IP and
 Port (DIPP) source NAT creates a new translation per session. PAN-OS offers
 [Persistent NAT for DIPP](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-new-features/networking-features/persistent-nat-for-dipp)
-precisely to restore easy-NAT behavior for protocols like STUN — and Nebula benefits the same way.
+to restore easy-NAT behavior for protocols like STUN, and Nebula benefits the same way.
 
 Carrier-grade NAT (CGNAT) usually lands here too. Cell networks and some ISPs put customers behind CGNAT, which often
-combines per-destination ports with short timeouts and shared public addresses. Hosts behind CGNAT still work — through
-relays when punching fails.
+combines per-destination ports with short timeouts and shared public addresses. Hosts behind CGNAT still work. They just
+rely on relays when punching fails.
 
 ### Look-alikes that aren't a NAT type
 
@@ -119,9 +119,9 @@ Lighthouses and relays are [required to have a public address](#public-address).
 still has a working fallback.
 
 \* The mixed pairing is direct but direction-sensitive. The host behind the hard NAT can still dial _out_ to its peer's
-valid observed address, so the handshake succeeds only when it starts from that side — and only if the easy side's
+valid observed address, so the handshake succeeds only when it starts from that side, and only if the easy side's
 [inbound filtering](#easy-nat-endpoint-independent) accepts it. [`punchy.respond`](/docs/config/punchy/#punchyrespond)
-exists for exactly this: it has the difficult side retry the handshake in the reverse direction, no matter which host
+exists for this: it has the difficult side retry the handshake in the reverse direction, no matter which host
 wanted the tunnel.
 
 ## When punching fails anyway
@@ -137,9 +137,9 @@ In rough order of preference:
    stable target, and see [How Hosts Find Each Other](/docs/guides/host-discovery/) for how the advertised address
    spreads.
 3. **Use relays.** [Relays](/docs/config/relay/) are the designed fallback when no direct path exists. A host that both
-   peers can reach forwards traffic between them. The tunnel stays end-to-end encrypted — the relay can see routing
-   metadata, but not contents. The cost is performance, not security: traffic takes an extra hop, so expect added
-   latency, and throughput is limited by the relay's own connection.
+   peers can reach forwards traffic between them. The tunnel stays end-to-end encrypted. The relay can see routing
+   metadata, but not contents. Traffic takes an extra hop, so expect added latency, and throughput is limited by the
+   relay's own connection.
 
 ## Telling direct from relayed
 
@@ -153,7 +153,7 @@ msg="Handshake message received" from="203.0.113.9:4242 (relayed)" ...
 msg="Send handshake via relay" relay=192.168.100.1 ...
 ```
 
-A host that always handshakes `(relayed)` with peers it should reach directly is the signature of one of the
+A host that always handshakes `(relayed)` with peers it should reach directly usually points at one of the
 [hard NAT behaviors](#hard-nat-symmetric-nat-cgnat) above. The [debug SSH commands](/docs/guides/debug-ssh-commands/)
 can also print the current remotes and relays for each tunnel.
 
@@ -163,8 +163,8 @@ can also print the current remotes and relays for each tunnel.
 
 In [Managed Nebula](https://admin.defined.net), generated configs enable
 [`punchy.punch`](/docs/config/punchy/#punchypunch) and [`punchy.respond`](/docs/config/punchy/#punchyrespond) on every
-host. (Lighthouses are the exception — they shouldn't be behind a NAT.) Lighthouses require a static address, and any
-host can be made a relay from the admin panel — see
+host except lighthouses, which shouldn't be behind a NAT. Lighthouses require a static address, and any host can be made
+a relay from the admin panel. See
 [Using dedicated relays](https://docs.defined.net/guides/using-dedicated-relays/).
 
 :::
