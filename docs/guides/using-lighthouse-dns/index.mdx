@@ -94,7 +94,7 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 ## Limitations
 
 - The built-in DNS server will only respond to queries for known Nebula hosts (i.e. hosts which have handshaked with the
-  lighthouse - this means lighthouses themselves are not included.)
+  lighthouse, plus the lighthouse itself.)
 - A host's hostname is restricted to the name in its certificate.
 - There is no way to register additional hostnames (e.g. additional CNAMEs for a given Nebula host, or additional A
   records for managing non-Nebula hosts.)
@@ -142,6 +142,6 @@ address visible to the internet, only users on your nebula network will be able 
   - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
-  - As of nebula [`v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
-    about hosts it has handshaked with, it never handshakes with itself.
-    [slackhq/nebula/issues/271](https://github.com/slackhq/nebula/issues/271) is tracking this feature.
+  - Yes. As of nebula [`v1.11.0`](https://github.com/slackhq/nebula/releases/tag/v1.11.0), the lighthouse records its
+    own host details in its DNS server ([slackhq/nebula#1716](https://github.com/slackhq/nebula/pull/1716)). In a
+    multi-lighthouse setup, lighthouses can resolve each other's names only after they have connected.
