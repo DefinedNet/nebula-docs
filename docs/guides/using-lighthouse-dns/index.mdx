@@ -94,7 +94,7 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 ## Limitations
 
 - The built-in DNS server will only respond to queries for known Nebula hosts (i.e. hosts which have handshaked with the
-  lighthouse - this means lighthouses themselves are not included.)
+  lighthouse, plus the lighthouse itself.)
 - A host's hostname is restricted to the name in its certificate.
 - There is no way to register additional hostnames (e.g. additional CNAMEs for a given Nebula host, or additional A
   records for managing non-Nebula hosts.)
