@@ -143,4 +143,5 @@ address visible to the internet, only users on your nebula network will be able 
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
   - Yes. As of nebula [`v1.11.0`](https://github.com/slackhq/nebula/releases/tag/v1.11.0), the lighthouse records its
-    own host details in its DNS server ([slackhq/nebula#1716](https://github.com/slackhq/nebula/pull/1716)).
+    own host details in its DNS server ([slackhq/nebula#1716](https://github.com/slackhq/nebula/pull/1716)). In a
+    multi-lighthouse setup, lighthouses can resolve each other's names only after they have connected.
