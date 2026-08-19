@@ -142,6 +142,5 @@ address visible to the internet, only users on your nebula network will be able 
   - Hosts connect to the lighthouse as they normally do, and in doing so the lighthouse learns about their cert. Due to
     this fact, the lighthouse can only answer questions about hosts it has seen since last start.
 - Can the lighthouse resolve its own name?
-  - As of nebula [`v1.6.1`](https://github.com/slackhq/nebula/releases/tag/v1.6.1), no, the lighthouse only responds
-    about hosts it has handshaked with, it never handshakes with itself.
-    [slackhq/nebula/issues/271](https://github.com/slackhq/nebula/issues/271) is tracking this feature.
+  - Yes. As of nebula [`v1.11.0`](https://github.com/slackhq/nebula/releases/tag/v1.11.0), the lighthouse records its
+    own host details in its DNS server ([slackhq/nebula#1716](https://github.com/slackhq/nebula/pull/1716)).
