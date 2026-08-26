@@ -161,10 +161,10 @@ value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise th
 
 This option is only supported on Linux and is not reloadable.
 
-When enabled, Nebula attempts to enable segmentation offloads on the tun device. The host network stack
-can then hand Nebula TCP and UDP payloads much larger than the MTU in a single read, and accept large coalesced packets
-on write, substantially reducing per-packet overhead for high-throughput flows. Nebula negotiates the best supported
-mode at startup (TSO with USO, then TSO alone on kernels older than 6.2, then no offloads) and logs the result in the
+When enabled, Nebula attempts to enable segmentation offloads on the tun device. The host network stack can then hand
+Nebula TCP and UDP payloads much larger than the MTU in a single read, and accept large coalesced packets on write,
+substantially reducing per-packet overhead for high-throughput flows. Nebula negotiates the best supported mode at
+startup (TSO with USO, then TSO alone on kernels older than 6.2, then no offloads) and logs the result in the
 `TUN offload status` message.
 
 For the biggest throughput gains, pair this option with
@@ -196,10 +196,10 @@ This option is only supported on Linux and is not reloadable. It only applies wh
 is `true`.
 
 Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine (see
-[`routines`](/docs/config/routines/)). A list shorter than `routines` is cycled across the queues; extra entries are ignored.
-IDs must be within the process's allowed CPU set, so the list respects `taskset` and cgroup cpusets.
-If any entry is not an integer or not in the allowed set, the whole override is ignored and Nebula falls
-back to the automatic selection described under [`tun.pin_threads`](#tunpin_threads).
+[`routines`](/docs/config/routines/)). A list shorter than `routines` is cycled across the queues; extra entries are
+ignored. IDs must be within the process's allowed CPU set, so the list respects `taskset` and cgroup cpusets. If any
+entry is not an integer or not in the allowed set, the whole override is ignored and Nebula falls back to the automatic
+selection described under [`tun.pin_threads`](#tunpin_threads).
 
 ```yml
 tun:
