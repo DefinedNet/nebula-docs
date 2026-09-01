@@ -33,9 +33,10 @@ Say host A sits on a home network, host B is at an office, and A wants to tunnel
 3. Once a handshake succeeds in either direction, both NATs hold live mappings. Traffic now flows directly between the
    two hosts.
 
-Neither side needs an inbound firewall rule, because each NAT saw outbound traffic first. But step 2 only works if other
-peers can actually use the address the lighthouse saw, and that depends on how the NAT hands out mappings. The
-[NAT types](#nat-types) below cover that.
+Neither side needs an inbound firewall rule, because each NAT saw outbound traffic first. Two things have to hold for
+step 2, though. Both hosts must report to at least one lighthouse in common, since the lighthouse that answered A is the
+one that notifies B. And other peers must actually be able to use the address the lighthouse saw, which depends on how
+the NAT hands out mappings. The [NAT types](#nat-types) below cover that.
 
 ## What Nebula needs from the network
 
@@ -51,7 +52,8 @@ If Nebula hosts sit behind a firewall you manage, make sure it allows the follow
   common reason hole punching fails.
 - **UDP timeouts that outlive idle periods, or keepalives.** NAT mappings expire when idle. Enabling
   [`punchy.punch`](/docs/config/punchy/#punchypunch) makes hosts send small keepalive packets that hold live mappings
-  open. That's much easier than tuning timeouts on every device in the path.
+  open. They are one-byte UDP payloads with no Nebula header, so a firewall that inspects UDP contents may drop them
+  while passing tunnel traffic. Keepalives are much easier than tuning timeouts on every device in the path.
 - **Inbound reachability for lighthouses and relays only.** These two roles must be reachable at a stable public address
   and UDP port (usually `4242`), through a public IP or a port forward. Ordinary hosts need nothing inbound.
 
@@ -66,9 +68,9 @@ every host falls into one of three types. What happens to a tunnel depends on th
 The host can be reached at a fixed, known address, so no punching is involved. Either the host has its own public IP, or
 a port forward points at it and the forwarded address is advertised with
 [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs). A port forward needs a fixed
-[`listen.port`](/docs/config/listen/) behind it. The default is a random port that changes on restart, which silently
-breaks the forward. Lighthouses and relays must have a public address. For any other host it's optional, but it skips
-NAT traversal entirely.
+[`listen.port`](/docs/config/listen/#listenport) behind it. The default is a random port that changes on restart, which
+silently breaks the forward. Lighthouses and relays must have a public address. For any other host it's optional, but it
+skips NAT traversal entirely.
 
 ### Easy NAT (endpoint-independent)
 
@@ -86,15 +88,16 @@ in the table below says "usually," not "always."
 
 The NAT creates a fresh external port for each new destination, so the address a lighthouse sees is only valid for
 traffic to that lighthouse. Peers that dial it hit a dead mapping. Two hosts behind hard NAT cannot punch a tunnel at
-all. When only one side is affected, enabling [`punchy.respond`](/docs/config/punchy/#punchyrespond) sometimes rescues
-the handshake by having the difficult side start it in reverse.
+all. When only one side is affected, [`punchy.respond`](/docs/config/punchy/#punchyrespond) in the config of the host
+behind the hard NAT sometimes rescues the handshake: when a peer tries to reach that host, the lighthouse notifies it,
+and it starts its own handshake outward instead of waiting for one it can never receive.
 
 Enterprise firewalls often default to this behavior, creating a new source-NAT translation for every session. Many of
 them also offer a persistent or endpoint-independent mode, added for protocols like STUN, and Nebula benefits from it
 the same way. If hole punching fails behind a firewall you control, look for that setting before reaching for the
 fallbacks below.
 
-Carrier-grade NAT (CGNAT) usually lands here too. Cell networks and some ISPs put customers behind CGNAT, which often
+Carrier-grade NAT (CGNAT) can land here too. Cell networks and some ISPs put customers behind CGNAT, which often
 combines per-destination ports with short timeouts and shared public addresses. Hosts behind CGNAT still work; they just
 rely on relays when punching fails.
 
@@ -106,7 +109,9 @@ until the next handshake. This can happen on any NAT type. Enable [`punchy.punch
 timeouts. Short timeouts also age the address a lighthouse has on file: when a mapping expires and the next outbound
 packet creates a new one, peers keep dialing the old address until the host's next report. Lowering
 [`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) below the network's UDP timeout shrinks that stale
-window and keeps the mapping toward the lighthouse alive in the first place.
+window and keeps the mapping toward the lighthouse alive in the first place. The default is 10 seconds, already shorter
+than most NAT timeouts, so this mostly matters where the interval was raised. Shorter intervals add load on the
+lighthouses.
 
 **Different paths, different rules.** Two paths out of the same network can behave differently, because wired and
 wireless VLANs often pass through different firewall zones or NAT rules. A tunnel that comes up on one VLAN and fails on
@@ -114,53 +119,66 @@ another usually points at policy on the network, not at the hosts.
 
 ### What to expect, pair by pair
 
-| One host ↓ · the other → | Public address | Easy NAT                  | Hard NAT                    |
-| ------------------------ | -------------- | ------------------------- | --------------------------- |
-| **Public address**       | Direct         | Direct                    | Direct                      |
-| **Easy NAT**             | Direct         | Direct — hole punching    | Usually direct, one-way\*   |
-| **Hard NAT**             | Direct         | Usually direct, one-way\* | Relayed — no punchable path |
+| One host ↓ · the other → | Public address    | Easy NAT                  | Hard NAT                    |
+| ------------------------ | ----------------- | ------------------------- | --------------------------- |
+| **Public address**       | Direct            | Direct                    | Direct, one-way\*           |
+| **Easy NAT**             | Direct            | Direct — hole punching    | Usually direct, one-way\*   |
+| **Hard NAT**             | Direct, one-way\* | Usually direct, one-way\* | Relayed — no punchable path |
 
 Lighthouses and relays are [required to have a public address](#public-address). That's why every pairing in the table
-still has a working fallback.
+has a fallback once a relay is configured.
 
-\* The mixed pairing is direct but direction-sensitive. The host behind the hard NAT can still dial _out_ to its peer's
-valid observed address, so the handshake succeeds only when it starts from that side, and only if the easy side's
-[inbound filtering](#easy-nat-endpoint-independent) accepts it. [`punchy.respond`](/docs/config/punchy/#punchyrespond)
-exists for this: it has the difficult side retry the handshake in the reverse direction, no matter which host wanted the
-tunnel.
+\* Any pairing with a hard NAT on one side is direction-sensitive. The host behind the hard NAT can still dial _out_ to
+its peer's valid address, so the handshake succeeds only when it starts from that side. Against a public address that is
+enough. Against an easy NAT the easy side's [inbound filtering](#easy-nat-endpoint-independent) also has to accept the
+packet, hence "usually." Whether it does comes down to which of the RFC 4787 filtering behaviors the easy NAT runs. A
+NAT with endpoint-independent or address-dependent filtering accepts the hard host's handshake even though the punch
+went to a stale port, because the pinhole covers the peer's whole address. A NAT with address-and-port-dependent
+filtering opens only that one stale port, and the handshake is dropped.
+[`punchy.respond`](/docs/config/punchy/#punchyrespond) exists for this: set on the host behind the hard NAT, it has that
+host start the handshake in the reverse direction, no matter which host wanted the tunnel.
 
 ## When punching fails anyway
 
 In rough order of preference:
 
-1. **Enable punchy.** [`punchy.punch`](/docs/config/punchy/#punchypunch) keeps mappings alive.
-   [`punchy.respond`](/docs/config/punchy/#punchyrespond) retries the handshake in the reverse direction, which rescues
-   some one-sided NAT situations.
+1. **Enable punchy.** The hole punch itself always happens, with or without config.
+   [`punchy.respond`](/docs/config/punchy/#punchyrespond) is what can rescue a handshake that never completes. Set it on
+   the host behind the hard NAT; it makes that host start the handshake in the reverse direction.
+   [`punchy.punch`](/docs/config/punchy/#punchypunch) is a keepalive that stops a tunnel that already came up from dying
+   in an idle NAT. It does nothing for a handshake that fails.
 2. **Give the host a public address.** A port forward plus
-   [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) skips observation entirely. Peers
-   dial a known-good address, so no punching is needed. Pin [`listen.port`](/docs/config/listen/) so the forward has a
-   stable target, and see [How Hosts Find Each Other](/docs/guides/host-discovery/) for how the advertised address
-   spreads.
-3. **Use relays.** [Relays](/docs/config/relay/) are the designed fallback when no direct path exists. A host that both
-   peers can reach forwards traffic between them. The tunnel stays end-to-end encrypted; the relay can see routing
-   metadata, but not contents. Traffic takes an extra hop, so expect added latency, and throughput is limited by the
-   relay's own connection.
+   [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) adds a known-good address to the
+   list the lighthouse hands out. Peers try it alongside the observed address, and the handshake to it succeeds without
+   punching. Pin [`listen.port`](/docs/config/listen/#listenport) so the forward has a stable target, and see
+   [How Hosts Find Each Other](/docs/guides/host-discovery/) for how the advertised address spreads.
+3. **Use relays.** [Relays](/docs/config/relay/) carry traffic for a host that no peer can reach directly. A host that
+   both peers can reach forwards traffic between them. List the relays in
+   [`relay.relays`](/docs/config/relay/#relayrelays) on the host that is hard to reach, not on its peers. That host
+   advertises the list to the lighthouses, and peers pick it up along with its addresses. Peers need
+   [`relay.use_relays`](/docs/config/relay/#relayuse_relays), which is on by default. Nebula tries the relay path at the
+   same time as the direct one rather than after it gives up, so a relayed tunnel can win even when a direct path
+   exists. The tunnel stays end-to-end encrypted; the relay can see routing metadata, but not contents. Traffic takes an
+   extra hop, so expect added latency, and throughput is limited by the relay's own connection.
 
 ## Telling direct from relayed
 
 A relayed tunnel still works, so it's easy to miss. Check the logs (see
 [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)). On `Handshake message received` lines, the `from` field shows
-a plain underlay address for a direct tunnel and carries a `(relayed)` suffix for a relayed one. The `relay` field names
-the relay by its Nebula address:
+a plain underlay address for a direct tunnel and carries a `(relayed)` suffix for a relayed one. That line prints on
+every handshake. A separate `Send handshake via relay` line names the relay by its Nebula address, but it prints at info
+level only the first time a host tries a given relay, so don't expect it on a long-lived tunnel:
 
 ```
 msg="Handshake message received" from="203.0.113.9:4242 (relayed)" ...
 msg="Send handshake via relay" relay=192.168.100.1 ...
 ```
 
-A host that always handshakes `(relayed)` with peers it should reach directly usually points at one of the
+A `Handshake timed out` line means no path worked: the direct handshake ran out of retries and no relay carried it
+either. A relayed handshake on its own is not proof that a direct path is impossible, since Nebula tries both at once.
+But a host that always handshakes `(relayed)` with peers it should reach directly usually points at one of the
 [hard NAT behaviors](#hard-nat-symmetric-nat-cgnat) above. The [debug SSH commands](/docs/guides/debug-ssh-commands/)
-can also print the current remotes and relays for each tunnel.
+print the current remotes and relays for each tunnel, which shows the path in use right now.
 
 ## Managed Nebula
 
@@ -168,8 +186,11 @@ can also print the current remotes and relays for each tunnel.
 
 In [Managed Nebula](https://admin.defined.net), generated configs enable
 [`punchy.punch`](/docs/config/punchy/#punchypunch) and [`punchy.respond`](/docs/config/punchy/#punchyrespond) on every
-host except lighthouses, which shouldn't be behind a NAT. Lighthouses require a static address, and any host can be made
-a relay from the admin panel. See [Using dedicated relays](https://docs.defined.net/guides/using-dedicated-relays/).
+host except lighthouses, which shouldn't be behind a NAT. They also set
+[`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) to 60 seconds, which is longer than some NAT
+timeouts; a config override can lower it for a host that hits the stale-address problem above. Lighthouses require a
+static address, and any host can be made a relay from the admin panel. See
+[Using dedicated relays](https://docs.defined.net/guides/using-dedicated-relays/).
 
 :::
 
