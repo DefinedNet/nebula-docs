@@ -14,9 +14,9 @@
     "test": "uvu -r tsm --dir ."
   },
   "dependencies": {
-    "@docusaurus/core": "3.9.2",
-    "@docusaurus/preset-classic": "3.9.2",
-    "@docusaurus/theme-common": "3.9.2",
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@docusaurus/theme-common": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
     "parse-domain": "^8.3.0",
@@ -25,10 +25,10 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.9.2",
-    "@docusaurus/theme-classic": "^3.9.2",
-    "@docusaurus/tsconfig": "^3.9.2",
-    "@docusaurus/types": "^3.9.2",
+    "@docusaurus/module-type-aliases": "3.10.2",
+    "@docusaurus/theme-classic": "^3.10.2",
+    "@docusaurus/tsconfig": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/node": "^25.5.0",
     "alias-hq": "^6.2.4",
