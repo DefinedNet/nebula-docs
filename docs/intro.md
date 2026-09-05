@@ -25,7 +25,7 @@ want Nebula without running the infrastructure themselves.
 
 ## Core features
 
-- Peer-to-peer, layer 3, virtual network ([Technical Details](#technical-details))
+- Peer-to-peer, layer 3, virtual network ([Technical details](#technical-details))
 - Supports TCP/UDP/ICMP traffic via TUN adapter with split-tunneling
 - Host firewall with groups-based rules engine for overlay traffic
 - Route discovery and NAT traversal assisted by simple "lookup" hosts

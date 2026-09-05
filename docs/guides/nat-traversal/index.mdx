@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-title: NAT Traversal and Firewalls
+title: NAT traversal and firewalls
 description:
   What Nebula needs from the firewalls and NATs between hosts — how UDP hole punching works, which NAT behaviors break
   it, and the fallbacks available when a direct tunnel cannot be established.
@@ -10,7 +10,7 @@ summary:
   what to reach for when the network gets in the way.
 ---
 
-# NAT Traversal and Firewalls
+# NAT traversal and firewalls
 
 Nebula sends handshakes, tunneled traffic, and reports to [lighthouses](/docs/config/lighthouse/) over a single UDP
 socket, and connections always start from the inside out. That's why most hosts behind home routers and office firewalls
@@ -139,7 +139,7 @@ In rough order of preference:
 2. **Give the host a public address.** A port forward plus
    [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) skips observation entirely. Peers
    dial a known-good address, so no punching is needed. Pin [`listen.port`](/docs/config/listen/) so the forward has a
-   stable target, and see [How Hosts Find Each Other](/docs/guides/host-discovery/) for how the advertised address
+   stable target, and see [How hosts find each other](/docs/guides/host-discovery/) for how the advertised address
    spreads.
 3. **Use relays.** [Relays](/docs/config/relay/) are the designed fallback when no direct path exists. A host that both
    peers can reach forwards traffic between them. The tunnel stays end-to-end encrypted; the relay can see routing
@@ -178,6 +178,6 @@ a relay from the admin panel. See [Using dedicated relays](https://docs.defined.
 - [`punchy` reference](/docs/config/punchy/)
 - [`relay` reference](/docs/config/relay/)
 - [`listen` reference](/docs/config/listen/)
-- [How Hosts Find Each Other](/docs/guides/host-discovery/)
+- [How hosts find each other](/docs/guides/host-discovery/)
 - [Connectivity and NAT traversal](https://docs.defined.net/architecture/#connectivity-and-nat-traversal) in the Managed
   Nebula architecture overview

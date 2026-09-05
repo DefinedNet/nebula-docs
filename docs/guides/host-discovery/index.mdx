@@ -1,6 +1,6 @@
 ---
 sidebar_position: 2
-title: How Hosts Find Each Other
+title: How hosts find each other
 description:
   The two mechanisms Nebula hosts use to discover each other's routable addresses — the static host map and lighthouse
   discovery — and when to use each.
@@ -10,12 +10,12 @@ summary:
   to choose between them for each host in your network.
 ---
 
-# How Hosts Find Each Other
+# How hosts find each other
 
 Every host in your network has a Nebula IP, but that address only exists inside the overlay. To establish a tunnel with
 a peer, a host needs the peer's _underlay_ address — a routable IP and port like `203.0.113.42:4242` — to send packets
 to. Host discovery is how a host learns that address. Whether packets can actually get through the NATs and firewalls in
-between is covered in [NAT Traversal and Firewalls](/docs/guides/nat-traversal/).
+between is covered in [NAT traversal and firewalls](/docs/guides/nat-traversal/).
 
 There are two ways a host can learn where to reach a peer:
 
@@ -151,4 +151,4 @@ advanced config overrides.
 - [`static_map` reference](/docs/config/static-map/)
 - [`lighthouse` reference](/docs/config/lighthouse/)
 - [`listen` reference](/docs/config/listen/)
-- [NAT Traversal and Firewalls](/docs/guides/nat-traversal/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)

@@ -45,6 +45,24 @@ const config: Config = {
     ],
   ],
 
+  headTags: [
+    {
+      tagName: 'link',
+      attributes: { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    },
+    {
+      tagName: 'link',
+      attributes: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
+    },
+  ],
+
+  stylesheets: [
+    {
+      href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap',
+      rel: 'stylesheet',
+    },
+  ],
+
   scripts: [
     {
       src: 'https://plausible.io/js/pa--fa02jhZoajfPxSb4zpFj.js',
@@ -73,6 +91,7 @@ const config: Config = {
           customCss: [
             require.resolve('./src/css/base.css'),
             require.resolve('./src/css/theme.css'),
+            require.resolve('./src/css/components.css'),
             require.resolve('./src/css/utility.css'),
           ],
         },
@@ -82,10 +101,10 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/nebula-docs-og.png',
+    image: 'img/nebula-docs-og.jpg',
     metadata: [{ name: 'keywords', content: 'nebula, overlay network, VPN, mesh networking, defined networking' }],
     navbar: {
-      title: 'Nebula Documentation',
+      title: 'Nebula documentation',
       logo: {
         alt: 'Nebula logo',
         href: '/docs/',
@@ -111,11 +130,11 @@ const config: Config = {
               to: '/docs/guides/',
             },
             {
-              label: 'Config Reference',
+              label: 'Config reference',
               to: '/docs/config/',
             },
             {
-              label: 'Docs Github',
+              label: 'Docs GitHub',
               href: 'https://github.com/DefinedNet/nebula-docs',
             },
           ],

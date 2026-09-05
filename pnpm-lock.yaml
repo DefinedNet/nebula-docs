@@ -11,6 +11,9 @@ importers:
       '@docusaurus/core':
         specifier: 3.9.2
         version: 3.9.2(@mdx-js/react@3.1.1(@types/react@19.2.2)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
+      '@docusaurus/plugin-content-docs':
+        specifier: 3.9.2
+        version: 3.9.2(@mdx-js/react@3.1.1(@types/react@19.2.2)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
       '@docusaurus/preset-classic':
         specifier: 3.9.2
         version: 3.9.2(@algolia/client-search@5.41.0)(@mdx-js/react@3.1.1(@types/react@19.2.2)(react@19.2.8))(@types/react@19.2.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(search-insights@2.17.0)(typescript@5.9.3)
@@ -54,6 +57,12 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
+      '@types/react':
+        specifier: ^19.2.2
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.2.7
+        version: 19.2.7(@types/react@19.2.2)
       alias-hq:
         specifier: ^6.2.4
         version: 6.2.4(@babel/preset-env@7.28.5(@babel/core@7.28.5))
@@ -1806,6 +1815,11 @@ packages:
 
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
+
+  '@types/react-dom@19.2.7':
+    resolution: {integrity: sha512-I8bPpDLcHBv1qiIiXDCy71Rt8eQDKJP0sMSWJphDdAcdqiJ1sGpZamavoEIRZmYzjia9LuEb2HlYdDpmoENpvQ==}
+    peerDependencies:
+      '@types/react': ^19.2.0
 
   '@types/react-router-config@5.0.11':
     resolution: {integrity: sha512-WmSAg7WgqW7m4x8Mt4N6ZyKz0BubSj/2tVUMsAHp+Yd2AMwcSbeFq9WympT19p5heCFmF97R9eD5uUR/t4HEqw==}
@@ -8349,6 +8363,10 @@ snapshots:
   '@types/qs@6.14.0': {}
 
   '@types/range-parser@1.2.7': {}
+
+  '@types/react-dom@19.2.7(@types/react@19.2.2)':
+    dependencies:
+      '@types/react': 19.2.2
 
   '@types/react-router-config@5.0.11':
     dependencies:

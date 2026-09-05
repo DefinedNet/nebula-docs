@@ -1,0 +1,869 @@
+/**
+ * Component styling.
+ *
+ * The look: flat, layered surfaces separated by hairline borders instead of
+ * shadows; restrained radii; semibold (not heavy) headings; and small
+ * uppercase tracked labels for section and group headers.
+ */
+
+/*
+ * Narrower doc sidebar. theme-classic declares `--doc-sidebar-width: 300px` on
+ * a bare `:root` in a stylesheet that loads after this one, so an equal
+ * specificity `:root` here would lose the cascade. `html:root` outranks it.
+ */
+html:root {
+  --doc-sidebar-width: 240px;
+}
+
+html,
+body {
+  background-color: var(--surface-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The uppercase tracked eyebrow, reused across the sidebar and footer */
+.dn-eyebrow,
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link,
+.footer__title {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- navbar - */
+
+.navbar {
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--ifm-navbar-background-color);
+}
+
+/*
+ * Desktop has no top bar: the logo, search and color mode toggle live in the
+ * sidebar instead (see src/theme/DocSidebar/Desktop). Zeroing the navbar height
+ * collapses the offsets derived from it — the sidebar container's negative top
+ * margin and the TOC's sticky offset — so the layout closes up cleanly.
+ *
+ * Below this breakpoint the navbar stays: it carries the hamburger drawer that
+ * is the only navigation on mobile, plus its own search and toggle.
+ */
+@media (min-width: 997px) {
+  html:root {
+    --ifm-navbar-height: 0px;
+  }
+
+  .navbar {
+    display: none;
+  }
+}
+
+.navbar__link,
+.navbar__brand {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.navbar__link:hover {
+  color: var(--text-strong);
+}
+
+.navbar__logo {
+  height: 1.75rem;
+}
+
+/* Icon-style navbar controls sit in a bordered pill, like the reference's chips */
+.navbar__items--right .clean-btn,
+.navbar__items--right .navbar__link {
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------- search box - */
+
+/*
+ * DocSearch ships its own palette and loads after this stylesheet, so plain
+ * class overrides lose the cascade (the button was still rendering DocSearch's
+ * default lavender at a 4px radius). It is designed to be themed through these
+ * custom properties instead — its own rules consume them, so no specificity
+ * fight — and they style the modal as well as the button.
+ */
+.DocSearch {
+  --docsearch-primary-color: var(--accent);
+  --docsearch-text-color: var(--text-body);
+  --docsearch-muted-color: var(--text-muted);
+  --docsearch-highlight-color: var(--accent);
+
+  --docsearch-searchbox-background: var(--field-bg);
+  --docsearch-searchbox-focus-background: var(--surface-raised);
+  --docsearch-searchbox-shadow: none;
+
+  --docsearch-container-background: color-mix(in srgb, var(--dn-color-gray-10) 55%, transparent);
+  --docsearch-modal-background: var(--surface-bg);
+  --docsearch-modal-shadow: 0 12px 40px hsla(var(--dn-color-gray-hs), 10%, 0.18);
+  --docsearch-modal-width: 36rem;
+
+  --docsearch-hit-background: var(--surface-raised);
+  --docsearch-hit-color: var(--text-body);
+  --docsearch-hit-active-color: #ffffff;
+  --docsearch-hit-shadow: none;
+
+  --docsearch-footer-background: var(--surface-1);
+  --docsearch-footer-shadow: inset 0 1px 0 0 var(--border-color);
+
+  /* Flat key chips: the default is a faux-3D gradient with a stacked shadow */
+  --docsearch-key-gradient: var(--surface-2);
+  --docsearch-key-shadow: none;
+  --docsearch-key-pressed-shadow: none;
+}
+
+/*
+ * Shape and border rules need a specificity bump: DocSearch's own single-class
+ * rules load after this file and would otherwise win. The trigger carries both
+ * `DocSearch` and `DocSearch-Button`; the modal sits inside `.DocSearch
+ * .DocSearch-Container`, so a descendant selector does it there.
+ */
+
+/* --- the trigger button --- */
+
+.DocSearch.DocSearch-Button {
+  box-sizing: border-box;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 0.625rem;
+  gap: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--field-bg);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.DocSearch.DocSearch-Button:hover,
+.DocSearch.DocSearch-Button:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  box-shadow: none;
+}
+
+/* Icon and placeholder share this span; it owns their spacing */
+.DocSearch.DocSearch-Button .DocSearch-Button-Container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.DocSearch.DocSearch-Button .DocSearch-Search-Icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  stroke-width: 2;
+}
+
+.DocSearch.DocSearch-Button .DocSearch-Button-Placeholder {
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.DocSearch.DocSearch-Button .DocSearch-Button-Keys {
+  display: flex;
+  align-items: center;
+  min-width: auto;
+  gap: 3px;
+}
+
+.DocSearch.DocSearch-Button .DocSearch-Button-Key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 1.0625rem;
+  height: 1.0625rem;
+  margin: 0;
+  padding: 0 0.1875rem;
+  top: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/*
+ * DocSearch renders the shortcut glyphs as SVGs sized 20px, which overflowed
+ * the chip and threw the alignment off. Size them to the chip instead; the
+ * flex centering above then does the aligning.
+ */
+.DocSearch.DocSearch-Button .DocSearch-Button-Key svg {
+  display: block;
+  width: 0.6875rem;
+  height: 0.6875rem;
+}
+
+/* --- the modal --- */
+
+.DocSearch .DocSearch-Modal {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.DocSearch .DocSearch-SearchBar {
+  padding: 0.75rem 0.75rem 0;
+}
+
+.DocSearch .DocSearch-Form {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  background: var(--field-bg);
+}
+
+.DocSearch .DocSearch-Form:focus-within {
+  border-color: var(--accent);
+}
+
+.DocSearch .DocSearch-Input {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.DocSearch .DocSearch-Reset {
+  border-radius: var(--radius-sm);
+}
+
+.DocSearch .DocSearch-Cancel {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.DocSearch .DocSearch-Dropdown {
+  padding: 0 0.75rem;
+}
+
+.DocSearch .DocSearch-Hit-source {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  padding-top: 1rem;
+}
+
+.DocSearch .DocSearch-Hit a {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  background: var(--surface-raised);
+}
+
+/* --accent-solid, not --accent: the latter is a light purple in dark mode and
+   would leave the white hit text unreadable. Matches the sidebar's active chip. */
+.DocSearch .DocSearch-Hit[aria-selected='true'] a {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+}
+
+.DocSearch .DocSearch-Hit-title {
+  font-size: 0.9375rem;
+}
+
+.DocSearch .DocSearch-Hit-path {
+  font-size: 0.8125rem;
+}
+
+.DocSearch .DocSearch-Footer {
+  border-radius: 0;
+  box-shadow: var(--docsearch-footer-shadow);
+}
+
+.DocSearch .DocSearch-Commands {
+  font-size: 0.75rem;
+}
+
+.DocSearch .DocSearch-Commands-Key {
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: none;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+/* ------------------------------------------------------- touch targets - */
+
+/*
+ * Below the desktop breakpoint every control is finger-driven. WCAG 2.2 SC
+ * 2.5.8 (AA) sets a 24x24 CSS px minimum — the drawer's close button was 21x21
+ * and failed outright, while the hamburger (30), colour-mode toggle (32) and
+ * drawer rows (36/28) cleared it but sat well under a comfortable 44.
+ *
+ * Scoped to mobile: the desktop rail keeps its tighter 32px rhythm, where a
+ * mouse makes the smaller target a non-issue.
+ */
+@media (max-width: 996px) {
+  .navbar__toggle,
+  .navbar-sidebar__close,
+  .navbar button[class*='toggleButton'] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .navbar .DocSearch-Button {
+    min-height: 44px;
+  }
+
+  /* Drawer rows, including the collapsible category headers and their carets */
+  .navbar-sidebar .menu__link,
+  .navbar-sidebar .menu__caret {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .navbar-sidebar .menu__caret {
+    min-width: 44px;
+    justify-content: center;
+  }
+}
+
+/* ------------------------------------------------------------- sidebar - */
+
+.theme-doc-sidebar-container {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color) !important;
+}
+
+/*
+ * theme-classic pads this scroll container `8px 0 8px 8px`, so nav rows sat 8px
+ * further from the left edge than the right. Zero the horizontal padding and
+ * let .theme-doc-sidebar-menu below provide one symmetric gutter, matching the
+ * logo, search and footer inset.
+ */
+.theme-doc-sidebar-container .menu.thin-scrollbar {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.theme-doc-sidebar-menu {
+  padding: 0.5rem 0.75rem 2rem;
+  font-size: 0.875rem;
+}
+
+/* Tighter rhythm for the desktop rail only; horizontal padding holds the 12px gutter */
+.theme-doc-sidebar-container .menu__link {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+.menu__link {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+/*
+ * theme-classic clamps sidebar labels to two lines (-webkit-line-clamp on the
+ * inner label span, in DocSidebarItem/{Link,Category}/styles.module.css), which
+ * silently ellipsised the longest guide titles. Let them wrap in full. The
+ * class names are CSS-module hashed, hence the prefix match; the two spellings
+ * differ in case, so both are listed.
+ */
+.theme-doc-sidebar-menu [class*='linkLabel'],
+.theme-doc-sidebar-menu [class*='categoryLinkLabel'] {
+  display: block;
+  overflow: visible;
+  line-clamp: none;
+  -webkit-line-clamp: none;
+}
+
+.menu__link:hover,
+.menu__list-item-collapsible:hover {
+  background-color: var(--surface-2);
+  color: var(--text-strong);
+}
+
+/* The selected page reads as a solid brand-purple chip */
+.menu__link--active,
+.menu__link--active:hover {
+  color: var(--accent-solid-text);
+  font-weight: 600;
+  background-color: var(--accent-solid);
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  background-color: var(--accent-solid);
+}
+
+/*
+ * A standalone section label injected from sidebars.js as an `html` item. It is
+ * not a link, so it carries the category-label styling on its own rather than
+ * inheriting the .menu__link rules.
+ */
+.dn-sidebar-label {
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-strong);
+}
+
+/* Top-level categories read as section labels, not as links */
+.menu__list-item.theme-doc-sidebar-item-category-level-1 {
+  margin-top: 1.25rem;
+}
+
+/* Weightier and higher contrast than the shared eyebrow, so sections anchor the rail */
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link {
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link {
+  padding-bottom: 0.25rem;
+}
+
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible:hover,
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link:hover {
+  background-color: transparent;
+  color: var(--text-strong);
+}
+
+/* Section labels never take a highlight box, active or not */
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible--active,
+.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link--active {
+  background-color: transparent;
+}
+
+/* Nested items sit flush under their section label, with no indent or rule */
+.menu__list .menu__list {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+.menu__caret::before,
+.menu__link--sublist-caret::after {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  background-size: 16px 16px;
+  opacity: 0.5;
+}
+
+/* ------------------------------------------------------------ content - */
+
+.theme-doc-markdown {
+  font-size: 1rem;
+}
+
+.markdown h1:first-child {
+  --ifm-h1-font-size: 2.125rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+}
+
+/*
+ * Infima re-declares the heading sizes scoped to `.markdown` (h2 at 2rem, h3 at
+ * 1.5rem), which overrides the :root scale in theme.css. Restate them here so
+ * the ramp stays 34 / 24 / 19 and h1 reads clearly larger than h2.
+ */
+.markdown > h2 {
+  --ifm-h2-font-size: 1.5rem;
+
+  letter-spacing: -0.01em;
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.markdown > h3 {
+  --ifm-h3-font-size: 1.1875rem;
+
+  margin-top: 2rem;
+}
+
+.markdown > h4 {
+  margin-top: 1.5rem;
+  color: var(--text-strong);
+}
+
+/* Config reference pages open with a heading that is really an identifier */
+.markdown h1 code,
+.markdown h2 code,
+.markdown h3 code {
+  font-size: 0.9em;
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+}
+
+.markdown a {
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.markdown a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.markdown blockquote {
+  border-left: 2px solid var(--accent);
+  background: var(--surface-1);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ---------------------------------------------------------------- code - */
+
+.markdown code {
+  border: 1px solid var(--border-subtle);
+}
+
+div[class^='codeBlockContainer'] {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+div[class^='codeBlockTitle'] {
+  border-bottom: 1px solid var(--border-color);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+/* -------------------------------------------------------------- tables - */
+
+.markdown table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.markdown table thead tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown table th {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.markdown table td,
+.markdown table th {
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.625rem 0.875rem;
+}
+
+.markdown table tr:last-child td {
+  border-bottom: none;
+}
+
+/* --------------------------------------------------------- admonitions - */
+
+/*
+ * Each admonition type takes a brand colour through --admonition-accent, which
+ * drives the left rule, the heading and icon, and a faint wash of the same hue
+ * over the surface. Body copy stays --text-body: Infima tints the whole block's
+ * text with the alert colour, which is hard to read at paragraph length.
+ */
+.theme-admonition {
+  --admonition-accent: var(--dn-color-gray-55);
+  --admonition-tint: 7%;
+
+  border: 1px solid color-mix(in srgb, var(--admonition-accent) 25%, var(--border-color));
+  border-left: 3px solid var(--admonition-accent);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--admonition-accent) var(--admonition-tint), var(--surface-1));
+  color: var(--text-body);
+}
+
+html[data-theme='dark'] .theme-admonition {
+  --admonition-tint: 12%;
+}
+
+/* Brand secondaries, one per type */
+.theme-admonition-tip {
+  /* Green and orange carry high luminance, so they need deep stops to clear
+     AA (4.5:1) for 13px heading text against their own tint */
+  --admonition-accent: hsl(var(--dn-color-green-hs), 28%);
+}
+
+.theme-admonition-info {
+  /* 45% only reached 3.99:1 against the tinted surface; 40% clears AA */
+  --admonition-accent: hsl(var(--dn-color-blue-hs), 40%);
+}
+
+.theme-admonition-note {
+  --admonition-accent: var(--dn-color-purple-50);
+}
+
+.theme-admonition-warning,
+.theme-admonition-caution {
+  --admonition-accent: hsl(var(--dn-color-orange-hs), 32%);
+}
+
+.theme-admonition-danger {
+  --admonition-accent: hsl(var(--dn-color-red-hs), 41%);
+}
+
+/* Dark mode lifts each hue so it reads against the dark ground */
+html[data-theme='dark'] .theme-admonition-tip {
+  --admonition-accent: hsl(var(--dn-color-green-hs), 62%);
+}
+
+html[data-theme='dark'] .theme-admonition-info {
+  --admonition-accent: hsl(var(--dn-color-blue-hs), 66%);
+}
+
+html[data-theme='dark'] .theme-admonition-note {
+  --admonition-accent: hsl(var(--dn-color-purple-hs), 75%);
+}
+
+html[data-theme='dark'] .theme-admonition-warning,
+html[data-theme='dark'] .theme-admonition-caution {
+  --admonition-accent: hsl(var(--dn-color-orange-hs), 62%);
+}
+
+html[data-theme='dark'] .theme-admonition-danger {
+  --admonition-accent: hsl(var(--dn-color-red-hs), 66%);
+}
+
+/*
+ * Admonition titles stay in sentence case rather than Docusaurus's default
+ * uppercase: several are full sentences or questions, which shout when
+ * uppercased. Weight and size carry the label role instead.
+ */
+.theme-admonition > div:first-child {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--admonition-accent);
+}
+
+.theme-admonition > div:first-child svg {
+  fill: currentColor;
+}
+
+/* ----------------------------------------------------- cards & indexes - */
+
+/*
+ * `display: flex` on the grid cell makes the card stretch to the cell's full
+ * height, so cards sitting side by side match regardless of how long their
+ * descriptions run — the ragged bottoms were the worst of the old layout.
+ *
+ * Scoped to the card-list item rather than a page wrapper: generated index pages
+ * render inside .generatedIndexPage, not .theme-doc-markdown, so a wrapper-based
+ * selector would miss them. This matches both, plus any inline <DocCardList>.
+ */
+section.row > article[class*='docCardListItem'] {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  box-shadow: none !important;
+}
+
+/* ------------------------------------------------------------ TOC & nav - */
+
+.table-of-contents {
+  font-size: 0.8125rem;
+  border-left: 1px solid var(--border-color);
+}
+
+.table-of-contents__link {
+  color: var(--text-muted);
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.pagination-nav__link {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  padding: 1rem 1.25rem;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+/* Room for the chevron on the side the link points toward */
+.pagination-nav__link--prev {
+  padding-left: 2.5rem;
+}
+
+.pagination-nav__link--next {
+  padding-right: 2.5rem;
+}
+
+.pagination-nav__sublabel {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pagination-nav__label {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  transition: color 150ms ease;
+}
+
+.pagination-nav__link:hover .pagination-nav__label {
+  color: var(--accent);
+}
+
+/*
+ * Docusaurus renders the direction as guillemets inside the label text
+ * (« / »). Drop those for a drawn chevron that can sit apart from the label
+ * and animate on hover.
+ */
+.pagination-nav__link--prev .pagination-nav__label::before,
+.pagination-nav__link--next .pagination-nav__label::after {
+  content: none;
+}
+
+.pagination-nav__link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--text-muted);
+  border-right: 2px solid var(--text-muted);
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.pagination-nav__link--prev::before {
+  left: 1.25rem;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.pagination-nav__link--next::before {
+  right: 1.25rem;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.pagination-nav__link:hover::before {
+  border-color: var(--accent);
+}
+
+.pagination-nav__link--prev:hover::before {
+  transform: translateY(-50%) translateX(-3px) rotate(-135deg);
+}
+
+.pagination-nav__link--next:hover::before {
+  transform: translateY(-50%) translateX(3px) rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagination-nav__link::before,
+  .pagination-nav__link--prev:hover::before,
+  .pagination-nav__link--next:hover::before {
+    transition: border-color 150ms ease;
+  }
+
+  .pagination-nav__link--prev:hover::before {
+    transform: translateY(-50%) rotate(-135deg);
+  }
+
+  .pagination-nav__link--next:hover::before {
+    transform: translateY(-50%) rotate(45deg);
+  }
+}
+
+.breadcrumbs__item .breadcrumbs__link {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: var(--surface-2);
+  color: var(--text-strong);
+}
+
+/* -------------------------------------------------------------- footer - */
+
+.footer {
+  border-top: 1px solid var(--border-color);
+  font-size: 0.875rem;
+}
+
+.footer__link-item {
+  color: var(--text-muted);
+}
+
+.footer__link-item:hover {
+  color: var(--accent);
+}
+
+.footer__copyright {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}

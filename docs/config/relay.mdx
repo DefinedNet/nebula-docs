@@ -15,7 +15,7 @@ Relay support was introduced in Nebula v1.6.0.
 
 Relay hosts forward traffic between two peers. This can be useful if two nodes struggle to communicate directly with
 each other (e.g. some NATs can make it difficult to establish direct connections between two nodes.)
-[NAT Traversal and Firewalls](/docs/guides/nat-traversal/) explains which NAT behaviors cause this and when relays are
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) explains which NAT behaviors cause this and when relays are
 the right fix.
 
 ```yml
@@ -51,7 +51,7 @@ relays:
   - <other Nebula VPN IPs of hosts used as relays to access me>
 ```
 
-This list of relays is reported to the Lighthouse. When other nodes attempt to handshake with this host, the Lighthouse
+This list of relays is reported to the lighthouse. When other nodes attempt to handshake with this host, the lighthouse
 will indicate its supported relays in addition to its known IP addresses.
 
 ## relay.am_relay

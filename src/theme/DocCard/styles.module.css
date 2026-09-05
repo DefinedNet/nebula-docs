@@ -1,0 +1,88 @@
+/*
+ * A flat card: hairline border and a restrained radius, no drop shadow. Fills
+ * its grid cell so cards in a row share a height regardless of copy length.
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  /*
+   * The grid cell is a flex container (so cards in a row match heights), which
+   * makes this a flex item — without flex-grow it sizes to its own content and
+   * leaves the cell short. `flex: 1` fills the width, `height: 100%` the height.
+   */
+  flex: 1;
+  height: 100%;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: inherit;
+  text-decoration: none !important;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  color: inherit;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-strong);
+  transition: color 150ms ease;
+}
+
+.card:hover .title {
+  color: var(--accent);
+}
+
+.description {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 0.0625rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    color 150ms ease;
+}
+
+.card:hover .chevron,
+.card:focus-visible .chevron {
+  color: var(--accent);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* The affordance is decorative; keep it visible where motion is unwelcome */
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

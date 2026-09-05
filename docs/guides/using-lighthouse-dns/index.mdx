@@ -1,7 +1,8 @@
 ---
 title: Using Lighthouse DNS with Nebula
+sidebar_label: Lighthouse DNS
 description:
-  Configure Nebula's experimental built-in DNS server on Lighthouse hosts to resolve overlay network hostnames.
+  Configure Nebula's experimental built-in DNS server on lighthouse hosts to resolve overlay network hostnames.
 sidebar_position: 7
 ---
 
@@ -14,18 +15,18 @@ Lighthouse DNS in nebula is experimental and should not be considered to be a ro
 
 :::
 
-Nebula comes with built-in DNS server support via Lighthouse hosts.
+Nebula comes with built-in DNS server support via lighthouse hosts.
 
 Lighthouse DNS can generate DNS records based on dynamic nebula hosts, useful if you are spinning up new nebula hosts on
 demand.
 
 ## Prerequisites
 
-This guide assumes you already have a working Lighthouse and at least one other host communicating with it. If you
+This guide assumes you already have a working lighthouse and at least one other host communicating with it. If you
 haven't setup a Nebula network yet, check out the [Quick Start guide](/docs/guides/quick-start/).
 
 You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private nebula IP depending on the Lighthouse's configuration.
+lighthouse IP or the private nebula IP depending on the lighthouse's configuration.
 
 ## Configuration
 
@@ -45,7 +46,7 @@ ensure the DNS is only accessible to hosts that are allowed to contact the light
 
 :::note
 
-Only Lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
+Only lighthouses should have `lighthouse.serve_dns` enabled, as DNS info is collected when hosts report to the
 lighthouse. Nebula will not honor the option if enabled on a non-lighthouse host.
 
 :::
@@ -104,7 +105,7 @@ curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 - If the name in the Nebula certificate is not a [valid hostname](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1),
   Lighthouse DNS will return an empty result.
 
-## Hostname Validity
+## Hostname validity
 
 import { ValidateHostnameInput } from './ValidateHostnameInput';
 

@@ -1,11 +1,17 @@
 .Pill {
   display: inline-block;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  /*
+   * Deliberately not uppercased: these pills carry literal YAML values
+   * (`false`, `ip4`, `always`), and YAML is case sensitive. Size, weight and a
+   * hairline border give them the label role instead.
+   */
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  border-radius: 10rem;
-  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  padding: 5px 10px;
 
   &:global(.no-transform),
   &:global(.no-transform) {
@@ -14,11 +20,12 @@
 }
 
 .Pill___info {
-  color: var(--ifm-color-secondary-contrast-foreground);
-  background-color: var(--ifm-color-secondary-contrast-background);
+  color: var(--text-muted);
+  background-color: var(--surface-1);
 }
 
 .Pill___warning {
   background-color: var(--ifm-color-warning-contrast-background);
   color: var(--ifm-color-warning-contrast-foreground);
+  border-color: color-mix(in srgb, var(--ifm-color-warning) 35%, transparent);
 }
