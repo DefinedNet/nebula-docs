@@ -714,19 +714,43 @@ section.row > article[class*='docCardListItem'] {
 
 /* ------------------------------------------------------------ TOC & nav - */
 
+/*
+ * No rule and no indicator bar: the current section is marked by the type
+ * itself, going accent-coloured and semibold. Keeps the column to just its
+ * words.
+ */
 .table-of-contents {
   font-size: 0.8125rem;
-  border-left: 1px solid var(--border-color);
+  padding: 0;
+}
+
+.table-of-contents__left-border {
+  border-left: none;
+  padding-left: 0;
+}
+
+.table-of-contents li {
+  margin: 0;
 }
 
 .table-of-contents__link {
+  display: block;
+  padding: 0.3125rem 0.75rem;
   color: var(--text-muted);
+  transition: color 120ms ease;
 }
 
-.table-of-contents__link:hover,
+.table-of-contents__link:hover {
+  color: var(--text-strong);
+}
+
 .table-of-contents__link--active {
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.table-of-contents .table-of-contents .table-of-contents__link {
+  padding-left: 1.5rem;
 }
 
 .pagination-nav__link {

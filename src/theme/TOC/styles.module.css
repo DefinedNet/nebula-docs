@@ -1,0 +1,30 @@
+/*
+ * The wrapper owns the sticky positioning so the heading pins while the list
+ * scrolls beneath it; upstream puts both on the list container itself.
+ */
+.container {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.container > div[class*='tableOfContents'] {
+  position: static;
+  top: auto;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-strong);
+  /* Matches the links' horizontal padding so the whole column shares one edge */
+  padding: 0 0 0.5rem 0.75rem;
+}
