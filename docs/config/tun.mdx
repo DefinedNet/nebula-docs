@@ -153,3 +153,69 @@ This option is only supported on Linux.
 Buffer size for reading route updates. `0` means the system default buffer size is used
 (`/proc/sys/net/core/rmem_default`). If using massive route updates, for example BGP, you may need to increase this
 value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise the system wide max.
+
+## tun.use_offloads
+
+<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux and is not reloadable.
+
+When enabled, Nebula attempts to enable segmentation offloads on the tun device. The host network stack can then hand
+Nebula TCP and UDP payloads much larger than the MTU in a single read, and accept large coalesced packets on write,
+substantially reducing per-packet overhead for high-throughput flows. Nebula negotiates the best supported mode at
+startup (TSO with USO, then TSO alone on kernels older than 6.2, then no offloads) and logs the result in the
+`TUN offload status` message.
+
+For the biggest throughput gains, pair this option with
+[`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads).
+
+## tun.pin_threads
+
+<Pill className="mb-24">Default: True</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux and is not reloadable. It only takes effect when
+[`routines`](/docs/config/routines/) is greater than `1`.
+
+When enabled, each tun reader/encrypt OS thread is pinned to a single CPU. This keeps every thread's batched sends
+flowing through one XPS-selected NIC transmit ring, so packets within a flow stay ordered on the wire instead of being
+sprayed across multiple transmit rings and reordered.
+
+Unless [`tun.cpu_affinity`](#tuncpu_affinity) overrides it, Nebula picks the CPUs to pin to automatically: it prefers
+performance cores on heterogeneous CPUs (ARM big.LITTLE, Intel P/E hybrids, AMD compact cores), keeps all readers on one
+NUMA node and on distinct physical cores when the topology allows (SMT siblings last), leaves CPU 0's physical core as a
+last resort, and rotates its starting point per instance so multiple Nebula instances on the same host don't stack their
+readers onto the same cores.
+
+## tun.cpu_affinity
+
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
+is `true`.
+
+Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine (see
+[`routines`](/docs/config/routines/)). A list shorter than `routines` is cycled across the queues; extra entries are
+ignored. IDs must be within the process's allowed CPU set, so the list respects `taskset` and cgroup cpusets. If any
+entry is not an integer or not in the allowed set, the whole override is ignored and Nebula falls back to the automatic
+selection described under [`tun.pin_threads`](#tunpin_threads).
+
+```yml
+tun:
+  cpu_affinity:
+    - 2
+    - 4
+```
+
+## tun.pin_threads_key
+
+<Pill className="mb-24">Default: pid</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
+is `true` and no [`tun.cpu_affinity`](#tuncpu_affinity) override is set.
+
+Controls how the automatic CPU selector varies its starting point between Nebula instances. Valid values are `pid` and
+`port`. Use `port` if you want Nebula to choose the same cores every run (keyed by the bound UDP port), which is useful
+for reproducible benchmarking.

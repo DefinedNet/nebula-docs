@@ -17,3 +17,7 @@ on the tun device and `SO_REUSEPORT` on the UDP socket to allow multiple queues.
 
 The _maximum_ recommended setting is half of the available CPU cores. It's recommended to set this to a lower value
 still, to avoid resource starvation.
+
+When set above `1`, the reader threads are pinned to CPUs by default; see
+[`tun.pin_threads`](/docs/config/tun/#tunpin_threads) and [`tun.cpu_affinity`](/docs/config/tun/#tuncpu_affinity) to
+control this behavior.
