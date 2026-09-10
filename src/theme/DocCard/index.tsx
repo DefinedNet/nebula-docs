@@ -12,7 +12,7 @@ import styles from './styles.module.css';
  *
  * Ejected rather than wrapped because the upstream card renders its icon as a
  * text node inside the heading (`{icon} {title}`), which no wrapper or CSS can
- * remove. The same generic page emoji on every entry carried no information.
+ * remove.
  *
  * Titles come from the doc itself, not the sidebar item's label: the guides
  * shorten those via `sidebar_label` to keep the nav rail to one line, and the

@@ -7,7 +7,7 @@
 
 :root {
   /* Brand purple drives every accent */
-  --ifm-color-primary: var(--dn-color-purple-45, hsl(var(--dn-color-purple-hs), 45%));
+  --ifm-color-primary: hsl(var(--dn-color-purple-hs), 45%);
   --ifm-color-primary-dark: hsl(var(--dn-color-purple-hs), 40%);
   --ifm-color-primary-darker: hsl(var(--dn-color-purple-hs), 35%);
   --ifm-color-primary-darkest: hsl(var(--dn-color-purple-hs), 28%);

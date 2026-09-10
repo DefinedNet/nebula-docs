@@ -85,7 +85,7 @@
   --font-sans: 'Inter', var(--font-fallback);
   /* Plus Jakarta Sans carries headings and labels */
   --font-display: 'Plus Jakarta Sans', var(--font-sans);
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --ifm-font-family-base: var(--font-sans);
   --ifm-heading-font-family: var(--font-display);
@@ -155,7 +155,7 @@ html[data-theme='dark'] {
   --sidebar-bg: var(--surface-1);
   --field-bg: var(--surface-2);
 
-  --accent: var(--dn-color-purple-75, hsl(var(--dn-color-purple-hs), 75%));
+  --accent: hsl(var(--dn-color-purple-hs), 75%);
   --accent-strong: hsl(var(--dn-color-purple-hs), 85%);
   --accent-subtle: hsl(var(--dn-color-purple-hs), 18%);
   --accent-solid: hsl(var(--dn-color-purple-hs), 55%);

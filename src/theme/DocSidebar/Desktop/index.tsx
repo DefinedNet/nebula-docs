@@ -31,12 +31,20 @@ function SidebarNavbarItems(): ReactNode {
   const { navbar } = useThemeConfig();
 
   const links = navbar.items.flatMap((item) => {
-    const { label, href, to, ...rest } = item as { label?: string; href?: string; to?: string };
+    // Only the props that belong on an anchor. Spreading the rest of the item
+    // would put config keys like `position` into the DOM as invalid attributes.
+    const { label, href, to, rel, target } = item as {
+      label?: string;
+      href?: string;
+      to?: string;
+      rel?: string;
+      target?: string;
+    };
     if (!label || (!href && !to)) {
       return [];
     }
     return [
-      <Link key={label} className={styles.footerLink} {...(href ? { href } : { to })} {...rest}>
+      <Link key={label} className={styles.footerLink} rel={rel} target={target} {...(href ? { href } : { to })}>
         {label}
       </Link>,
     ];
