@@ -47,14 +47,14 @@ A golang [Duration](https://pkg.go.dev/time#ParseDuration). Recommended to be se
 
 ## stats.message_metrics
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 Enables counter metrics for meta packets, e.g.: `messages.tx.handshake`. NOTE: `message.{tx,rx}.recv_error` is always
 emitted.
 
 ## stats.lighthouse_metrics
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 Enables detailed counter metrics for lighthouse packets, e.g.: `lighthouse.rx.HostQuery`.
 
@@ -64,14 +64,14 @@ Config options if `stats.type` is chosen to be `graphite`
 
 ### stats.prefix
 
-<Pill className="mb-24 no-transform">DEFAULT: nebula</Pill>
+<Pill className="mb-24">Default: nebula</Pill>
 
 The prefix for Graphite metrics that nebula will prepend:
 https://graphite.readthedocs.io/en/latest/feeding-carbon.html#step-1-plan-a-naming-hierarchy
 
 ### stats.protocol
 
-<Pill className="mb-24 no-transform">DEFAULT: tcp</Pill>
+<Pill className="mb-24">Default: tcp</Pill>
 
 Choose which protocol is used for passing stats to Graphite. The options are `tcp` and `udp`.
 

@@ -1,6 +1,21 @@
-/* base color palettes, don't use these directly */
+/**
+ * Base design tokens.
+ *
+ * Two layers live here:
+ *   1. Raw brand ramps (--dn-color-*). Don't use these directly in components.
+ *   2. Semantic tokens (--surface-*, --text-*, --border-*, --accent-*) that the
+ *      rest of the stylesheets consume. Those are the ones to reach for.
+ *
+ * Brand colors come from https://www.defined.net/brand/:
+ *   Purple #5d22dd · Slate #6c7d93 · White #ffffff
+ *   Red #e2411d · Orange #fb7b04 · Yellow #f2c10d
+ *   Blue #2583da · Turquoise #22ddba · Green #2ed157
+ */
+
+/* Raw brand ramps, don't use these directly */
 :root {
-  --dn-color-purple-hs: 260, 75%;
+  /* Purple 50 === brand purple #5d22dd */
+  --dn-color-purple-hs: 259, 73%;
   /* lightest */
   --dn-color-purple-95: hsl(var(--dn-color-purple-hs), 95%);
   --dn-color-purple-90: hsl(var(--dn-color-purple-hs), 90%);
@@ -14,8 +29,8 @@
   --dn-color-purple-10: hsl(var(--dn-color-purple-hs), 10%);
   /* darkest */
 
-  --dn-color-cyan-hs: 163, 79%;
-  /* lightest */
+  /* Cyan 50 === brand turquoise #22ddba */
+  --dn-color-cyan-hs: 169, 73%;
   --dn-color-cyan-95: hsl(var(--dn-color-cyan-hs), 95%);
   --dn-color-cyan-90: hsl(var(--dn-color-cyan-hs), 90%);
   --dn-color-cyan-80: hsl(var(--dn-color-cyan-hs), 80%);
@@ -26,36 +41,123 @@
   --dn-color-cyan-30: hsl(var(--dn-color-cyan-hs), 30%);
   --dn-color-cyan-20: hsl(var(--dn-color-cyan-hs), 20%);
   --dn-color-cyan-10: hsl(var(--dn-color-cyan-hs), 10%);
-  /* darkest */
 
-  --dn-color-gray-hs: 214, 15%;
+  /* Gray 55 === brand slate #6c7d93 */
+  --dn-color-gray-hs: 213, 15%;
   /* lightest */
+  --dn-color-gray-98: hsl(var(--dn-color-gray-hs), 98%);
+  --dn-color-gray-96: hsl(var(--dn-color-gray-hs), 96%);
   --dn-color-gray-95: hsl(var(--dn-color-gray-hs), 95%);
+  --dn-color-gray-92: hsl(var(--dn-color-gray-hs), 92%);
   --dn-color-gray-90: hsl(var(--dn-color-gray-hs), 90%);
+  --dn-color-gray-86: hsl(var(--dn-color-gray-hs), 86%);
   --dn-color-gray-80: hsl(var(--dn-color-gray-hs), 80%);
   --dn-color-gray-70: hsl(var(--dn-color-gray-hs), 70%);
   --dn-color-gray-60: hsl(var(--dn-color-gray-hs), 60%);
+  --dn-color-gray-55: hsl(var(--dn-color-gray-hs), 55%);
   --dn-color-gray-50: hsl(var(--dn-color-gray-hs), 50%);
+  --dn-color-gray-42: hsl(var(--dn-color-gray-hs), 42%);
   --dn-color-gray-40: hsl(var(--dn-color-gray-hs), 40%);
   --dn-color-gray-30: hsl(var(--dn-color-gray-hs), 30%);
+  --dn-color-gray-25: hsl(var(--dn-color-gray-hs), 25%);
   --dn-color-gray-20: hsl(var(--dn-color-gray-hs), 20%);
+  --dn-color-gray-17: hsl(var(--dn-color-gray-hs), 17%);
   --dn-color-gray-15: hsl(var(--dn-color-gray-hs), 15%);
+  --dn-color-gray-12: hsl(var(--dn-color-gray-hs), 12%);
   --dn-color-gray-10: hsl(var(--dn-color-gray-hs), 10%);
   --dn-color-gray-05: hsl(var(--dn-color-gray-hs), 5%);
   /* darkest */
 
-  --dn-color-green-hs: 135, 64%;
-  --dn-color-orange-hs: 29, 90%;
+  /* Brand secondaries, hue/sat anchored on the 50% stop */
+  --dn-color-green-hs: 138, 64%;
+  --dn-color-orange-hs: 29, 97%;
   --dn-color-blue-hs: 209, 71%;
-  --dn-color-red-hs: 11, 77%;
+  --dn-color-red-hs: 13, 77%;
   --dn-color-yellow-hs: 47, 90%;
 }
 
-/* Fonts */
+/* Typography */
 :root {
   --font-fallback:
     -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
-  --ifm-font-family-base: var(--font-fallback);
-  --ifm-heading-font-family: var(--font-fallback);
-  --ifm-font-family-monospace: Menlo, Consolas, monospace;
+  /* Both webfonts are loaded in docusaurus.config.ts */
+  /* Inter is Defined Networking's secondary typeface, and carries body copy */
+  --font-sans: 'Inter', var(--font-fallback);
+  /* Plus Jakarta Sans carries headings and labels */
+  --font-display: 'Plus Jakarta Sans', var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ifm-font-family-base: var(--font-sans);
+  --ifm-heading-font-family: var(--font-display);
+  --ifm-font-family-monospace: var(--font-mono);
+}
+
+/**
+ * Semantic tokens.
+ *
+ * Four surface tiers (background < surface < surface-2 < border) give the flat,
+ * layered, hairline-ruled look the design is built around. Nothing floats on a
+ * drop shadow: depth comes from these tiers plus 1px borders.
+ */
+:root {
+  --surface-bg: var(--dn-color-gray-98);
+  --surface-1: var(--dn-color-gray-96);
+  --surface-2: var(--dn-color-gray-92);
+  --surface-raised: #ffffff;
+  --border-color: var(--dn-color-gray-86);
+  --border-subtle: var(--dn-color-gray-90);
+
+  --text-strong: var(--dn-color-gray-15);
+  --text-body: var(--dn-color-gray-25);
+  /* gray-42 is the lightest stop that clears WCAG AA (4.5:1) on every light
+     surface this sits on, including --surface-2 at 4.65:1 */
+  --text-muted: var(--dn-color-gray-42);
+
+  /*
+   * The nav rail reads white, with form fields one tier away from it so they
+   * still register as inputs. The two swap direction between themes: on light
+   * the field is darker than the rail, on dark it is lighter.
+   */
+  --sidebar-bg: var(--surface-raised);
+  --field-bg: var(--surface-1);
+
+  --accent: var(--dn-color-purple-50);
+  --accent-strong: var(--dn-color-purple-40);
+  --accent-subtle: var(--dn-color-purple-95);
+  /* Solid brand-purple fill for selected states, always paired with white text */
+  --accent-solid: var(--dn-color-purple-50);
+  --accent-solid-text: #ffffff;
+
+  /* Shape: controls sit at -sm, cards and panels at -md */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* The small, tracked, uppercase eyebrow used for section and group labels */
+  --label-size: 11px;
+  --label-tracking: 0.08em;
+  --label-weight: 600;
+}
+
+html[data-theme='dark'] {
+  --surface-bg: var(--dn-color-gray-10);
+  --surface-1: var(--dn-color-gray-12);
+  --surface-2: var(--dn-color-gray-17);
+  --surface-raised: var(--dn-color-gray-15);
+  --border-color: var(--dn-color-gray-20);
+  --border-subtle: var(--dn-color-gray-17);
+
+  --text-strong: var(--dn-color-gray-95);
+  --text-body: var(--dn-color-gray-86);
+  --text-muted: var(--dn-color-gray-60);
+
+  --sidebar-bg: var(--surface-1);
+  --field-bg: var(--surface-2);
+
+  --accent: hsl(var(--dn-color-purple-hs), 75%);
+  --accent-strong: hsl(var(--dn-color-purple-hs), 85%);
+  --accent-subtle: hsl(var(--dn-color-purple-hs), 18%);
+  --accent-solid: hsl(var(--dn-color-purple-hs), 55%);
+  --accent-solid-text: #ffffff;
 }

@@ -1,48 +1,113 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Infima variable overrides.
+ *
+ * This file only wires Infima's own variables up to the semantic tokens in
+ * base.css. Anything that needs real selectors lives in components.css.
  */
 
-/* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: var(--dn-color-purple-30);
-  --ifm-color-primary-dark: var(--dn-color-purple-20);
-  --ifm-color-primary-darker: var(--don-color-purple-10);
-  --ifm-color-primary-darkest: var(--dn-color-purple-10);
-  --ifm-color-primary-light: var(--dn-color-purple-50);
-  --ifm-color-primary-lighter: var(--dn-color-purple-60);
-  --ifm-color-primary-lightest: var(--dn-color-purple-70);
+  /* Brand purple drives every accent */
+  --ifm-color-primary: hsl(var(--dn-color-purple-hs), 45%);
+  --ifm-color-primary-dark: hsl(var(--dn-color-purple-hs), 40%);
+  --ifm-color-primary-darker: hsl(var(--dn-color-purple-hs), 35%);
+  --ifm-color-primary-darkest: hsl(var(--dn-color-purple-hs), 28%);
+  --ifm-color-primary-light: hsl(var(--dn-color-purple-hs), 55%);
+  --ifm-color-primary-lighter: hsl(var(--dn-color-purple-hs), 62%);
+  --ifm-color-primary-lightest: hsl(var(--dn-color-purple-hs), 70%);
+
+  /* Surfaces */
+  --ifm-background-color: var(--surface-bg);
+  --ifm-background-surface-color: var(--surface-1);
+  --ifm-footer-background-color: var(--surface-1);
+  /* The top bar reads as white, sitting above the off-white page */
+  --ifm-navbar-background-color: var(--surface-raised);
+  --ifm-hover-overlay: var(--surface-2);
+  --ifm-toc-border-color: var(--border-color);
+  --ifm-hr-background-color: var(--border-color);
+
+  /* Text */
+  --ifm-font-color-base: var(--text-body);
+  --ifm-heading-color: var(--text-strong);
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: var(--ifm-color-primary-dark);
+
+  /* Type scale: headings stay semibold rather than heavy, and sit tighter */
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.7;
+  --ifm-heading-font-weight: 700;
+  --ifm-heading-line-height: 1.25;
+  --ifm-h1-font-size: 2.125rem;
+  --ifm-h2-font-size: 1.5rem;
+  --ifm-h3-font-size: 1.1875rem;
+  --ifm-h4-font-size: 1rem;
+
+  /* Shape */
+  --ifm-global-radius: var(--radius-sm);
+  --ifm-button-border-radius: var(--radius-sm);
+  --ifm-card-border-radius: var(--radius-md);
+  --ifm-alert-border-radius: var(--radius-md);
+  --ifm-code-border-radius: 5px;
+  --ifm-pre-border-radius: var(--radius-md);
+
+  /* Chrome */
+  --ifm-navbar-height: 3.75rem;
+  --ifm-navbar-shadow: none;
+  --ifm-navbar-item-padding-horizontal: 0.75rem;
+  --ifm-global-shadow-lw: none;
+  --ifm-global-shadow-md: none;
+  --ifm-global-shadow-tl: none;
+
+  /* Code */
   --ifm-code-font-size: 0.875em;
-  --docusaurus-highlighted-code-line-bg: hsla(0, 0%, 0%, 0.1);
-  --ifm-footer-background-color: var(--dn-color-gray-95);
-  --ifm-background-surface-color: var(--dn-color-gray-95);
-  --ifm-hover-overlay: var(--dn-color-gray-95);
+  --ifm-code-background: var(--surface-2);
+  --ifm-code-padding-horizontal: 0.35em;
+  --ifm-code-padding-vertical: 0.15em;
+  --ifm-pre-background: var(--surface-1);
+  --docusaurus-highlighted-code-line-bg: hsla(var(--dn-color-purple-hs), 50%, 0.1);
+
+  /* Tables */
+  --ifm-table-border-color: var(--border-color);
+  --ifm-table-head-background: var(--surface-1);
+  --ifm-table-stripe-background: transparent;
+  --ifm-table-head-font-weight: 600;
+
+  /* Admonitions, mapped onto the brand secondaries */
+  --ifm-color-info: hsl(var(--dn-color-blue-hs), 50%);
+  --ifm-color-success: hsl(var(--dn-color-green-hs), 42%);
+  --ifm-color-warning: hsl(var(--dn-color-yellow-hs), 45%);
+  --ifm-color-danger: hsl(var(--dn-color-red-hs), 50%);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 html[data-theme='dark'] {
-  --ifm-color-primary: var(--dn-color-purple-70);
-  --ifm-color-primary-dark: var(--dn-color-purple-60);
-  --ifm-color-primary-darker: var(--dn-color-purple-50);
-  --ifm-color-primary-darkest: var(--dn-color-purple-40);
-  --ifm-color-primary-light: var(--dn-color-purple-80);
-  --ifm-color-primary-lighter: var(--dn-color-purple-90);
-  --ifm-color-primary-lightest: var(--dn-color-purple-95);
-  --ifm-footer-background-color: var(--dn-color-gray-10);
-  --ifm-background-surface-color: var(--dn-color-gray-15);
-  --ifm-hover-overlay: var(--dn-color-gray-20);
+  --ifm-color-primary: hsl(var(--dn-color-purple-hs), 75%);
+  --ifm-color-primary-dark: hsl(var(--dn-color-purple-hs), 68%);
+  --ifm-color-primary-darker: hsl(var(--dn-color-purple-hs), 62%);
+  --ifm-color-primary-darkest: hsl(var(--dn-color-purple-hs), 55%);
+  --ifm-color-primary-light: hsl(var(--dn-color-purple-hs), 80%);
+  --ifm-color-primary-lighter: hsl(var(--dn-color-purple-hs), 86%);
+  --ifm-color-primary-lightest: hsl(var(--dn-color-purple-hs), 92%);
+
+  --ifm-background-color: var(--surface-bg);
+  --ifm-background-surface-color: var(--surface-1);
+  --ifm-footer-background-color: var(--surface-1);
+  --ifm-navbar-background-color: var(--surface-bg);
+  --ifm-hover-overlay: var(--surface-2);
+
+  --ifm-code-background: var(--surface-2);
+  --ifm-pre-background: var(--surface-1);
+  --docusaurus-highlighted-code-line-bg: hsla(var(--dn-color-purple-hs), 75%, 0.14);
+
+  --ifm-color-info: hsl(var(--dn-color-blue-hs), 66%);
+  --ifm-color-success: hsl(var(--dn-color-green-hs), 60%);
+  --ifm-color-warning: hsl(var(--dn-color-yellow-hs), 62%);
+  --ifm-color-danger: hsl(var(--dn-color-red-hs), 65%);
 
   & ::selection {
-    color: var(--dn-color-gray-15);
+    color: var(--dn-color-gray-10);
   }
 }
 
 ::selection {
   color: white;
   background-color: var(--ifm-color-primary);
-}
-
-[data-theme='dark'] .DocSearch {
-  --docsearch-hit-active-color: var(--ifm-color-black);
 }
