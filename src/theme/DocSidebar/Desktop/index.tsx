@@ -7,7 +7,8 @@ import Content from '@theme/DocSidebar/Desktop/Content';
 import Logo from '@theme/Logo';
 import SearchBar from '@theme/SearchBar';
 import clsx from 'clsx';
-import React, { type ReactNode } from 'react';
+import React, { useEffect, type ReactNode } from 'react';
+import { useRailSearch } from '@components/RailSearch/RailSearchContext';
 import styles from './styles.module.css';
 
 /**
@@ -70,6 +71,14 @@ function DocSidebarDesktop({ path, sidebar, onCollapse, isHidden }: Props): Reac
       sidebar: { hideable },
     },
   } = useThemeConfig();
+
+  // Tell the navbar to drop its own search while this rail is mounted, so only
+  // one DocSearch exists and Cmd+K opens a single modal.
+  const { setRailHasSearch } = useRailSearch();
+  useEffect(() => {
+    setRailHasSearch(true);
+    return () => setRailHasSearch(false);
+  }, [setRailHasSearch]);
 
   return (
     <div className={clsx(styles.sidebar, isHidden && styles.sidebarHidden)}>

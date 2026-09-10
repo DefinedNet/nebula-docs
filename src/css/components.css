@@ -51,11 +51,18 @@ body {
  * is the only navigation on mobile, plus its own search and toggle.
  */
 @media (min-width: 997px) {
-  html:root {
+  /*
+   * Scoped to pages that actually have the sidebar which replaces the top bar.
+   * Hiding it everywhere stranded the 404 and any src/pages route with no logo,
+   * search or colour-mode toggle. Where :has() is unsupported the rule simply
+   * does not apply, leaving the navbar visible — redundant chrome, not a
+   * broken page.
+   */
+  #__docusaurus:has(.theme-doc-sidebar-container) {
     --ifm-navbar-height: 0px;
   }
 
-  .navbar {
+  #__docusaurus:has(.theme-doc-sidebar-container) .navbar {
     display: none;
   }
 }
@@ -567,13 +574,18 @@ div[class^='codeBlockTitle'] {
 
 /* -------------------------------------------------------------- tables - */
 
+/*
+ * Keep Infima's `display: block; overflow: auto`. That is what lets a wide
+ * table scroll inside the content column; `display: table` made it push the
+ * whole document sideways on narrow viewports. border-radius still clips the
+ * corners of a scrolling block, so the rounded border survives.
+ */
 .markdown table {
-  display: table;
-  width: 100%;
+  display: block;
+  overflow: auto;
   border-collapse: collapse;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  overflow: hidden;
 }
 
 .markdown table thead tr {
