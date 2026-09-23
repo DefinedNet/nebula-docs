@@ -98,6 +98,19 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      - name: Comment deploy start
+        if: github.event_name != 'push'
+        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2
+        with:
+          message-id: cloudflare-deploy
+          message: |
+            ### <span aria-hidden="true">🚧</span> Deploy Preview for *docs-nebula* building...
+
+            |  Name | Link |
+            |---------------------------------|------------------------|
+            |<span aria-hidden="true">🔨</span> Latest commit | ${{ github.sha }} |
+            |<span aria-hidden="true">🔍</span> Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+            ---
       - name: Download site
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
@@ -116,6 +129,21 @@ jobs:
         env:
           URL: ${{ steps.cloudflare.outputs.deployment-url }}
         run: echo "Deployed to $URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment deploy url
+        if: github.event_name != 'push'
+        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2
+        with:
+          message-id: cloudflare-deploy
+          message: |
+            ### <span aria-hidden="true">✅</span> Deploy Preview for *docs-nebula* ready!
+
+            |  Name | Link |
+            |---------------------------------|------------------------|
+            |<span aria-hidden="true">🔨</span> Latest commit | ${{ github.sha }} |
+            |<span aria-hidden="true">🔍</span> Latest deploy log | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+            |<span aria-hidden="true">😎</span> Deploy Preview Url | [${{ steps.cloudflare.outputs.deployment-url }}](${{ steps.cloudflare.outputs.deployment-url }}) |
+            |<span aria-hidden="true">😎</span> Deploy Preview Alias | [${{ steps.cloudflare.outputs.pages-deployment-alias-url }}](${{ steps.cloudflare.outputs.pages-deployment-alias-url }}) |
+            ---
 
   ci-pass-fail:
     name: pass/fail check
