@@ -128,7 +128,7 @@ jobs:
       # main goes to production, any other branch gets a preview
       - name: Deploy
         id: cloudflare
-        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: d79c0f33ec1480243a4c7fc3cd5a9ff3
