@@ -37,6 +37,10 @@ nodes. Using 0 on lighthouses and relay hosts will likely lead to connectivity i
 
 Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`).
 
+When [`listen.udp_offloads`](#listenudp_offloads) has enabled GRO (Linux kernel 5.10+), each receive slot is sized for a
+full 64KiB coalesced superpacket, so the receive scratch memory is `batch × 64KiB` per listening socket (about 4MiB per
+routine at the default of 64). Lower this value to trade peak per-syscall throughput for memory on constrained hosts.
+
 ## listen.read_buffer, listen.write_buffer
 
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
@@ -91,3 +95,32 @@ ip rule add not from all fwmark 4242 lookup 4242
 ip rule add from all lookup main suppress_prefixlength 0
 ip route add default dev nebula1 via <nebula_unsafe_route_g> table 4242
 ```
+
+## listen.rebind_on_network_change
+
+<Pill className="mb-24">Default: True</Pill>
+<Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on macOS and is not reloadable.
+
+macOS scopes the UDP socket to the interface it was created on, so moving between networks (wifi to wired, office to
+home) leaves Nebula sending out an interface that no longer has a route. When enabled, Nebula watches the routing socket
+and rebinds the listener once the change settles, so devices moving between networks recover without waiting for dead
+tunnel detection. iOS does not use this option, the host app drives the same rebind itself.
+
+## listen.udp_offloads
+
+<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux and is not reloadable.
+
+When enabled, Nebula attempts to enable UDP Generic Segmentation Offload (GSO, Linux kernel 4.18+) and Generic Receive
+Offload (GRO, Linux kernel 5.10+) on its UDP socket(s). With GSO, batches of packets bound for the same host are handed
+to the kernel as a single "superpacket" along with the size to split it back into individual datagrams, reducing
+per-packet syscall and network stack overhead on the send path. With GRO, the kernel coalesces bursts of datagrams
+arriving from the same host into a single large read. Support for each feature is probed when the socket is created, and
+Nebula falls back to standard sends and receives on kernels that lack it.
+
+Enabling GRO increases the fixed memory used by the receive path, see [`listen.batch`](#listenbatch) for details. For
+the biggest throughput gains, pair this option with [`tun.use_offloads`](/docs/config/tun/#tunuse_offloads).
