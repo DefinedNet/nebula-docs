@@ -19,8 +19,8 @@ as a subnet gateway, forwarding traffic from other Nebula hosts to the subnet de
 This guide explains how to configure Nebula’s `unsafe_routes` feature to route traffic through the subnet gateway to the
 devices that cannot run Nebula.
 
-The `unsafe routes` feature can also be used to [route all traffic](#route-00000-using-unsafe-routes) from chosen Nebula
-hosts out via another Nebula host, effectively acting as a gateway for internet access.
+The `unsafe_routes` feature also allows you to [route `0.0.0.0/0`](#route-00000-using-unsafe-routes) (full-tunnel
+routing), which enables a Nebula host with a public IP to act as an internet gateway for other overlay hosts.
 
 :::note
 
@@ -58,8 +58,8 @@ To complete this guide, you will need the following:
 
 1.  A working basic Nebula overlay network with a lighthouse and at least two hosts:
     - A **roaming host** running Linux, macOS, or Windows that needs access to the subnet devices
-    - The **subnet gateway** running Linux, macOS, or Windows that will forward traffic from the overlay network to the subnet using
-      `unsafe_routes`
+    - The **subnet gateway** running Linux, macOS, or Windows that will forward traffic from the overlay network to the
+      subnet using `unsafe_routes`
 1.  CA with the `nebula-cert` binary able to sign host certificates with additional metadata required for
     `unsafe_routes`
 1.  The `ca.key` and `ca.crt` files for the Nebula overlay network
@@ -517,33 +517,45 @@ If connected, disconnect from the site. Now, connect again and try to access one
 
 ### Route `0.0.0.0/0` using unsafe routes
 
-You might need to route all traffic from a Nebula host via another Nebula host out to the internet. The complexity of
-routing all traffic differs depending on your device and OS.
+A Nebula host with a public IP can act as an internet gateway for other hosts in the overlay network. When
+[setting up full-tunnel routing](#how-to-add-unsafe-routes), keep in mind the specifics outlined below.
+
+On the internet gateway host, ensure that:
+
+- The certificate's `unsafeNetworks` field includes `0.0.0.0/0`
+- Inbound Nebula firewall rules cover `local_cidr` for `0.0.0.0/0`
+- System firewall rules for forwarding and NAT/masquerading do not contain destination restrictions (such as
+  `-d 192.168.1.0/24`)
+
+On overlay hosts, configuring full-tunnel routing through an internet gateway host varies in complexity depending on the
+operating system.
 
 Mobile Nebula [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) and
-[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) apps route `0.0.0.0/0` correctly as long as you follow
-the guidelines in [Use unsafe routes with Mobile Nebula](#use-unsafe-routes-with-mobile-nebula).
+[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) apps handle `0.0.0.0/0` correctly if you follow the
+guidelines in [Use unsafe routes with Mobile Nebula](#use-unsafe-routes-with-mobile-nebula).
 
-Routing `0.0.0.0/0` on non-mobile Nebula hosts creates a routing loop problem. To maintain the overlay network, Nebula
-needs to communicate with the lighthouse and direct peers (underlay traffic). But when you send `0.0.0.0/0` into the
-Nebula tunnel, Nebula's underlay traffic also gets routed into the same tunnel, which causes the routing loop.
+On non-mobile Nebula hosts, routing `0.0.0.0/0` creates a routing loop. To maintain the overlay network, each Nebula
+host must communicate with the lighthouse and other overlay hosts (underlay traffic). By default, overlay hosts that
+route `0.0.0.0/0` into the Nebula tunnel also send Nebula's underlay traffic into the same tunnel, triggering the
+routing loop.
 
-Here are some clues on how to avoid the routing loop while routing `0.0.0.0/0` on Linux as well as macOS and Windows.
+Here are the strategies to prevent routing loops on Linux, macOS, and Windows.
 
 #### Linux
 
-On Linux, Nebula supports `listen.so_mark`, which marks all Nebula's underlay packets. This allows you to put the
-default Nebula tunnel route in a separate routing table and exclude marked packets from it. Thus you effectively avoid
-routing loops.
+On Linux, Nebula supports [listen.so_mark](/docs/config/listen/#listenso_mark), which assigns an `SO_MARK` socket mark
+to all of Nebula's outgoing underlay UDP traffic. By marking the packets, you can divert general system traffic through
+the Nebula tunnel via policy routing while allowing Nebula's underlay traffic to bypass the tunnel.
 
-To enable marking Nebula's underlay packets, add this option to your config:
+To enable marking underlay packets, add this option to your config:
 
 ```yaml
 listen:
   so_mark: 0x6EB
 ```
 
-After that, create a separate table for internal overlay network traffic by running:
+After that, configure policy routing by creating a custom routing table for internal overlay network traffic. In that
+table, set the default route via the internet gateway host and add policy rules to bypass marked underlay packets:
 
 ```sh
 ip route replace default via 10.0.0.5 dev nebula1 table 4242
@@ -558,8 +570,8 @@ For more information, see [listen.so_mark](/docs/config/listen/#listenso_mark) a
 
 To avoid routing loops on macOS and Windows, you need to do two things.
 
-First, you need to route all traffic `0.0.0.0/0` to the Nebula tunnel. To avoid conflicts with your system's default
-gateway route, split `0.0.0.0/0` into two more specific `/1` routes that will take precedence over the default gateway:
+Configure routing all traffic `0.0.0.0/0` to the Nebula tunnel. To avoid conflicts with your system's default gateway
+route, split `0.0.0.0/0` into two more specific `/1` routes that will take precedence over the default gateway:
 
 ```yaml
 unsafe_routes:
@@ -569,5 +581,7 @@ unsafe_routes:
     via: 10.0.0.5
 ```
 
-Then, you must ensure that underlay Nebula traffic bypasses the Nebula tunnel. For this, add explicit static routes in
-your routing table for the public IPs of the lighthouse and any direct Nebula peers.
+Bypass underlay traffic by manually adding explicit static routes in your operating system's routing table for the
+public IPs of the lighthouse and the internet gateway host. If you need access to other overlay hosts, you can also add
+routes for their public IPs. Note that manually maintaining static routes is generally impractical for hosts with
+dynamic IPs and rarely possible for hosts behind NAT.
