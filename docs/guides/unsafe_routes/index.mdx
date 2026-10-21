@@ -265,7 +265,11 @@ net.ipv4.ip_forward = 1
 
 This change will be lost upon reboot.
 
-To make it persist across reboots, add `net.ipv4.ip_forward = 1` to `/etc/sysctl.conf`.
+To make it persist across reboots, run this to create a drop-in config file under `/etc/sysctl.d/`:
+
+```sh
+echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-nebula.conf
+```
 
 :::
 
@@ -392,6 +396,12 @@ it:
 include "/etc/nftables/nebula.conf"
 ```
 
+Also, make sure to enable the `nftables` service so the configuration is loaded at boot:
+
+```sh
+sudo systemctl enable nftables
+```
+
 :::
 
 #### iptables
@@ -400,8 +410,8 @@ First, allow packet routing between the Nebula interface and the local network i
 interfaces (`nebula1`, `eth0`) and subnets with your actual ones)_
 
 ```sh
-sudo iptables -I FORWARD 1 nebula1 -o eth0 -s 10.0.0.0/24 -d 192.168.1.0/24 -j ACCEPT
-sudo iptables -I FORWARD 2 eth0 -o nebula1 -s 192.168.1.0/24 -d 10.0.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -I FORWARD 1 -i nebula1 -o eth0 -s 10.0.0.0/24 -d 192.168.1.0/24 -j ACCEPT
+sudo iptables -I FORWARD 2 -i eth0 -o nebula1 -s 192.168.1.0/24 -d 10.0.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 ```
 
 Next, add the NAT rule to masquerade outgoing traffic:
