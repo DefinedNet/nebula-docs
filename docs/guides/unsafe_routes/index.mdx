@@ -553,8 +553,23 @@ On the internet gateway host, ensure that:
 
 - The certificate's `unsafeNetworks` field includes `0.0.0.0/0`
 - Inbound Nebula firewall rules cover `local_cidr` for `0.0.0.0/0`
-- System firewall rules for forwarding and NAT/masquerading do not contain destination restrictions (such as
-  `-d 192.168.1.0/24`)
+- System firewall rules for forwarding and NAT/masquerading do not contain destination restrictions. The egress
+  interface then becomes the only limit on these rules, so every rule must match it. In the rules shown in
+  [Configure packet routing](#configure-packet-routing):
+  - **ufw**: In the `ufw route allow` rule, remove `to 192.168.1.0/24`. In the `/etc/ufw/before.rules` NAT rule, remove
+    `-d 192.168.1.0/24` and add `-o eth0`
+  - **nftables**: In the forward rule, remove `ip daddr 192.168.1.0/24`. In the postrouting rule, remove
+    `ip daddr 192.168.1.0/24` and add `oifname eth0`
+  - **iptables**: In the `FORWARD` rule, remove `-d 192.168.1.0/24`. In the NAT `POSTROUTING` rule, remove
+    `-d 192.168.1.0/24` and add `-o eth0`
+
+:::warning
+
+An inbound rule with `local_cidr: 0.0.0.0/0` also matches the internet gateway's own addresses, so overlay hosts can
+reach any port on the gateway itself that the rule allows. If you don't want this, keep `local_cidr: 0.0.0.0/0` limited
+to the ports you intend to forward and add separate, narrower rules for services running on the gateway.
+
+:::
 
 On overlay hosts, configuring full-tunnel routing through an internet gateway host varies in complexity depending on the
 operating system.
