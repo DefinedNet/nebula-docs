@@ -22,12 +22,6 @@ devices that cannot run Nebula.
 The `unsafe_routes` feature also allows you to [route `0.0.0.0/0`](#route-00000-using-unsafe-routes) (full-tunnel
 routing), which enables a Nebula host with a public IP to act as an internet gateway for other overlay hosts.
 
-:::note
-
-This guide covers configuring a Linux host as the subnet gateway.
-
-:::
-
 ```text
  NEBULA OVERLAY NETWORK   ░   SUBNET (HOME LAN)
                           ░
@@ -59,24 +53,31 @@ To complete this guide, you will need the following:
 1.  A working basic Nebula overlay network with a lighthouse and at least two hosts:
     - A **roaming host** running Linux, macOS, or Windows that needs access to the subnet devices
     - The **subnet gateway** running Linux, macOS, or Windows that will forward traffic from the overlay network to the
-      subnet using `unsafe_routes`
+      subnet using `unsafe_routes`<br />_(This guide only covers configuring a Linux host as the subnet gateway)_
 1.  CA with the `nebula-cert` binary able to sign host certificates with additional metadata required for
     `unsafe_routes`
 1.  The `ca.key` and `ca.crt` files for the Nebula overlay network
+    - In `ca.crt`, `unsafeNetworks` must be either not specified or list the required unsafe routes
 1.  Root access to the roaming host
 1.  Root access to the subnet gateway
 
-> This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
+:::note
 
-In the directory containing your CA cert, run:
+This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
+
+:::
+
+### CA cert
+
+Check your `ca.crt` to ensure its `unsafeNetworks` (formerly `-subnets`) is either not specified or lists the subnets
+you want to access. In the directory containing your CA cert, run:
 
 ```sh
 nebula-cert print -path ca.crt
 ```
 
-If `unsafeNetworks` (formerly `-subnets`) is not specified or if it contains the subnets that you want to access, you
-are good to go. If it already contains subnets and they do not include the ones you need, you will have to create all
-certificates from scratch.
+If `unsafeNetworks` is set and does not include the required subnets, you will have to regenerate all certificates from
+scratch.
 
 Here's an example of a CA generated without specifying `unsafeNetworks`:
 
