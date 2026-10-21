@@ -41,7 +41,7 @@ This guide covers configuring a Linux host as the subnet gateway.
                       │   ░
             (nebula1) │   ░
                   ┌───┴────────────┐
-                  │ SUBNET GATEWAY │
+                  │ Subnet Gateway │
                   └───────────┬────┘
                           ░   │ (eth0)
                           ░   │
@@ -519,6 +519,24 @@ If connected, disconnect from the site. Now, connect again and try to access one
 
 A Nebula host with a public IP can act as an internet gateway for other hosts in the overlay network. When
 [setting up full-tunnel routing](#how-to-add-unsafe-routes), keep in mind the specifics outlined below.
+
+```text
+LOCAL REGION INTERNET     ░     REMOTE REGION INTERNET
+                          ░
+        .....................................
+        :      NEBULA OVERLAY NETWORK       :
+        :                                   :
+ ┌──────┴───────┐                  ┌────────┴─────────┐
+ │ Roaming Host │─────────────────►│ Internet Gateway │───────►
+ └──────┬───────┘        (nebula1) └────────┬─────────┘ (eth0)
+        :                                   :
+        :  ┌────────────┐                   :
+        :  │ Lighthouse │                   :
+        :  └────────────┘                   :
+        :...................................:
+                          ░
+                          ░
+```
 
 On the internet gateway host, ensure that:
 
