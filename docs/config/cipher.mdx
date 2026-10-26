@@ -3,7 +3,11 @@ sidebar_position: 7
 description: Selection of cipher used to encrypt Nebula network traffic
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # cipher
+
+<Pill className="mb-24">Default: aes</Pill>
 
 :::danger
 
@@ -20,3 +24,8 @@ Because most devices have hardware support for the AES instruction set (e.g. AES
 ```yml
 cipher: aes
 ```
+
+`cipher` is not reloadable. A reload that changes it reports that a restart is required, and a reload with an unknown
+cipher fails.
+
+Nebula built in FIPS 140-only mode refuses `chachapoly`, at startup and on reload.
