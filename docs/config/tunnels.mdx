@@ -31,3 +31,11 @@ general, it is a good idea to enable this setting. It will be enabled by default
 
 Controls how long a tunnel must not see any inbound or outbound traffic before being considered inactive and eligible to
 be dropped. Only applies when [`tunnels.drop_inactive`](#tunnelsdrop_inactive) is enabled.
+
+## Automatic rekeying
+
+Nebula rehandshakes a tunnel, which gives it new keys, after it has sent 2<sup>34</sup> (about 17 billion) packets. This
+keeps every tunnel well inside the safe usage limits of its cipher, and needs no configuration. If a tunnel somehow
+reaches its hard limit before the new handshake completes, Nebula stops sending on it, counts the dropped packets in the
+`messages.tx.exhausted` metric, and removes the tunnel with the log line
+`Dropping tunnel, message counter is exhausted`.
