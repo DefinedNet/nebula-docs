@@ -72,7 +72,8 @@ or `"ok":false` with the reason when they refuse.
 
 `nebula ctl` exits `0` on success and `1` on any failure: the socket could not be reached, the command or a flag was
 unknown, or the command failed. `nebula ctl reload` prints the outcome of the reload. It exits `1` when the new config
-did not load or part of it failed to apply, but not when it applied and only needs a restart to take full effect.
+did not load or part of it failed to apply, but not when it applied and only needs a restart to take full effect. See
+[Reloading configuration](/docs/guides/reloading-configuration/).
 
 The control socket serves up to 8 connections at once. Beyond that `nebula ctl` reports that the socket is busy.
 

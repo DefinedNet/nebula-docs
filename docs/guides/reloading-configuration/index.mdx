@@ -1,0 +1,79 @@
+---
+title: Reloading configuration
+sidebar_label: Reloading configuration
+description: Apply config changes to a running Nebula, read the result, and know which settings need a restart.
+summary:
+  How to reload Nebula's config without restarting it, how to tell whether the reload worked, and which settings only
+  take effect after a restart.
+sidebar_position: 13
+---
+
+# Reloading configuration
+
+Most of Nebula's config can be changed while it runs. A reload reads the config files again and applies what changed,
+without dropping tunnels. Settings marked **Reloadable** on the [configuration reference](/docs/config/) pages apply on
+reload. The rest take effect after a restart.
+
+## Triggering a reload
+
+Any of these reload the config:
+
+- Send the process a `HUP` signal, for example `sudo kill -HUP $(pidof nebula)` or `sudo systemctl reload nebula` with a
+  unit that sends one. This is not available on Windows.
+- Run `sudo nebula ctl reload` through the [local control socket](/docs/guides/local-control-and-info-api/).
+- Run `reload` in the [SSH debug console](/docs/guides/debug-ssh-commands/).
+
+`nebula ctl reload` and the SSH `reload` command print the outcome, and exit `1` when the new config did not load or
+part of it failed to apply.
+
+## Reading the result
+
+Every reload ends with one summary line in the log:
+
+| Log line                                                                                     | Level | Meaning                                                                                      |
+| -------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| `Config reload complete`                                                                     | info  | Everything applied                                                                           |
+| `Config reload was completed but requires a restart to fully apply`                          | warn  | Everything that can be reloaded applied. The `keys` field lists the ones that need a restart |
+| `Config reload completed with errors, review the logs`                                       | error | Part of the new config could not be applied, the lines before this one say which             |
+| `Config reload completed with errors and requires a restart to fully apply, review the logs` | error | Both of the above                                                                            |
+| `Config reload failed, the new config did not load`                                          | error | The config could not be read or parsed. Nothing was applied                                  |
+
+A config that fails to parse changes nothing, and the error names the file. A reload that completes with errors is not
+rolled back: everything else in the new config is applied, and the parts that failed are logged and skipped, for example
+a firewall that fails to build keeps the previous firewall.
+
+Once a reload has needed a restart, every later reload says so too, until Nebula is restarted. Changing a setting back
+to the value Nebula is running with does not need a restart.
+
+Some entries that are skipped with a warning at startup fail a reload, so the problem shows in the reload's result:
+
+- an invalid [`preferred_ranges`](/docs/config/preferred-ranges/) entry
+- an [`advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) entry inside the vpn networks
+- a [`relay.relays`](/docs/config/relay/) entry that is not an IP address
+- an invalid [`sshd.trusted_cas`](/docs/config/sshd/#sshdtrusted_cas) or `sshd.authorized_users` entry
+- an invalid [`pki.blocklist`](/docs/config/pki/#pkiblocklist) entry, which fails startup too
+
+A value Nebula could not start with also fails the reload, rather than asking for a restart that would then fail. That
+includes an unknown [`cipher`](/docs/config/cipher/), `chachapoly` in FIPS 140-only mode, and an invalid
+[`tun.network_category`](/docs/config/tun/#tunnetwork_category) on Windows.
+
+## Settings that need a restart
+
+Changing any of these is reported as needing a restart, and takes effect after the next restart:
+
+| Platform        | Settings                                                                                                                                                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| All             | `cipher`, `routines`, `listen.host`, `listen.port`, `lighthouse.am_lighthouse`, `handshakes.*`, `stats.message_metrics`, `stats.lighthouse_metrics`, `tun.disabled`, `tun.drop_local_broadcast`, `tun.drop_multicast`, `firewall.conntrack.routine_cache_timeout`, `timers.*` |
+| Linux           | `tun.dev`, `tun.tx_queue`, `tun.use_offloads`, `tun.use_system_route_table`, `tun.use_system_route_table_buffer_size`, `tun.pin_threads`, `tun.pin_threads_key`, `tun.cpu_affinity`, `listen.batch`, `listen.udp_offloads`                                                    |
+| macOS           | `tun.mtu`, `tun.dev` (when it names a specific utun other than the running one), `listen.rebind_on_network_change`                                                                                                                                                            |
+| FreeBSD         | `tun.dev`, `tun.mtu`                                                                                                                                                                                                                                                          |
+| OpenBSD, NetBSD | `tun.mtu`, `tun.dev` (when it names a specific tun other than the running one)                                                                                                                                                                                                |
+| Windows         | `tun.dev`, `tun.mtu`, `tun.network_category`, `tun.windows_bypass_wdf`, `listen.windows_bypass_wdf`                                                                                                                                                                           |
+
+On Linux, `tun.mtu` is reloadable.
+
+### Certificates
+
+A new [`pki.cert`](/docs/config/pki/#pkicert) applies on reload unless it changes the node's networks or curve. A
+certificate with different networks or a different curve is refused until Nebula restarts, and the reload asks for one.
+So is removing a v2 certificate whose networks differ from the remaining v1 certificate.

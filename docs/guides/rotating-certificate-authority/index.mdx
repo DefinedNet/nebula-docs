@@ -107,16 +107,20 @@ PEM certificate below the existing certificate(s).
 
 In order for this change to take effect, you must restart or reload Nebula. If you're using systemd,
 `systemctl restart nebula` will restart the process. Alternatively, to gracefully reload Nebula without tearing down
-tunnels, find its pid in your process list and run `kill -SIGHUP <pid>`. You can verify the config was reloaded by
-looking for the following lines:
+tunnels, run `sudo nebula ctl reload`, or find its pid in your process list and run `kill -SIGHUP <pid>`. See
+[Reloading configuration](/docs/guides/reloading-configuration/) for more. `nebula ctl reload` prints the outcome
+directly; after a `SIGHUP`, look for these lines in the log:
 
 ```
-time="2022-07-27T11:32:04-04:00" level=info msg="Caught HUP, reloading config"
+time=2026-07-27T11:32:04.183294012-04:00 level=INFO msg="Caught HUP, reloading config"
 ...
-time="2022-07-27T11:32:04-04:00" level=info msg="Trusted CA certificates refreshed" fingerprints=[d5978d6d54a58e4685551708c5f57fbdd3774be67d470ecb0033cf70bbf5fbb5 b680813a506933b2020f6e9980fc26f7df79c8124302e32aedba23c820e813dc]"
+time=2026-07-27T11:32:04.190021567-04:00 level=INFO msg="Config reload complete"
 ```
 
-For extra credit, you can verify that your newly minted CA's fingerprint appears in the log line shown above.
+With [`logging.level`](/docs/config/logging/#logginglevel) set to `debug`, the reload also logs a
+`Trusted CA fingerprints` line listing the fingerprint of every trusted CA.
+
+For extra credit, you can verify that your newly minted CA's fingerprint appears in that line.
 
 ### Step 3: Signing new host certificates
 
