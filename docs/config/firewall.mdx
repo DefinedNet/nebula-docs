@@ -46,7 +46,9 @@ The possible fields of a firewall rule are:
 - `port`: Takes `0` or `any` as any, a single number (e.g. `80`), a range (e.g. `200-901`), or `fragment` to match
   second and further fragments of fragmented packets (since there is no port available).
 
-- `proto`: One of `any`, `tcp`, `udp`, or `icmp`
+- `proto`: One of `any`, `tcp`, `udp`, or `icmp`. `icmp` matches both ICMP and ICMPv6, and any `port` given on an `icmp`
+  rule is ignored with a warning. Traffic of any other IP protocol, such as GRE, SCTP, ESP, or IP-in-IP, only matches
+  `proto: any` rules.
 
 - `ca_name`: An issuing CA name
 
@@ -58,6 +60,15 @@ The possible fields of a firewall rule are:
 
 - `groups`: Same as `group` but accepts a list of values. Multiple values are AND'd together and a certificate must
   contain all groups to pass.
+
+:::tip
+
+Quote group names. YAML converts unquoted values before Nebula sees them, so `group: 007` would be read as `7` and
+`group: 1.10` as `1.1`. Unquoted integers and booleans still work, but log a warning. A float, a date, a map, a nested
+list, a `null` entry in `groups`, or `group: []` is rejected with an error, which fails startup or fails the reload and
+keeps the previous firewall. A `group` or `groups` key with no value is treated as not set.
+
+:::
 
 - `cidr`: a remote CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
 
@@ -72,6 +83,16 @@ Logical evaluation of these rules changed in Nebula v1.9.0. Previously, a match 
 not need to also pass `host`, `group`, `groups`, or `cidr` checks. This is almost never what uers want - `local_cidr`
 generally refers to a specific segment of an [unsafe_routes](/docs/config/tun/#tununsafe_routes) configuration that is
 being accessed, while the latter options relate to the connecting host's identity.
+
+:::
+
+:::warning
+
+Before Nebula v1.11.1, an IPv6 packet carrying a protocol Nebula does not parse could be misclassified as TCP or UDP and
+match a `tcp` or `udp` rule. These packets are now classified as their real protocol. If you carry such a protocol over
+IPv6 in the overlay, make sure a `proto: any` rule allows it.
+
+IPv6 packets whose extension headers are truncated or more than 8 headers deep are dropped.
 
 :::
 
@@ -158,7 +179,8 @@ in the `local_cidr` field.
 
 <Pill className="mb-24">Reloadable</Pill>
 
-Settings for the Connection Tracker.
+Settings for the Connection Tracker. Each timeout is a golang [Duration](https://pkg.go.dev/time#ParseDuration) and must
+be greater than zero, otherwise Nebula refuses to start or fails the reload.
 
 ```yml
 conntrack:
@@ -167,11 +189,30 @@ conntrack:
   default_timeout: 10m
 ```
 
+### firewall.conntrack.tcp_timeout
+
+<Pill className="mb-24">Default: 12m</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+How long an idle TCP flow stays in the connection tracker.
+
+### firewall.conntrack.udp_timeout
+
+<Pill className="mb-24">Default: 3m</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+How long an idle UDP flow stays in the connection tracker.
+
+### firewall.conntrack.default_timeout
+
+<Pill className="mb-24">Default: 10m</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+How long an idle flow of any other protocol, including ICMP, stays in the connection tracker.
+
 ## outbound_action, inbound_action
 
 <Pill className="mb-24">Default: drop</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Action to take when a packet is not allowed by the firewall rules.
+Action to take when a packet is not allowed by the firewall rules. An unknown value logs a warning and falls back to
+`drop`.
 
 Can be one of:
 
