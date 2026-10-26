@@ -1,5 +1,5 @@
 ---
-title: Extending network access beyond overlay hosts
+title: Using unsafe routes for access beyond overlay hosts
 sidebar_label: Unsafe routes
 description:
   Configure Nebula unsafe_routes to route traffic through overlay hosts and reach devices that cannot run Nebula
@@ -10,147 +10,189 @@ summary:
 sidebar_position: 8
 ---
 
-# Extending network access beyond overlay hosts
+# Using unsafe routes for access beyond overlay hosts
 
-This guide explains how to configure Nebula to route traffic destined for a specific subnet _through_ a specific overlay
-network host using Nebula's `unsafe_routes` feature.
+Hosts on a Nebula network may need to reach devices that cannot run Nebula, such as printers, physical access control
+systems, or proprietary devices. If such devices are on a subnet reachable by one of the Nebula hosts, that host can act
+as a subnet gateway, forwarding traffic from other Nebula hosts to the subnet devices.
 
-This is especially useful for accessing hosts that cannot be modified to run Nebula, such as printers, physical access
-control systems, and other proprietary devices on which you cannot install arbitrary software.
+This guide explains how to configure Nebula’s `unsafe_routes` feature to route traffic through the subnet gateway to the
+devices that cannot run Nebula.
 
-![Network diagram showing connectivity between Nebula hosts using unsafe_routes feature](./network_diagram-unsafe_routes.png)
+The `unsafe_routes` feature also allows you to [route `0.0.0.0/0`](#route-00000-using-unsafe-routes) (full-tunnel
+routing), which enables a Nebula host with a public IP to act as an internet gateway for other overlay hosts.
+
+```text
+ NEBULA OVERLAY NETWORK   ░   SUBNET (HOME LAN)
+                          ░
+  ┌──────────────┐        ░
+  │ Roaming Host │────┐   ░
+  └──────────────┘    │   ░
+                      │   ░
+    ┌────────────┐    │   ░
+    │ Lighthouse │────┤   ░
+    └────────────┘    │   ░
+                      │   ░
+            (nebula1) │   ░
+                  ┌───┴────────────┐
+                  │ Subnet Gateway │
+                  └───────────┬────┘
+                          ░   │ (eth0)
+                          ░   │
+                          ░   │    ┌─────────┐
+                          ░   └────│ Printer │
+                          ░        └─────────┘
+```
 
 ## Prerequisites
 
-_Read the [Quick Start](/docs/guides/quick-start/) guide to learn how to create your first overlay network._
+_Read the [Quick Start](/docs/guides/quick-start/) guide to learn how to create a basic Nebula overlay network._
 
-You'll need the following to complete this guide.
+To complete this guide, you will need the following:
 
-1.  A working overlay network with a lighthouse and at least two hosts:
-    - Linux host that will act as the router between the overlay network and local network
-    - Linux, macOS, or Windows host that wants to access the local network **via an overlay network connection to the
-      "Linux router" host**
-1.  `nebula-cert` binary to sign host certificates
-1.  The ca.key and ca.crt files for the working overlay network
-1.  Root access to a Linux host on the network that will route traffic using `unsafe_routes`
-1.  Root access to a Linux, macOS, or Windows host on a different network than the Linux host that will route traffic.
+1.  A working basic Nebula overlay network with a lighthouse and at least two hosts:
+    - A **roaming host** running Linux, macOS, or Windows that needs access to the subnet devices
+    - The **subnet gateway** running Linux, macOS, or Windows that will forward traffic from the overlay network to the
+      subnet using `unsafe_routes`<br />_(This guide only covers configuring a Linux host as the subnet gateway)_
+1.  CA with the `nebula-cert` binary able to sign host certificates with additional metadata required for
+    `unsafe_routes`
+1.  The `ca.key` and `ca.crt` files for the Nebula overlay network
+    - In `ca.crt`, `unsafeNetworks` must be either not specified or list the required unsafe routes
+1.  Root access to the roaming host
+1.  Root access to the subnet gateway
 
-> This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
+:::note
 
-You will also need to confirm that your CA is able to sign host certificates with the metadata required to route traffic
-using `unsafe_routes`. If you didn't specify `-subnets` when creating your CA you're good to go. To confirm, run the
-following from the directory containing your CA cert.
+This guide assumes that you have the directory for the `nebula` and `nebula-cert` binaries in your `$PATH`.
 
-```shell
+:::
+
+### CA cert
+
+Check your `ca.crt` to ensure its `unsafeNetworks` (formerly `-subnets`) is either not specified or lists the subnets
+you want to access. In the directory containing your CA cert, run:
+
+```sh
 nebula-cert print -path ca.crt
 ```
 
-If _Subnets_ is an empty set or if it contains the CIDR that you want to access, you are good to go.
+If `unsafeNetworks` is set and does not include the required subnets, you will have to regenerate all certificates from
+scratch.
 
-Here's an example of a CA generated without specifying any subnets.
+Here's an example of a CA generated without specifying `unsafeNetworks`:
 
-_Tip: Add a `-json` flag to the `nebula-cert print` command and pipe the output to `jq`._
-
-```json
+```sh
+# For more focused output, the -json flag is added and the result is piped to jq
 nebula-cert print -json -path ca.crt | jq .details
 {
-  "groups": [],
-  "ips": [],
+  "groups": null,
   "isCa": true,
   "issuer": "",
   "name": "BK Labs",
-  "notAfter": "2022-12-02T19:21:05-05:00",
-  "notBefore": "2021-12-02T19:21:05-05:00",
-  "publicKey": "50dd6fb1d2c02f17ddfeb017fe1bf16cf69d42ec28e8a2e02fde5ad2f944f136",
-  "subnets": []
+  "networks": null,
+  "notAfter": "2027-09-23T10:24:58+08:00",
+  "notBefore": "2026-09-23T10:24:58+08:00",
+  "unsafeNetworks": null
 }
 ```
 
 ## Example network
 
-The following IP addresses, hostnames, and subnets are used throughout this guide to illustate a valid configuration for
-our use case.
+To illustrate how `unsafe_routes` works in practice, this guide uses an example scenario with the hostnames, IP
+addresses, and subnets provided below.
 
-### Home network (LAN)
+### Nebula overlay network (Internet)
 
-This is the subnet that we want to be able to access remotely over our Nebula overlay.
+This is the overlay network with hosts running Nebula. Let's choose a common overlay network subnet `10.0.0.0/24` with
+the IP range `10.0.0.1 – 10.0.0.254`.
 
-- `192.168.86.0/24` (192.168.86.1–192.168.86.254)
-- The Linux host routing traffic from Nebula using `unsafe_routes` is connected to this network
+The `nebula-roaming` host in this example has Internet access but is not on the home LAN.
 
-| LAN Host IP     | LAN Hostname  | Overlay Hostname | Description                                |
-| --------------- | ------------- | ---------------- | ------------------------------------------ |
-| `192.168.86.10` | `raspi.lan`   | `home-raspi`     | Linux host on LAN that will handle routing |
-| `192.168.86.5`  | `printer.lan` | (none)           | Printer that cannot run Nebula             |
+| Overlay host IP | Overlay hostname | Description                                                          |
+| --------------- | ---------------- | -------------------------------------------------------------------- |
+| `10.0.0.1`      | `lighthouse`     | Nebula lighthouse                                                    |
+| `10.0.0.5`      | `subnet-gateway` | Overlay host routing traffic between overlay and subnet              |
+| `10.0.0.11`     | `nebula-roaming` | Roaming host that needs access to the printer _via_ `subnet-gateway` |
 
-### Overlay network (Nebula)
+### Subnet (Home LAN)
 
-This is the overlay network that will be used by hosts running Nebula.
+This is the subnet on which a roaming host needs to access devices. Let's choose a common LAN subnet `192.168.1.0/24`
+with the IP range `192.168.1.1` – `192.168.1.254`.
 
-- `192.168.100.0/24` (192.168.100.1–192.168.100.254)
-- The macOS host in this example has Internet access but it not on the same, physical LAN as the Linux host.
+| Subnet device IP | Overlay hostname | Description                                    |
+| ---------------- | ---------------- | ---------------------------------------------- |
+| `192.168.1.5`    | `subnet-gateway` | Overlay host routing traffic to subnet devices |
+| `192.168.1.25`   | (none)           | Printer that cannot run Nebula                 |
 
-| Overlay host IP  | Overlay hostname | Description                                                |
-| ---------------- | ---------------- | ---------------------------------------------------------- |
-| `192.168.100.10` | `home-raspi`     | Linux host that will route traffic between LAN and overlay |
-| `192.168.100.11` | `laptop-mac`     | Mac that will access printer _via_ `home-raspi`            |
+## How to add unsafe routes
 
-## Configuration steps
+With your Nebula overlay network and subnet up and running, add unsafe routes following the steps below.
 
-Using the example network and hosts referenced above, the following steps explain how to configure the macOS host
-(`laptop-mac`, `192.168.100.11`) to route traffic through the Linux host (`home-raspi`, `192.168.100.10`) in order to
-reach home printer from anywhere.
+On the subnet gateway:
 
-### Step 1. Sign cert with subnets you want to route
+- [Step 1. Subnet gateway: Add unsafeNetworks to the certificate](#step-1-subnet-gateway-add-unsafenetworks-to-the-certificate)
+- [Step 2. Subnet gateway: Configure Nebula firewall](#step-2-subnet-gateway-configure-nebula-firewall)
+- [Step 3. Subnet gateway: Configure traffic routing](#step-3-subnet-gateway-configure-traffic-routing)
 
-From the same directory containing our CA cert (ca.crt) and key (ca.key), run the following command to sign a new cert
-for our Linux host that will be routing traffic to the home network.
+On a client host:
 
-```shell
-nebula-cert sign -name 'home-raspi' -ip '192.168.100.10/24' -subnets '192.168.86.0/24'
+- [Step 4. Roaming host: Configure traffic routing](#step-4-roaming-host-configure-traffic-routing)
+
+Using the setup in [Example network](#example-network), this guide will show you how to configure the roaming host
+(`nebula-roaming`, `10.0.0.11`) to route traffic through the subnet gateway (`subnet-gateway`, `10.0.0.5` and
+`192.168.1.5`) to reach the printer on the home LAN from anywhere.
+
+## Step 1. Subnet gateway: Add unsafeNetworks to the certificate
+
+On your CA host, go to the directory containing your `ca.crt` and `ca.key`, then sign a new cert for the subnet gateway
+with subnets you want to route:
+
+```sh
+nebula-cert sign -name 'subnet-gateway' -networks '10.0.0.5/24' -unsafe-networks '192.168.1.0/24'
 ```
 
-Inspect the new certificate to confirm that `subnets` is now correctly set to the Home LAN CIDR.
+Inspect the new certificate to confirm that `unsafeNetworks` is now correctly set to the home LAN subnet.
 
-```shell
-nebula-cert print -json -path home-raspi.crt | jq .details
+```json
+nebula-cert print -json -path subnet-gateway.crt | jq .details
 {
-  "groups": [],
-  "ips": [
-    "192.168.100.10/24"
-  ],
+  "groups": null,
   "isCa": false,
   "issuer": "57903a07e52a8f5464636aeccb1942560324dcd1f6c4f0457d77b00372b5d9f2",
-  "name": "home-raspi",
-  "notAfter": "2022-12-02T19:21:04-05:00",
-  "notBefore": "2021-12-03T11:19:38-05:00",
-  "publicKey": "defd2478b4818659d21d862a7dc51a6630fce8fc1fafdec1026c6552f01c0655",
-  "subnets": [
-    "192.168.86.0/24"
+  "name": "subnet-gateway",
+  "networks": [
+    "10.0.0.5/24"
+  ],
+  "notAfter": "2027-09-23T10:24:57+08:00",
+  "notBefore": "2026-09-29T11:24:07+08:00",
+  "unsafeNetworks": [
+    "192.168.1.0/24"
   ]
 }
 ```
 
-### Step 2. Copy cert to Linux host (LAN)
+Next, copy the new host cert and key over to the subnet gateway:
 
-Next, copy the new host certificate and key over to the Linux host that will handle the routing.
-
-```shell
-scp home-raspi.crt home-raspi.key root@raspi.lan:/etc/nebula
+```sh
+# Replace user with your ssh username
+scp subnet-gateway.crt subnet-gateway.key user@10.0.0.5:~/
 ```
 
-After copying these files, login to this host and replace your existing key and cert with these files. This is commonly
-`/etc/nebula`. It's also a best practice to make sure that the key file is only readable by root. If you keep the same
-file paths as the old key and cert you won't need to make any changes to your Nebula config.yml file.
+After copying these files, login to your subnet gateway host and replace your existing cert and key files (commonly
+stored in `/etc/nebula`) with the updated files. It's also a good practice to make sure that the key file is only
+readable by root. If you change existing file paths for the cert and key, don't forget to update them in your Nebula
+`config.yml` file.
 
-### Step 3. Configure Nebula firewall on Linux host (LAN)
+## Step 2. Subnet gateway: Configure Nebula firewall
 
-In addition to adding a CIDR to the `subnets` field of our new cert, you also need to add inbound firewall rules to the
-Linux host in this example for any ports that you want to access _through this host._
+Besides adding the subnet to the cert's `unsafeNetworks` field, you need to add separate firewall rules on your subnet
+gateway to regulate inbound traffic to your subnet from other overlay hosts. For this, add an inbound firewall rule with
+[local_cidr](/docs/config/firewall/#firewallinbound) for subnet devices and ports that you need to reach.
 
-For example, if you want to access a printer on the LAN, you will need to add a rule to allow TCP port 631. Edit the
-Linux host's Nebula configuration file (commonly located at `/etc/nebula/config.yml`). Since v1.10, you must set
-`local_cidr` in order for the rule to apply to unsafe_routes.
+To access the printer on the home LAN, you need to add an inbound firewall rule to allow TCP port 631 on
+`192.168.1.0/24` (depending on your printer, you may need to include additional ports). On the subnet gateway, edit the
+Nebula configuration file (commonly located at `/etc/nebula/config.yml`) and add the following to existing firewall
+rules:
 
 ```yaml
 firewall:
@@ -158,12 +200,11 @@ firewall:
     - port: 631
       host: any
       proto: tcp
-      local_cidr: 192.168.86.1/32
+      local_cidr: 192.168.1.25/32
 ```
 
-You may need to add additional ports depending on your printer. The easiest way to make sure you can fully access any
-host on your network is to add a rule to allow any port/protocol on this host. The entire `firewall` section should look
-like the following.
+However, the easiest way to configure the firewall is to allow any port or protocol. In this case, on the subnet
+gateway, add the following to existing firewall rules:
 
 ```yaml
 firewall:
@@ -171,272 +212,420 @@ firewall:
     - port: any
       host: any
       proto: any
-      local_cidr: 192.168.86.0/24 # note that 0.0.0.0/0 would apply to the router node as well
-  outbound:
-    - host: any
-      port: any
-      proto: any
+      local_cidr: 192.168.1.0/24
 ```
 
-At this point we're finished configuring the Nebula-specific components on our Linux host. If Nebula is already running,
-go ahead and stop it. It's a good idea to start it again to validate that the configuration file, cert, and key are set
-up properly.
+At this point we're finished configuring the Nebula-specific components on the subnet gateway. If Nebula is running,
+it's a good idea to restart it to validate that the configuration file, cert, and key are set up correctly.
 
-```shell
-sudo nebula -config /etc/nebula/config.yml
-INFO[0000] Firewall rule added              firewallRule="map[caName: caSha: direction:outgoing endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
-INFO[0000] Firewall rule added              firewallRule="map[caName: caSha: direction:incoming endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
-INFO[0000] Firewall started                 firewallHash=21716b47a7a140e448077fe66c31b4b42f232e996818d7dd1c6c4991e066dbdb
-INFO[0000] Main HostMap created             network=192.168.100.10/24 preferredRanges="[]"
-INFO[0000] UDP hole punching enabled
-INFO[0000] Nebula interface is active       build=1.5.0 interface=nebula network=192.168.100.10/24 udpAddr="[::]:43068"
+```sh
+$ sudo nebula -config /etc/nebula/config.yml
+# To improve readability, each output line has been redacted as follows:
+# time=2026-09-29T04:04:06.476Z level=INFO msg="..." redacted to msg="..."
+msg="Firewall rule added" firewallRule="map[caName: caSha: cidr: direction:outgoing endPort:0 groups:[] host:any localCidr: proto:0 startPort:0]"
+msg="Firewall rule added" firewallRule="map[caName: caSha: cidr: direction:incoming endPort:0 groups:[] host:any localCidr: proto:0 startPort:0]"
+msg="Firewall rule added" firewallRule="map[caName: caSha: cidr: direction:incoming endPort:0 groups:[] host:any localCidr:192.168.1.0/24 proto:0 startPort:0]"
+msg="Firewall started" firewallHashes=SHA:bec58c30ae0bd0463ff56a5fe9a75a21dc0253a44e3dcbe00e0d70dfb2fbe782,FNV:1666660931
+msg=listening addr=[::]:4242
+msg="Main HostMap created" preferredRanges=[]
+msg="punchy enabled"
+msg="Loaded send_recv_error config" sendRecvError=always
+msg="Loaded accept_recv_error config" acceptRecvError=always
+msg="Nebula interface is active" interface=nebula1 networks=[10.0.0.5/24] build=1.11.2 udpAddr=[::]:4242 boringcrypto=false
+msg="Handshake message sent" vpnAddrs=[10.0.0.1] localIndex=4215839296 remoteIndex=0 udpAddrs=[<lighthouse-public-ip>:4242] initiatorIndex=4215839296 handshake="map[stage:1 style:ix_psk0]"
+msg="Handshake message received" vpnAddrs=[10.0.0.1] from=<lighthouse-public-ip>:4242 certName=lighthouse certVersion=2 fingerprint=<...> issuer=<...> initiatorIndex=4215839296 responderIndex=1986196114 handshake="map[stage:2 style:ix_psk0]"
 ```
 
-If you see a `Handshake message sent` to your lighthouse followed by a corresponding _received_ message after a similar
+If you see a `Handshake message sent` to your lighthouse followed by a corresponding `received` message after a similar
 set of lines shown above you are good to go.
 
-You can either leave Nebula running in the background or stop it while completing the next steps specific to this host.
+You can either leave Nebula running in the background or stop it while completing the next step on the subnet gateway.
 
-### Step 4. Enable IP forwarding on Linux host (LAN)
+## Step 3. Subnet gateway: Configure traffic routing
 
-Linux hosts need a kernel parameter set in order to allow packet forwarding. This is not typically enabled by default as
-shown in the following read example.
+Now, you need to configure traffic routing on Linux. First, allow packet forwarding between network interfaces. Then,
+configure the firewall to do packet routing and NAT.
 
-```shell
-sysctl net.ipv4.ip_forward
+### Enable IP forwarding
+
+Typically, packet forwarding is not enabled by default, and the respective kernel parameter is set to `0`:
+
+```sh
+$ sudo sysctl net.ipv4.ip_forward
 net.ipv4.ip_forward = 0
 ```
 
-Here's how you update that variable at runtime.
+You can update this variable at runtime as follows:
 
-```shell
-sudo sysctl -w net.ipv4.ip_forward=1
+```sh
+$ sudo sysctl -w net.ipv4.ip_forward=1
 net.ipv4.ip_forward = 1
 ```
 
-Note: This change is only persistent until you reboot. To make it permanent, add a new line with
-`net.ipv4.ip_forward = 1` to the end of the `/etc/sysctl.conf` file.
+:::note
 
-### Step 5. Configure packet routing on Linux host (LAN)
+This change will be lost upon reboot.
 
-+Now that IP forwarding is enabled, we need to add a few firewall rules so that our Linux router host will be able to to
-act as a NAT and masquerade as the other Nebula nodes which are using the route to connect through the Linux host to the
-hosts in the VPC. The exact steps necessary will depend on the firewall you are using, and the current firewall state on
-the host.
+To make it persist across reboots, run this to create a drop-in config file under `/etc/sysctl.d/`:
+
+```sh
+echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-nebula.conf
+```
+
+:::
+
+### Configure packet routing
+
+Now that packet forwarding is enabled, you need to add a few firewall rules. First, the subnet gateway needs to route
+packets between Nebula and local network interfaces. Second, it needs to do network address translation (NAT).
+
+Below you can find generic steps to configure the following:
+
+- [ufw](#ufw)
+- [nftables](#nftables)
+- [iptables](#iptables)
+
+:::note
+
+Please note that the exact steps will depend on your firewall state.
+
+For example, if your subnet gateway host runs Docker, its forward and postrouting rules may affect the routing rules
+proposed below.
+
+:::
 
 #### ufw
 
-Open `/etc/ufw/before.rules` and add the following lines to the bottom of the file.
+First, allow packet routing between the Nebula interface and the local network interface:<br /> _(Replace network
+interfaces (`nebula1`, `eth0`) and subnets with your actual ones)_
 
-```
-# NAT table rules
-*nat
-:POSTROUTING ACCEPT [0:0]
-
-# flush all existing POSTROUTING rules in the nat table to avoid duplicates
--F POSTROUTING
-
-# 192.168.100.0/24 is the Nebula network, 192.168.86.0/24 is the route CIDR
--A POSTROUTING -s 192.168.100.0/24 -d 192.168.86.0/24 -j MASQUERADE
-
-# don't delete the 'COMMIT' line or these nat table rules won't be processed
-COMMIT
-```
-
-Then run the following commands, replacing `nebula1` (Nebula interface) and `enp5s0` (local network interface) with the
-correct interface names, if necessary:
-
-```shell
-sudo ufw route allow in on nebula1 out on enp5s0 from 192.168.100.0/24 to 192.168.86.0/24
+```sh
+sudo ufw route allow in on nebula1 out on eth0 from 10.0.0.0/24 to 192.168.1.0/24
 sudo ufw reload
 ```
 
-Confirm the new rule is active by running the following:
+Confirm the new rule is active:
 
-```
+```sh
 $ sudo ufw status
 Status: active
 
 To                         Action      From
 --                         ------      ----
-192.168.86.0/24 on enp5s0  ALLOW FWD   192.168.100.0/24 on nebula1
+192.168.1.0/24 on eth0  ALLOW FWD   10.0.0.0/24 on nebula1
+```
+
+Next, enable NAT to masquerade outgoing packets.
+
+Open `/etc/ufw/before.rules` and add the NAT configuration block at the top of the file (before any \*filter block):
+
+```sh
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# flush all existing POSTROUTING rules in the nat table to avoid duplicates on reload
+-F POSTROUTING
+
+# 10.0.0.0/24 is the Nebula network, 192.168.1.0/24 is the route CIDR
+-A POSTROUTING -s 10.0.0.0/24 -d 192.168.1.0/24 -j MASQUERADE
+
+# don't delete the 'COMMIT' line or these nat table rules won't be processed
+COMMIT
+```
+
+Reload UFW to apply the NAT configuration:
+
+```sh
+sudo ufw reload
 ```
 
 #### nftables
 
-Create a new nftables configuration (e.g. `/etc/nftables-routing.conf`) with the following configuration:
+Create a new nftables configuration (e.g., `/etc/nftables/nebula.conf`). Configure the packet forwarding chain and then
+the NAT postrouting chain:<br /> _(Replace network interfaces (`nebula1`, `eth0`) and subnets with your actual ones)_
 
-```
+```sh
 table ip nebula_routing
 delete table ip nebula_routing
 table ip nebula_routing {
-  chain postrouting {
-    type nat hook postrouting priority srcnat; policy accept;
-    ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter masquerade
-  }
-
   chain forward {
     type filter hook forward priority filter; policy accept;
-    ct state related,established counter accept
-    iifname nebula1 oifname enp6s0 ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter accept
+    iifname nebula1 oifname eth0 ip saddr 10.0.0.0/24 ip daddr 192.168.1.0/24 counter accept
+    iifname eth0 oifname nebula1 ip saddr 192.168.1.0/24 ip daddr 10.0.0.0/24 ct state established,related counter accept
+  }
+
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    ip saddr 10.0.0.0/24 ip daddr 192.168.1.0/24 counter masquerade
   }
 }
 ```
 
-Then run the following command to load the rules:
+To load the rules, run:
 
-```shell
-sudo nft -f /etc/nftables-routing.conf
+```sh
+sudo nft -f /etc/nftables/nebula.conf
 ```
 
-You can verify the rule has taken effect by running the following command:
+To verify that the rules have taken effect, you can run:
 
 ```
 $ sudo nft list table nebula_routing
 table ip nebula_routing {
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter packets 1 bytes 84 masquerade
-	}
-
 	chain forward {
 		type filter hook forward priority filter; policy accept;
-		ct state established,related counter packets 134763 bytes 123879509 accept
-		iifname "nebula1" oifname "enp6s0" ip saddr 192.168.100.0/24 ip daddr 192.168.86.0/24 counter packets 726 bytes 85482 accept
+		iifname "nebula1" oifname "eth0" ip saddr 10.0.0.0/24 ip daddr 192.168.1.0/24 counter packets 6 bytes 504 accept
+		iifname "eth0" oifname "nebula1" ip saddr 192.168.1.0/24 ip daddr 10.0.0.0/24 ct state established,related counter packets 6 bytes 504 accept
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 10.0.0.0/24 ip daddr 192.168.1.0/24 counter packets 2 bytes 168 masquerade
 	}
 }
 ```
 
 :::note
 
-These rules will only be persistent until you reboot the host. You will need to configure the file to be loaded at boot.
+These changes will be lost upon reboot.
+
+To make them persist across reboots, include this file in your main `/etc/nftables.conf` by adding the following line to
+it:
+
+```sh
+include "/etc/nftables/nebula.conf"
+```
+
+Also, make sure to enable the `nftables` service so the configuration is loaded at boot:
+
+```sh
+sudo systemctl enable nftables
+```
 
 :::
 
 #### iptables
 
-Run the following commands to add the rules specific to our example networks, replacing `nebula1` (Nebula interface) and
-`epn5s0` (local network interface) with the correct interface names, if necessary.
+First, allow packet routing between the Nebula interface and the local network interface:<br /> _(Replace network
+interfaces (`nebula1`, `eth0`) and subnets with your actual ones)_
 
-```shell
-sudo iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -d 192.168.86.0/24 -j MASQUERADE
-sudo iptables -I FORWARD 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-sudo iptables -I FORWARD 2 -i nebula1 -o enp5s0 -s 192.168.100.0/24 -d 192.168.86.0/24 -j ACCEPT
+```sh
+sudo iptables -I FORWARD 1 -i nebula1 -o eth0 -s 10.0.0.0/24 -d 192.168.1.0/24 -j ACCEPT
+sudo iptables -I FORWARD 2 -i eth0 -o nebula1 -s 192.168.1.0/24 -d 10.0.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 ```
 
-Once complete, you can confirm that the new rules are active by running the following.
+Next, add the NAT rule to masquerade outgoing traffic:
 
-This first list shows the second and third rule.
-
-```shell
-$ sudo iptables -vL
-Chain INPUT (policy ACCEPT 10M packets, 6461M bytes)
- pkts bytes target     prot opt in     out     source               destination
-
-Chain FORWARD (policy ACCEPT 86 packets, 11057 bytes)
- pkts bytes target     prot opt in     out     source               destination
- 1034 1469K ACCEPT     all  --  epn6s0 nebula1  anywhere             anywhere             ctstate RELATED,ESTABLISHED
-    0     0 ACCEPT     all  --  nebula1 enp6s0  192.168.100.0/24     192.168.86.0/24
-
-Chain OUTPUT (policy ACCEPT 18M packets, 58G bytes)
- pkts bytes target     prot opt in     out     source               destination
+```sh
+sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -d 192.168.1.0/24 -j MASQUERADE
 ```
 
-And this command shows the first rule, specific to the NAT table.
+Once complete, confirm the forwarding rules are active:
 
-```shell
-$ sudo iptables -t nat -L
-Chain PREROUTING (policy ACCEPT)
-target     prot opt source               destination
-
-Chain INPUT (policy ACCEPT)
-target     prot opt source               destination
-
-Chain POSTROUTING (policy ACCEPT)
-target     prot opt source               destination
-MASQUERADE  all  --  192.168.100.0/24     192.168.86.0/24
-
-Chain OUTPUT (policy ACCEPT)
-target     prot opt source               destination
+```sh
+$ sudo iptables -L FORWARD -v -n
+Chain FORWARD (policy DROP 135 packets, 10404 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+  524   76K ACCEPT     0    --  nebula1 eth0    10.0.0.0/24         192.168.1.0/24
+ 1034 1469K ACCEPT     0    --  eth0    nebula1 192.168.1.0/24      10.0.0.0/24          ctstate RELATED,ESTABLISHED
 ```
 
-You may see additional rules listed depending on your host and whether or not you've modified it.
+Then verify the NAT rule:
+
+```sh
+$ sudo iptables -t nat -L POSTROUTING -v -n
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 MASQUERADE  0    --  *      *       10.0.0.0/24          192.168.1.0/24
+```
+
+You may see additional rules listed depending on your host and if other services (such as Docker) have modified
+iptables.
 
 :::note
 
-These rules will only be persistent until you reboot the host. Depending on your distribution, you need to run
-additional commands (e.g. `iptables-save`) to save these rules to disk and load them at boot.
+These changes will be lost upon reboot.
+
+To make them persist across reboots, you need to run additional commands (e.g. `iptables-save`) depending on your Linux
+distribution.
 
 :::
 
-### Step 6. Edit Nebula config on the overlay hosts that need to access the home LAN
+## Step 4. Roaming host: Configure traffic routing
 
-_We're almost there!_
+_The subnet gateway host is set up. We are almost there!_
 
-The final step in this process is to configure the overlay network hosts to use `unsafe_routes` and route traffic
-destined for our home LAN through the Linux host that we just configured.
+The final step is to configure the overlay network hosts to use `unsafe_routes` to route the traffic destined for the
+subnet devices through the subnet gateway.
 
-Keeping with the [example Overlay network](#overlay-network-nebula) in this guide, we will add the `unsafe_routes`
-details to the `tun` section of the Nebula config.yml file on `laptop-mac`.
+On `nebula-roaming`, make sure you have the following in the `tun` config section:
 
 ```yaml
 tun:
-  dev: utun10
   drop_local_broadcast: true
   drop_multicast: true
-  mtu: 1300
   unsafe_routes:
-    - route: 192.168.86.0/24
-      via: 192.168.100.10
+    - route: 192.168.1.0/24
+      via: 10.0.0.5
 ```
 
 Run Nebula with the new configuration:
 
-```shell
-sudo nebula -config config.yml
-INFO[0000] Firewall rule added           firewallRule="map[caName: caSha: direction:outgoing endPort:0 groups:[] host:any ip: proto:0 startPort:0]"
-INFO[0000] Firewall rule added           firewallRule="map[caName: caSha: direction:incoming endPort:0 groups:[] host:any ip: proto:1 startPort:0]"
-INFO[0000] Firewall started              firewallHash=570dd0546e17b139da845c05717d6dc2005fa7083292e1e8f797affab434c4f4
-WARN[0000] Adding UNSAFE Route           route=192.168.86.0/24 via=192.168.100.10
-INFO[0000] Main HostMap created          network=192.168.100.11/24 preferredRanges="[]"
-INFO[0000] UDP hole punching enabled
-INFO[0000] Nebula interface is active    build=1.5.0 interface=utun10 network=192.168.100.11/24 udpAddr="[::]:57027"
+```sh
+$ sudo nebula -config /etc/nebula/config.yml
+# To improve readability, each output line has been redacted as follows:
+# time=2026-09-29T04:04:06.476Z level=INFO msg="..." redacted to msg="..."
+msg="Firewall rule added" firewallRule="map[caName: caSha: cidr: direction:outgoing endPort:0 groups:[] host:any localCidr: proto:0 startPort:0]"
+msg="Firewall rule added" firewallRule="map[caName: caSha: cidr: direction:incoming endPort:0 groups:[] host:any localCidr: proto:0 startPort:0]"
+msg="Firewall started" firewallHashes=SHA:498215dec4e5687a2353f51c10838c113bd1af35ef72b8e8c9f536986ada5417,FNV:2782948616
+msg=listening addr=[::]:4242
+msg="Main HostMap created" preferredRanges=[]
+msg="punchy enabled"
+msg="Loaded send_recv_error config" sendRecvError=always
+msg="Loaded accept_recv_error config" acceptRecvError=always
+msg="Nebula interface is active" interface=nebula1 networks=[10.0.0.11/24] build=1.11.2 udpAddr=[::]:4242 boringcrypto=false
+msg="Added route" route=192.168.1.0/24
+msg="Handshake message sent" vpnAddrs=[10.0.0.1] localIndex=2523598458 remoteIndex=0 udpAddrs=[<lighthouse-public-ip>:4242] initiatorIndex=2523598458 handshake="map[stage:1 style:ix_psk0]"
+msg="Handshake message received" vpnAddrs=[10.0.0.1] from=<lighthouse-public-ip>:4242 certName=lighthouse certVersion=2 fingerprint=<...> issuer=<...> initiatorIndex=2523598458 responderIndex=1344867621 handshake="map[stage:2 style:ix_psk0]" durationNs=59967190 sentCachedPackets=1
 ```
 
-You should see a `WARN` line above indicating that we have an UNSAFE route being used. And now... you should be able to
-successfully ping any host on the `192.168.86.0/24` Home LAN.
+As you can see in `msg="Added route"`, the unsafe route is being used.
 
-Ping working? Great! Go ahead and add that printer, map file shares, and VNC to any host on that LAN.
+Now you should be able to successfully ping any host on the subnet from your roaming host and access subnet devices:
 
-Add the same `unsafe_routes` section to any other Nebula host that needs to access hosts on the Home LAN that aren't
-running Nebula.
+- **Ping working?** Great! Go ahead and add that printer, map file shares, and SSH to any host on the home LAN.
+- **Ping not working?** If both your roaming host and subnet gateway are behind NAT, they might have issues pinging each
+  other. In this case, try using [punchy](/docs/config/punchy/) or [relay](/docs/config/relay/). For details, see
+  [NAT traversal and firewalls](/docs/guides/nat-traversal/).
+
+Add the same `unsafe_routes` section to other overlay hosts that need access to subnet devices.
 
 ## Tips
 
 ### Avoid IP conflicts with underlay networks
 
-When you are running Nebula with `unsafe_routes` the OS of the host will forward all traffic destined for the route
-specified to Nebula. Keep in mind that this could cause a local IP conflict if your underlay network happens to use the
-same subnet as the subnet specified in your `unsafe_routes` configuration.
+When you are running Nebula with `unsafe_routes` the host's OS will forward all traffic destined for the unsafe route to
+Nebula. This might cause a local IP conflict if your underlay network happens to use the same IP range as the subnet
+specified in your `unsafe_routes` configuration.
 
-### Works with Mobile Nebula
+### Use unsafe routes with Mobile Nebula
 
-After you've successfully completed the steps above, you can also access your extended networks from a device running
-Mobile Nebula on [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) or
-[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) by launching the app and configuring it as follows:
+After you've successfully completed the steps above, you can also access your unsafe routes from a device running Mobile
+Nebula on [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) or
+[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936). For this, launch the app and configure it as follows:
 
-1. Tap the site you'd like to configure
-1. Then tap _Configuration_ → _Advanced_ → _Unsafe routes_
-1. Tap _Add a new route_ and enter the same information you used in Step 6:
-   - Route: `192.168.86.0/24`
-   - Via: `192.168.100.10`
+1. Tap the site you want to configure
+1. Tap _Configuration_ → _Advanced_ → _Unsafe routes_
+1. Tap _Add a new route_ and enter the same `route` and `via` values that you used in
+   [Step 4](#step-4-roaming-host-configure-traffic-routing)
 1. Tap _Save_
 
-![Screenshot of editing an Unsafe Route in Mobile Nebula](./mobile_nebula-unsafe_routes.png)
+If connected, disconnect from the site. Now, connect again and try to access one of the hosts only accessible using
+`unsafe_routes`. You should see a new line in your Mobile Nebula logs.
 
-If already connected to the site, disconnect.
+`level=warning msg="Adding UNSAFE Route" route=192.168.1.0/24 via=10.0.0.5`
 
-Connect and try to access one of the hosts only accessible using `unsafe_routes`. You should see a new line in your
-Mobile Nebula logs.
+### Route `0.0.0.0/0` using unsafe routes
 
-`level=warning msg="Adding UNSAFE Route" route=192.168.86.0/24 via=192.168.100.10`
+A Nebula host with a public IP can act as an internet gateway for other hosts in the overlay network. When
+[setting up full-tunnel routing](#how-to-add-unsafe-routes), keep in mind the specifics outlined below.
+
+```text
+LOCAL REGION INTERNET     ░     REMOTE REGION INTERNET
+                          ░
+        .....................................
+        :      NEBULA OVERLAY NETWORK       :
+        :                                   :
+ ┌──────┴───────┐                  ┌────────┴─────────┐
+ │ Roaming Host │─────────────────►│ Internet Gateway │───────►
+ └──────┬───────┘        (nebula1) └────────┬─────────┘ (eth0)
+        :                                   :
+        :  ┌────────────┐                   :
+        :  │ Lighthouse │                   :
+        :  └────────────┘                   :
+        :...................................:
+                          ░
+                          ░
+```
+
+On the internet gateway host, ensure that:
+
+- The certificate's `unsafeNetworks` field includes `0.0.0.0/0`
+- Inbound Nebula firewall rules cover `local_cidr` for `0.0.0.0/0`
+- System firewall rules for forwarding and NAT/masquerading do not contain destination restrictions. The egress
+  interface then becomes the only limit on these rules, so every rule must match it. In the rules shown in
+  [Configure packet routing](#configure-packet-routing):
+  - **ufw**: In the `ufw route allow` rule, remove `to 192.168.1.0/24`. In the `/etc/ufw/before.rules` NAT rule, remove
+    `-d 192.168.1.0/24` and add `-o eth0`
+  - **nftables**: In the forward rule, remove `ip daddr 192.168.1.0/24`. In the postrouting rule, remove
+    `ip daddr 192.168.1.0/24` and add `oifname eth0`
+  - **iptables**: In the `FORWARD` rule, remove `-d 192.168.1.0/24`. In the NAT `POSTROUTING` rule, remove
+    `-d 192.168.1.0/24` and add `-o eth0`
+
+:::warning
+
+An inbound rule with `local_cidr: 0.0.0.0/0` also matches the internet gateway's own addresses, so overlay hosts can
+reach any port on the gateway itself that the rule allows. If you don't want this, keep `local_cidr: 0.0.0.0/0` limited
+to the ports you intend to forward and add separate, narrower rules for services running on the gateway.
+
+:::
+
+On overlay hosts, configuring full-tunnel routing through an internet gateway host varies in complexity depending on the
+operating system.
+
+Mobile Nebula [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) and
+[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) apps handle `0.0.0.0/0` correctly if you follow the
+guidelines in [Use unsafe routes with Mobile Nebula](#use-unsafe-routes-with-mobile-nebula).
+
+On non-mobile Nebula hosts, routing `0.0.0.0/0` creates a routing loop. To maintain the overlay network, each Nebula
+host must communicate with the lighthouse and other overlay hosts (underlay traffic). By default, overlay hosts that
+route `0.0.0.0/0` into the Nebula tunnel also send Nebula's underlay traffic into the same tunnel, triggering the
+routing loop.
+
+Here are the strategies to prevent routing loops on Linux, macOS, and Windows.
+
+#### Linux
+
+On Linux, Nebula supports [listen.so_mark](/docs/config/listen/#listenso_mark), which assigns an `SO_MARK` socket mark
+to all of Nebula's outgoing underlay UDP traffic. By marking the packets, you can divert general system traffic through
+the Nebula tunnel via policy routing while allowing Nebula's underlay traffic to bypass the tunnel.
+
+To enable marking underlay packets, add this option to your config:
+
+```yaml
+listen:
+  so_mark: 0x6EB
+```
+
+After that, configure policy routing by creating a custom routing table for internal overlay network traffic. In that
+table, set the default route via the internet gateway host and add policy rules to bypass marked underlay packets:
+
+```sh
+ip route replace default via 10.0.0.5 dev nebula1 table 4242
+ip rule add pref 5000 table main suppress_prefixlength 0
+ip rule add pref 5001 not fwmark 0x6EB table 4242
+```
+
+For more information, see [listen.so_mark](/docs/config/listen/#listenso_mark) and
+[slackhq/nebula#1837](https://github.com/slackhq/nebula/issues/1837).
+
+#### macOS and Windows
+
+To avoid routing loops on macOS and Windows, you need to do two things.
+
+Configure routing all traffic `0.0.0.0/0` to the Nebula tunnel. To avoid conflicts with your system's default gateway
+route, split `0.0.0.0/0` into two more specific `/1` routes that will take precedence over the default gateway:
+
+```yaml
+unsafe_routes:
+  - route: 0.0.0.0/1
+    via: 10.0.0.5
+  - route: 128.0.0.0/1
+    via: 10.0.0.5
+```
+
+Bypass underlay traffic by manually adding explicit static routes in your operating system's routing table for the
+public IPs of the lighthouse and the internet gateway host. If you need access to other overlay hosts, you can also add
+routes for their public IPs. Note that manually maintaining static routes is generally impractical for hosts with
+dynamic IPs and rarely possible for hosts behind NAT.
