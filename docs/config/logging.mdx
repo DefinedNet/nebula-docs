@@ -12,20 +12,30 @@ logging:
   level: info
   format: text
   #disable_timestamp: true
-  #timestamp_format: "2006-01-02T15:04:05.000Z07:00"
 ```
 
 ## logging.level
 
 <Pill className="mb-24">Default: info</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Controls the verbosity of logs. The options are `panic`, `fatal`, `error`, `warning`, `info`, or `debug`.
+Controls the verbosity of logs. The options are `trace`, `debug`, `info`, `warn` (or `warning`), and `error`. `fatal`
+and `panic` are still accepted for compatibility with older configs, and both behave like `error`.
+
+:::warning
+
+Debug and trace logging can log remotely controlled, untrusted data, which can quickly fill a disk in some scenarios.
+They are also CPU intensive and decrease overall performance. Only enable them while actively investigating an issue.
+
+:::
+
+The level can also be changed at runtime with the `log-level` [debug command](/docs/guides/debug-ssh-commands/). A
+config reload sets it back to the configured value.
 
 ## logging.format
 
 <Pill className="mb-24">Default: text</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Controls the logging format. The options are `json` or `text`
+Controls the logging format. The options are `json` or `text`.
 
 ## logging.disable_timestamp
 
@@ -33,22 +43,15 @@ Controls the logging format. The options are `json` or `text`
 
 Disables timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
 
-## logging.timestamp_format
+Timestamps are always [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339) with nanosecond precision, e.g.
+`2006-01-02T15:04:05.999999999Z07:00`. The `logging.timestamp_format` setting was removed in v1.11.0 and is ignored.
 
-<Pill className="mb-24">Reloadable</Pill>
+## Rate limited messages
 
-`timestamp_format` is specified in Go time format, see: https://golang.org/pkg/time/#pkg-constants.
+Some errors that can repeat for every packet are logged at most once per second each, so a persistent failure cannot
+flood the log. The next line logged after some were held back carries a `suppressed` field with the number of lines
+skipped. These are:
 
-The default when `format: json` is set is an [RFC3339 timestamp](https://datatracker.ietf.org/doc/html/rfc3339), e.g.
-`"2006-01-02T15:04:05Z07:00"`.
-
-When `format: text` is set:
-
-- If a TTY is attached, the timestamp output is seconds since beginning of execution.
-- Otherwise it is `"2006-01-02T15:04:05Z07:00"` (RFC3339).
-
-As an example, to log as RFC3339 with millisecond precision:
-
-```yml
-timestamp_format: '2006-01-02T15:04:05.000Z07:00'
-```
+- `Failed to write outgoing packet`
+- `Failed to WriteTo in sendVia`
+- `Dropping outbound packet, out buffer not large enough`
