@@ -47,7 +47,7 @@ Check the [releases](https://github.com/slackhq/nebula/releases/latest) page for
 
 - Linux - 64 and 32 bit, arm, mips, and others
 - Windows
-- macOS
+- macOS 13 (Ventura) or newer
 - Freebsd
 
 #### Mobile
@@ -83,8 +83,9 @@ passphrase. Keep it safe - you will be prompted for it each time you sign a host
 
 Nebula uses AES-256-GCM encryption with Argon2id for key derivation. The default Argon2 parameters are taken from the
 "FIRST RECOMMENDED" suggestion in the [Argon2 RFC](https://datatracker.ietf.org/doc/rfc9106/) (1 iteration, 4 lanes
-parallelism, 2 GiB RAM.) To select your own parameters, use the `-argon-iterations`, `-argon-parallelism`, and
-`-argon-memory` CLI flags.
+parallelism, 2 GiB RAM.) On 32-bit systems, which cannot use that much memory, the defaults follow the RFC's
+memory-constrained recommendation instead (3 iterations, 4 lanes parallelism, 64 MiB RAM.) To select your own
+parameters, use the `-argon-iterations`, `-argon-parallelism`, and `-argon-memory` CLI flags.
 
 :::
 
@@ -97,9 +98,9 @@ your organization.
 ./nebula-cert ca -name "Myorganization, Inc"
 ```
 
-This will create files named `ca.key` and `ca.cert` in the current directory. The `ca.key` file is the **most
-sensitive** file you'll create, because it is the key used to sign the certificates for individual nebula hosts. Please
-store this file somewhere safe, preferably with strong encryption.
+This will create files named `ca.key` and `ca.crt` in the current directory. The `ca.key` file is the **most sensitive**
+file you'll create, because it is the key used to sign the certificates for individual nebula hosts. Please store this
+file somewhere safe, preferably with strong encryption.
 
 :::info
 
@@ -136,9 +137,9 @@ IP addresses to each host from within this subnet. This example also demonstrate
 to define traffic rules in a nebula network.
 
 ```shell
-./nebula-cert sign -name "lighthouse1" -ip "192.168.100.1/24"
-./nebula-cert sign -name "laptop" -ip "192.168.100.5/24" -groups "laptop,ssh"
-./nebula-cert sign -name "server" -ip "192.168.100.9/24" -groups "servers"
+./nebula-cert sign -name "lighthouse1" -networks "192.168.100.1/24"
+./nebula-cert sign -name "laptop" -networks "192.168.100.5/24" -groups "laptop,ssh"
+./nebula-cert sign -name "server" -networks "192.168.100.9/24" -groups "servers"
 ```
 
 :::info
