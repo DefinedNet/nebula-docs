@@ -14,16 +14,26 @@ listen:
   host: 0.0.0.0
   port: 4242
   batch: 64
-  read_buffer: 10485760
-  write_buffer: 10485760
+  read_buffer: 3412512
+  write_buffer: 3412512
 ```
+
+`listen.host` and `listen.port` are not reloadable. Changing either takes effect after a restart.
 
 ## listen.host
 
 <Pill className="mb-24">Default: 0.0.0.0</Pill>
 
 `host` is the ip of the interface to use when binding the listener. The default is `0.0.0.0` for all IPv4 interfaces. To
-enable IPv6, use `'[::]'` instead. `host` may also contain a hostname.
+enable IPv6, use `'::'` instead, which listens on both IPv4 and IPv6. The older `'[::]'` form is still accepted. `host`
+may also contain a hostname.
+
+`host` decides whether Nebula uses IPv6 on the underlay network at all. With an IPv4 address here, including the default
+`0.0.0.0`, Nebula cannot send to or receive from IPv6 addresses, so it ignores the IPv6 addresses of its peers, whether
+learned from a lighthouse or from [`static_host_map`](/docs/config/static-host-map/), and it does not report its own
+IPv6 interface addresses to lighthouses. IPv6 addresses listed in
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) are still advertised. A lighthouse
+with an IPv4 socket still stores and hands out the IPv6 addresses other hosts report.
 
 ## listen.port
 
@@ -35,7 +45,8 @@ nodes. Using 0 on lighthouses and relay hosts will likely lead to connectivity i
 
 <Pill className="mb-24">Default: 64</Pill>
 
-Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`).
+Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`). Only
+used on Linux. Values below 1 are treated as 1. Not reloadable.
 
 When [`listen.udp_offloads`](#listenudp_offloads) has enabled GRO, each receive slot is sized for a full 64KiB coalesced
 superpacket, so the receive scratch memory is `batch × 64KiB` per listening socket (about 4MiB per routine at the
@@ -43,10 +54,21 @@ default of 64). Lower this value to trade peak per-syscall throughput for memory
 
 ## listen.read_buffer, listen.write_buffer
 
+<Pill className="mb-24">Reloadable</Pill>
+
+This option is only supported on Linux.
+
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and
-`/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is
-used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
+`/proc/sys/net/core/wmem_default`).
+
+Nebula first tries `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE`, which avoid having to raise the system wide max
+(`net.core.rmem_max` and `net.core.wmem_max`) but need the `CAP_NET_ADMIN` capability. Without it, Nebula falls back to
+`SO_RCVBUF` and `SO_SNDBUF`, which the kernel limits to the system wide max. When the buffer ends up smaller than
+requested, Nebula logs a warning such as `listen.read_buffer was limited by the system`; raise `net.core.rmem_max` /
+`net.core.wmem_max` or grant `CAP_NET_ADMIN` to fix it.
+
+Removing a value on reload leaves the socket at its current size until Nebula restarts.
 
 ## listen.send_recv_error
 
@@ -73,6 +95,7 @@ Valid values: `always`, `never`, `private`
 
 ## listen.so_mark
 
+<Pill className="mb-24">Default: 0</Pill> <Pill className="mb-24">Reloadable</Pill>
 <Pill className="mb-24">Added in v1.10.0</Pill>
 
 On Linux systems, Nebula can now mark packets using the
@@ -125,3 +148,15 @@ than `1`.
 
 Enabling GRO increases the fixed memory used by the receive path, see [`listen.batch`](#listenbatch) for details. For
 the biggest throughput gains, pair this option with [`tun.use_offloads`](/docs/config/tun/#tunuse_offloads).
+
+## listen.windows_bypass_wdf
+
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows (amd64 and arm64).
+
+When true, Nebula installs a WFP (Windows Filtering Platform) PERMIT filter scoped to UDP at the listener port. WFP sits
+below Windows Defender Firewall, so this lets peer handshakes reach Nebula's UDP socket regardless of Defender Firewall
+inbound rules. Set to false to leave Windows Defender Firewall in charge of inbound traffic to the listener port. See
+[`tun.windows_bypass_wdf`](/docs/config/tun/#tunwindows_bypass_wdf) for the nebula interface. Changing this takes effect
+after a restart.
