@@ -76,13 +76,13 @@ This setting is not reloadable.
 
 Some recently added metrics worth watching:
 
-| Metric                                   | Meaning                                                                                                                 |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `udp.tx.dropped`                         | Packets queued for the UDP socket that the kernel did not accept                                                        |
-| `udp.gro.enabled`, `udp.gso.enabled`     | Linux only. `1` when the UDP socket is using GRO or GSO, see [`listen.udp_offloads`](/docs/config/listen/)              |
-| `lighthouse.query.dropped`               | Lighthouse queries dropped because [`handshakes.query_buffer`](/docs/config/handshake/#handshakesquery_buffer) was full |
-| `handshake_manager.rejected.blocklisted` | Handshakes refused because the peer's certificate is in [`pki.blocklist`](/docs/config/pki/#pkiblocklist)               |
-| `messages.tx.exhausted`                  | Packets dropped because a tunnel's message counter reached its limit. Only with `stats.message_metrics: true`           |
+| Metric                                   | Meaning                                                                                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `udp.tx.dropped`                         | Packets queued for the UDP socket that the kernel did not accept                                                              |
+| `udp.gro.enabled`, `udp.gso.enabled`     | Linux only. `1` when the UDP socket is using GRO or GSO, see [`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads) |
+| `lighthouse.query.dropped`               | Lighthouse queries dropped because [`handshakes.query_buffer`](/docs/config/handshake/#handshakesquery_buffer) was full       |
+| `handshake_manager.rejected.blocklisted` | Handshakes refused because the peer's certificate is in [`pki.blocklist`](/docs/config/pki/#pkiblocklist)                     |
+| `messages.tx.exhausted`                  | Packets dropped because a tunnel's message counter reached its limit. Only with `stats.message_metrics: true`                 |
 
 With Prometheus, Nebula also exports an `info` gauge whose labels carry the `version`, `goversion`, `boringcrypto`,
 `fips140Version`, `fips140Enabled`, and `fips140Enforced` of the running binary.
