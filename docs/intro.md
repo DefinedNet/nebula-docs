@@ -46,7 +46,7 @@ Nebula is written in Go and is designed for portability.
 
 - Packaged for Linux, macOS, Windows, iOS, Android, and FreeBSD
 - Efficiently runs on x86, ARM, MIPS, PPC, and RISC hardware (32 & 64-bit)
-- A single `nebula` executable runs host firewall and service
+- A single `nebula` executable runs host firewall and service, and `nebula ctl` inspects and controls it locally
 - Host config file defines CA trust, host cert & key, and firewall rules
 - At least one host in overlay network should be a _Lighthouse_, which helps hosts discover routes to one another and
   assists in NAT traversal.

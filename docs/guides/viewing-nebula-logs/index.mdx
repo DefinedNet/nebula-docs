@@ -11,6 +11,19 @@ import ThemedImage from '@theme/ThemedImage';
 This guide explains how to view logs for Nebula in each of the supported platforms. Please note that these instructions
 are approximations as there are many ways that Nebula can be installed.
 
+## Changing the log level
+
+The level of detail is set by [`logging.level`](/docs/config/logging/#logginglevel). To turn up logging on a running
+Nebula without editing its config, use [`nebula ctl`](/docs/guides/local-control-and-info-api/) on the host:
+
+```bash
+sudo nebula ctl log-level debug
+# and back again when you are done
+sudo nebula ctl log-level info
+```
+
+`nebula ctl log-format json` switches the format the same way. A config reload sets both back to the configured values.
+
 ## Linux
 
 :::note
