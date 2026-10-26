@@ -39,17 +39,20 @@ static_host_map:
 
 When establishing a tunnel to one of these peers, nebula tries each listed address until a handshake succeeds. Entries
 can be literal IPv4 addresses, DNS names, or bracketed IPv6 literals, and a single host can list several — useful when a
-peer is reachable over multiple paths.
+peer is reachable over multiple paths. IPv6 addresses are only dialed if the host's own
+[`listen.host`](/docs/config/listen/#listenhost) is an IPv6 address such as `'::'`; with the default `0.0.0.0` the
+host's socket can't send to them, so they are ignored.
 
 Because the addresses come from local config, no lighthouse is involved: a statically mapped peer stays reachable even
 while every lighthouse is down. The cost is maintenance. An entry only helps hosts whose config contains it, so making
 one host statically reachable means editing every peer's config — and if the address changes and an entry goes stale,
 peers waste handshake attempts dialing it.
 
-DNS names in the static host map are re-resolved periodically, not just at startup. The
-[`static_map`](/docs/config/static-map/) settings control the re-resolution cadence, the lookup timeout, and which IP
-version is used — the default is IPv4-only, so IPv6-only hosts must set
-[`static_map.network`](/docs/config/static-map/#static_mapnetwork) to `ip6` or `ip`.
+DNS names in the static host map are re-resolved periodically, not just at startup, and again whenever a handshake to
+that host starts. A lookup that fails keeps the addresses from the last successful one, so a DNS outage doesn't cut a
+host off from its lighthouses; only a not found answer removes them. The [`static_map`](/docs/config/static-map/)
+settings control the re-resolution cadence, the lookup timeout, and which IP version is used — the default is IPv4-only,
+so IPv6-only hosts must set [`static_map.network`](/docs/config/static-map/#static_mapnetwork) to `ip6` or `ip`.
 
 ## The dynamic path: lighthouse discovery
 
@@ -65,7 +68,9 @@ lighthouse:
 
 Each report carries the addresses the host knows about itself: the IPs on its local interfaces (filtered by
 [`lighthouse.local_allow_list`](/docs/config/lighthouse/#lighthouselocal_allow_list)) plus anything listed in
-[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs).
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs). A host whose
+[`listen.host`](/docs/config/listen/#listenhost) is an IPv4 address leaves out its IPv6 interface addresses, since it
+can't receive on them.
 
 But a host behind a NAT doesn't know its own public address — so the lighthouse learns it another way: it looks at the
 source IP and port on the report packets as they arrive. That observed address is usually exactly what other peers need
