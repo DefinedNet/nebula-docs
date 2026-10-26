@@ -156,7 +156,7 @@ value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise th
 
 ## tun.use_offloads
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
 This option is only supported on Linux and is not reloadable.
@@ -165,14 +165,14 @@ When enabled, Nebula attempts to enable segmentation offloads on the tun device.
 Nebula TCP and UDP payloads much larger than the MTU in a single read, and accept large coalesced packets on write,
 substantially reducing per-packet overhead for high-throughput flows. Nebula negotiates the best supported mode at
 startup (TSO with USO, then TSO alone on kernels older than 6.2, then no offloads) and logs the result in the
-`TUN offload status` message.
+`TUN offload status` message. Offloads are never used on a tun device that is handed to Nebula already open.
 
 For the biggest throughput gains, pair this option with
 [`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads).
 
 ## tun.pin_threads
 
-<Pill className="mb-24">Default: True</Pill>
+<Pill className="mb-24">Default: true</Pill>
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
 This option is only supported on Linux and is not reloadable. It only takes effect when
@@ -193,7 +193,7 @@ readers onto the same cores.
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
 This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
-is `true`.
+is `true` and [`routines`](/docs/config/routines/) is greater than `1`.
 
 Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine (see
 [`routines`](/docs/config/routines/)). A list shorter than `routines` is cycled across the queues; extra entries are
@@ -214,8 +214,10 @@ tun:
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
 This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
-is `true` and no [`tun.cpu_affinity`](#tuncpu_affinity) override is set.
+is `true`, [`routines`](/docs/config/routines/) is greater than `1`, and no [`tun.cpu_affinity`](#tuncpu_affinity)
+override is set.
 
 Controls how the automatic CPU selector varies its starting point between Nebula instances. Valid values are `pid` and
 `port`. Use `port` if you want Nebula to choose the same cores every run (keyed by the bound UDP port), which is useful
-for reproducible benchmarking.
+for reproducible benchmarking. An unknown value, or `port` when Nebula cannot read its bound port, logs a warning and
+uses `pid`.
