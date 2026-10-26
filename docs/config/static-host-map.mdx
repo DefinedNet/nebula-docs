@@ -3,7 +3,11 @@ sidebar_position: 2
 description: Define the static host map to enable peer discovery on the Nebula network.
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # static_host_map
+
+<Pill className="mb-24">Reloadable</Pill>
 
 The static host map defines a set of hosts with fixed IP addresses (or DNS names) on the internet (or any network).
 Entries listed here are dialed directly, without lighthouse mediation, which makes the static host map the bootstrap
@@ -32,5 +36,10 @@ static_host_map:
   '192.168.100.1': ['100.64.22.11:4242', 'lighthouse.example.com:4242', '[2001:db8::1]:4242']
 ```
 
-DNS names are re-resolved periodically; the [static_map](/docs/config/static-map/) settings control the resolution
-cadence, lookup timeout, and which IP version is used to reach static hosts.
+DNS names are re-resolved periodically, and again whenever a handshake to that host starts. A failed lookup keeps the
+last known good addresses; only a not found answer removes them. The [static_map](/docs/config/static-map/) settings
+control the resolution cadence, lookup timeout, and which IP version is used to reach static hosts.
+
+Every host listed in [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) must have an entry here. Nebula
+refuses to start, and fails a reload that changes `lighthouse.hosts`, if one is missing. Removing an entry on reload
+drops its addresses.
