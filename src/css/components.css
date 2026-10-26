@@ -765,6 +765,11 @@ section.row > article[class*='docCardListItem'] {
   padding-left: 1.5rem;
 }
 
+/* <TOCInline> reuses .table-of-contents but renders as a bulleted list in body copy, so it keeps the list indent. */
+[class*='tableOfContentsInline'] ul {
+  padding-left: var(--ifm-list-left-padding);
+}
+
 .pagination-nav__link {
   position: relative;
   border: 1px solid var(--border-color);
