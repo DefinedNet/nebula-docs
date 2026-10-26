@@ -103,6 +103,20 @@ and allows for easy rollback if issues arise.
 For each host you want to migrate, create a v2 certificate using the new CA. A v2 CA creates v2 certificates by default.
 This is the perfect time to add IPv6 addresses to your certificates.
 
+v2 certificates need a name between 1 and 253 bytes long, and signing one outside that range fails.
+
+:::note
+
+IPv6 addresses in the overlay do not need IPv6 on the underlay network: IPv6 overlay traffic travels between hosts over
+IPv4 just fine. To also let hosts reach each other over an IPv6 underlay, set
+[`listen.host`](/docs/config/listen/#listenhost) to `'::'`. With the default `0.0.0.0`, Nebula ignores IPv6 underlay
+addresses.
+
+On Windows, a host whose overlay carries IPv6 needs a [`tun.mtu`](/docs/config/tun/#tunmtu) of at least 1280, the IPv6
+minimum, or Nebula will not start. Linux has the same requirement.
+
+:::
+
 **Option 1: Add IPv6 while keeping IPv4 (dual-stack):**
 
 ```bash
@@ -260,8 +274,19 @@ Since all hosts trust both CAs, v1 and v2 hosts can communicate during the migra
 
 ## Verify v2 certificates are in use
 
-After updating a host, you can verify it's using v2 certificates via the `print-tunnel` command from the
-[debug SSH server](/docs/guides/debug-ssh-commands/):
+After updating a host, you can verify the certificate version a peer is using with `nebula ctl identity`, which reports
+it as `cert version`:
+
+```bash
+❯ sudo nebula ctl identity 192.168.1.2
+name: lighthouse
+vpn addrs: 192.168.1.2, fdc8:d0db:a315:cb00::2
+...
+cert version: 2
+```
+
+The `print-tunnel` command, from [`nebula ctl`](/docs/guides/local-control-and-info-api/) or the
+[debug SSH server](/docs/guides/debug-ssh-commands/), shows the whole certificate:
 
 ```bash
 alex@nebula > print-tunnel 192.168.1.2
@@ -297,7 +322,7 @@ alex@nebula > print-tunnel 192.168.1.2
 You can also check the logs for the `certVersion` field in handshakes:
 
 ```bash
-time="2025-12-09T22:23:33Z" level=info msg="Handshake message received" certName=host-1 certVersion=2 fingerprint=1376f30ea6ec555bde413be57eb3a3fad58ff7f6e31a87890e24a4a65b22c688 from="192.168.65.1:16583" handshake="map[stage:1 style:ix_psk0]" initiatorIndex=2138029252 issuer=74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c remoteIndex=0 responderIndex=0 vpnAddrs="[192.168.1.1 fdc8:d0db:a315:cb00::1]"
+time=2025-12-09T22:23:33.402158921Z level=INFO msg="Handshake message received" vpnAddrs="[192.168.1.1 fdc8:d0db:a315:cb00::1]" from=192.168.65.1:16583 certName=host-1 certVersion=2 fingerprint=1376f30ea6ec555bde413be57eb3a3fad58ff7f6e31a87890e24a4a65b22c688 issuer=74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c initiatorIndex=2138029252 responderIndex=0 handshake="map[stage:1 style:ix_psk0]"
 ```
 
 ## Optional: Transition to IPv6-only
