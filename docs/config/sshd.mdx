@@ -26,7 +26,14 @@ sshd:
     - '[ssh ca public key string]'
 ```
 
-See also the [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/) guide.
+See also the [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/) guide. The same commands are
+available locally, without the SSH server, through [`nebula ctl`](/docs/guides/local-control-and-info-api/).
+
+On reload, the SSH server is only restarted when `sshd.enabled`, `sshd.listen`, `sshd.host_key`, `sshd.trusted_cas`, or
+`sshd.authorized_users` changed. A restart closes every open session, including the one that ran `reload`. Otherwise the
+server keeps running, and the host key is read again so a key replaced on disk at the same path is used for new
+connections. An invalid `trusted_cas` or `authorized_users` entry is skipped with a warning at startup, and fails the
+reload.
 
 ## sshd.enabled
 
@@ -79,7 +86,9 @@ You can generate a host key using the `ssh-keygen` command line utility.
 These options are how you create `users` for the debug ssh daemon. Password authentication for the ssh debug console is
 NOT supported.
 
-# sshd.trusted_cas
+## sshd.trusted_cas
+
+<Pill className="mb-24">Reloadable</Pill>
 
 As an alternative to (or in addition to) `authorized_users`, you may define a list of trusted SSH CA public keys. Any
 SSH certificate signed by a trusted CA will be granted access to the SSH debug server.
