@@ -1,0 +1,149 @@
+---
+title: Controlling Nebula locally with nebula ctl
+sidebar_label: nebula ctl and the info API
+description:
+  Inspect and control a running Nebula from the same machine with nebula ctl, and look up peer identities with the info
+  API.
+summary:
+  Use nebula ctl to run debug commands against a running Nebula over its local control socket, and the info API to let
+  other programs on the host look up who is behind an overlay address.
+sidebar_position: 10
+---
+
+# Controlling Nebula locally with nebula ctl
+
+Nebula serves two local APIs, configured in the [`local_api`](/docs/config/local-api/) section:
+
+- The **control socket**, used by `nebula ctl`, runs the same commands as the
+  [SSH debug console](/docs/guides/debug-ssh-commands/) without having to set up `sshd`. It is on by default.
+- The **info API** answers "who is this?" for overlay addresses over HTTP, for other programs on the host. It is off by
+  default.
+
+## Running commands with nebula ctl
+
+`nebula ctl` talks to a Nebula already running on the same machine. Run it as root, as the user Nebula runs as, or as a
+member of [`local_api.control.group`](/docs/config/local-api/#local_apicontrolgroup). On Windows, run it from an
+elevated prompt.
+
+```console
+$ sudo nebula ctl list-hostmap
+$ sudo nebula ctl identity 10.128.1.2
+name: web01
+vpn addrs: 10.128.1.2
+networks: 10.128.1.2/16
+unsafe networks:
+groups: servers, web
+fingerprint: 6d1f...
+issuer: 4f0b...
+not before: 2026-01-05T17:00:00Z
+not after: 2027-01-05T16:59:59Z
+cert version: 2
+```
+
+`nebula ctl` with no command, or `nebula ctl help`, lists the available commands. They are the same commands as the SSH
+debug console, except `logout`. `nebula ctl help <command>` or `nebula ctl <command> -h` shows a command's flags.
+
+### Finding the socket
+
+`nebula ctl` needs to know where the control socket is. It looks, in order:
+
+1. At the path given with `-socket`.
+2. At [`local_api.control.socket`](/docs/config/local-api/#local_apicontrolsocket) in the config given with `-config`,
+   or else in a `config.yml` or `config.yaml` next to the `nebula` binary.
+3. At the default path, `/var/run/nebula/ctl.sock`, or `\\.\pipe\ProtectedPrefix\Administrators\nebula-ctl` on Windows.
+
+If Nebula uses a non-default socket, point `nebula ctl` at the same config Nebula runs with:
+
+```console
+$ sudo nebula ctl -config /etc/nebula/config.yml print-tunnel -pretty 10.128.1.2
+```
+
+`-config` and `-socket` may come before or after the command. `nebula -config /etc/nebula/config.yml ctl <command>`
+works too.
+
+### Output and exit codes
+
+Commands print human readable text by default. Add `-json` for compact JSON, or `-pretty` for indented JSON.
+`print-tunnel`, `print-relays`, and `query-lighthouse` only have JSON output; without `-json` or `-pretty` they fail and
+say so.
+
+In JSON, commands that act rather than report, such as `close-tunnel` or `reload`, print `{"ok":true,"reason":"..."}`,
+or `"ok":false` with the reason when they refuse.
+
+`nebula ctl` exits `0` on success and `1` on any failure: the socket could not be reached, the command or a flag was
+unknown, or the command failed. `nebula ctl reload` prints the outcome of the reload. It exits `1` when the new config
+did not load or part of it failed to apply, but not when it applied and only needs a restart to take full effect.
+
+The control socket serves up to 8 connections at once. Beyond that `nebula ctl` reports that the socket is busy.
+
+## Looking up identities with the info API
+
+The info API lets programs on the host ask Nebula which certificate is behind an overlay address, for example to
+authorize a connection by the peer's Nebula groups. Enable it with a socket path:
+
+```yml
+local_api:
+  info:
+    enabled: true
+    socket: /var/run/nebula/info.sock
+    group: nebula-info
+```
+
+It serves these requests:
+
+| Request                                  | Answers                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET /v1/identity`                       | This node's identity                                                           |
+| `GET /v1/identity/<vpn addr>[:port]`     | The identity of the host with an established tunnel that owns the address      |
+| `GET /v1/identity/pem`                   | This node's certificate, as `{"pem": "-----BEGIN NEBULA CERTIFICATE-----..."}` |
+| `GET /v1/identity/<vpn addr>[:port]/pem` | That host's certificate, the same way                                          |
+
+A port on the address is accepted and ignored, so a program can pass the remote address of a connection as it is. Write
+an IPv6 address with a port as `[addr]:port`. Add `?pretty` to any request to indent the JSON.
+
+```console
+$ curl --unix-socket /var/run/nebula/info.sock 'http://localhost/v1/identity/10.128.1.2:443?pretty'
+{
+  "name": "web01",
+  "vpnAddrs": ["10.128.1.2"],
+  "networks": ["10.128.1.2/16"],
+  "unsafeNetworks": [],
+  "groups": ["servers", "web"],
+  "fingerprint": "6d1f...",
+  "issuer": "4f0b...",
+  "notBefore": "2026-01-05T17:00:00Z",
+  "notAfter": "2027-01-05T16:59:59Z",
+  "certVersion": 2
+}
+```
+
+Lists are always present, empty rather than `null`. Errors are JSON as well, `{"error": "..."}`, with these statuses:
+
+- `400`: the address could not be parsed, the query was not `pretty`, or the request had a body.
+- `404`: there is no established tunnel for the address, the address is outside this node's networks, or the path is
+  unknown.
+- `405`: the method was not `GET`.
+
+:::warning
+
+The info API tells you which certificate owns an overlay address. It only tells you who **sent** a connection if that
+connection arrived on the Nebula interface. Nebula drops packets whose source address the sender's certificate does not
+allow, but a connection that arrived on any other interface was never checked by Nebula. Before authorizing a connection
+with the info API, confirm it came in on the Nebula interface.
+
+The info API only answers for addresses inside this node's own overlay networks. An address in an overlay network this
+node is not part of could arrive through a peer's unsafe network, so it is never answered, even with a tunnel to its
+owner up. Only established tunnels are answered.
+
+:::
+
+The info API is read-only and only serves certificate identity, so it is fine to open it to a group, or to every user on
+the host with `socket_mode: "0666"`. Never open the control socket that way.
+
+### Windows
+
+On Windows the info API is a named pipe. Name it under `\\.\pipe\ProtectedPrefix\Administrators\`, so that only an
+administrator can create it and another program cannot take the name first. A program connecting as a member of
+[`local_api.info.group`](/docs/config/local-api/#local_apiinfogroup) must open the pipe asking for exactly
+`FILE_READ_DATA | FILE_WRITE_DATA | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE`. Asking for `GENERIC_READ` or
+`GENERIC_WRITE` is refused.
