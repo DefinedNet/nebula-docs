@@ -1,0 +1,72 @@
+---
+title: FIPS 140-3 mode
+sidebar_label: FIPS 140-3 mode
+description: Build and run Nebula using the Go Cryptographic Module in FIPS 140-3 mode.
+summary:
+  How to build Nebula with Go's native FIPS 140-3 mode, what it restricts, and how to confirm a running Nebula is using
+  it.
+sidebar_position: 14
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# FIPS 140-3 mode
+
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+Nebula can be built to use the [FIPS 140-3 mode](https://go.dev/doc/security/fips140) of the Go Cryptographic Module
+(CMVP certificate #5247). In this mode Nebula refuses any algorithm the module does not allow, so only NIST curve P256
+and AES-256-GCM can be used.
+
+FIPS 140-3 mode is a build-time choice. The official release binaries are not built this way, so you need to build
+Nebula from source.
+
+## Building
+
+From a checkout of the [Nebula source](https://github.com/slackhq/nebula), run one of:
+
+```sh
+# nebula and nebula-cert for this machine's Linux architecture
+make bin-fips140
+
+# release archives for every supported platform
+make release-fips140
+
+# any other make target, built in FIPS 140-3 mode
+make fips140 <target>
+```
+
+These build against the Go Cryptographic Module v1.0.0 (`GOFIPS140=v1.0.0`) with the `fips140enforce` build tag, which
+enforces FIPS 140-3 mode in `nebula`, `nebula-service`, and `nebula-cert`. `release-fips140` builds for the platforms in
+section 2.2 of the module's security policy: Linux amd64, arm64, arm-7, mips64, and ppc64le, Windows amd64 and arm64,
+macOS arm64, and FreeBSD amd64.
+
+A FIPS 140-3 build refuses to start if FIPS 140-3 mode is not enforced. Do not set `GODEBUG=fips140` when running it, or
+if you do, set it to `GODEBUG=fips140=only`.
+
+## Restrictions
+
+Every host in a FIPS 140-3 deployment needs a P256 certificate, so start by creating a P256 CA:
+
+```sh
+nebula-cert ca -name "My Org" -curve P256
+```
+
+In a FIPS 140-3 build, `nebula-cert ca` and `nebula-cert keygen` default to `-curve P256`, and refuse `-curve 25519`.
+`nebula-cert sign` refuses to sign with a Curve25519 CA.
+
+`nebula` refuses to start with a Curve25519 certificate in [`pki.cert`](/docs/config/pki/#pkicert), and with
+[`cipher: chachapoly`](/docs/config/cipher/). Use the default `cipher: aes`. Since the cipher must match on every host,
+a network with FIPS 140-3 hosts must use `aes` everywhere.
+
+## Confirming FIPS 140-3 mode
+
+When the interface comes up, Nebula logs `Nebula interface is active` with `fips140Version`, `fips140Enabled`, and
+`fips140Enforced`. A FIPS 140-3 build logs `fips140Enabled=true fips140Enforced=true`.
+
+With [Prometheus stats](/docs/config/stats/), the `info` gauge carries the same three labels.
+
+## BoringCrypto
+
+Nebula can also be built with Go's BoringCrypto experiment (`make bin-boringcrypto`). This is deprecated and will be
+removed in a future release. Move to FIPS 140-3 mode instead.

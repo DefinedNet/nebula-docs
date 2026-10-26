@@ -106,7 +106,8 @@ Discovery nodes allow individual peers to find each other and optionally use UDP
 from behind most firewalls or NATs. Users can move data between nodes in any number of cloud service providers,
 datacenters, and endpoints, without needing to maintain a particular addressing scheme.
 
-Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration.
+Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration. It can also be
+built to run in [FIPS 140-3 mode](/docs/guides/fips-140-3/).
 
 Nebula was created to provide a mechanism for groups hosts to communicate securely, even across the internet, while
 enabling expressive firewall definitions similar in style to cloud security groups.
