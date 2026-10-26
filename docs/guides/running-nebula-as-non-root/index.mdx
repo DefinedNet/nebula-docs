@@ -47,7 +47,8 @@ sudo chmod 0700 /etc/nebula
 If you manage Nebula with systemd, add `User`, `Group`, and the two capability directives to the `[Service]` section of
 your unit. This is the
 [example unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service) from the Nebula
-repository with those four lines added:
+repository with those four lines added, plus `RuntimeDirectory` for the control socket (see
+[Using nebula ctl](#using-nebula-ctl)):
 
 ```systemd
 [Unit]
@@ -64,6 +65,7 @@ User=nebula
 Group=nebula
 CapabilityBoundingSet=CAP_NET_ADMIN
 AmbientCapabilities=CAP_NET_ADMIN
+RuntimeDirectory=nebula
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=/usr/local/bin/nebula -config /etc/nebula/config.yml
 Restart=always
@@ -113,6 +115,26 @@ upgrading or replacing the binary.
 
 :::
 
+## Using nebula ctl
+
+Nebula's [local control socket](/docs/guides/local-control-and-info-api/) defaults to `/var/run/nebula/ctl.sock`, and an
+unprivileged Nebula cannot create `/var/run/nebula` itself. With systemd, `RuntimeDirectory=nebula` in the unit above
+creates `/run/nebula` owned by the nebula user each time the service starts. Without systemd, create the directory
+yourself, owned by the nebula user and not writable by anyone else, or set
+[`local_api.control.socket`](/docs/config/local-api/#local_apicontrolsocket) to a path in a directory the nebula user
+owns.
+
+Then run `nebula ctl` as root, or as the nebula user:
+
+```bash
+sudo nebula ctl list-hostmap
+sudo -u nebula nebula ctl list-hostmap
+```
+
+To let other users run it, set [`local_api.control.group`](/docs/config/local-api/#local_apicontrolgroup). If the socket
+is not at the default path, pass `-config /etc/nebula/config.yml` so `nebula ctl` can find it; since `/etc/nebula` is
+only readable by the nebula user above, run it as root or as the nebula user.
+
 ## Verifying
 
 Check that the process is running as the nebula user with only the expected capabilities:
@@ -145,6 +167,14 @@ the service state.
 **`bind: address already in use` on port 53** — the capability is working, but something else already owns the port. On
 distributions with `systemd-resolved`, its stub listener on `127.0.0.53:53` conflicts with binding `0.0.0.0:53`; bind
 Nebula's DNS to a specific address or disable the stub listener.
+
+**`Could not start the local control socket`** — Nebula could not create the [control socket](/docs/config/local-api/),
+usually because the nebula user cannot create `/var/run/nebula`. See [Using nebula ctl](#using-nebula-ctl). This is not
+fatal: Nebula keeps running without the control socket, and tries again on every reload.
+
+**`could not set tun device name: nebula1 because device or resource busy`** — an interface with the
+[`tun.dev`](/docs/config/tun/#tundev) name already exists, either a persistent tun device created ahead of time or one
+held by another running Nebula. Nebula creates the device itself, so remove the existing one or pick another name.
 
 **`Failed to set tun tx queue length: operation not permitted`** — logged when Nebula runs inside a container
 (LXC/Incus/Docker) where the tx queue length cannot be changed even with `CAP_NET_ADMIN`. It is harmless; the interface
