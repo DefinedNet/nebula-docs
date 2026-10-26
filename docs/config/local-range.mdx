@@ -1,17 +1,18 @@
 ---
 sidebar_position: 19
-description: local_ranges has been deprecated in favor of preferred_ranges
+description: local_range was removed in favor of preferred_ranges
 ---
 
 # local_range
 
 :::warning
 
-`local_range` has been deprecated in favor of [`preferred_ranges`](/docs/config/preferred-ranges/)
+`local_range` was removed in Nebula v1.9.0 and is ignored if set. Use
+[`preferred_ranges`](/docs/config/preferred-ranges/) instead.
 
 :::
 
-`local_range` is used to define a hint about the local network range, which speeds up discovering the fastest path to a
+`local_range` was used to define a hint about the local network range, which speeds up discovering the fastest path to a
 network adjacent nebula node.
 
 ```yml
