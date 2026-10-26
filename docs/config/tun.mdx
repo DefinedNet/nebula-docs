@@ -13,7 +13,7 @@ tun:
   dev: nebula1
   drop_local_broadcast: false
   drop_multicast: false
-  tx_queue: 500
+  tx_queue: 5000
   mtu: 1300
   routes:
     - mtu: 8800
@@ -34,8 +34,17 @@ therefore without root). You will not be able to communicate over IP with a nebu
 
 ## tun.dev
 
-`dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS. For macOS: Not
-required. If set, must be in the form `utun[0-9]+`. For FreeBSD: Required to be set, must be in the form `tun[0-9]+`.
+`dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS.
+
+- Linux: any valid interface name. Nebula refuses to start if an interface with that name already exists, including a
+  persistent tun device created ahead of time with `ip tuntap add`, or one held by another running nebula.
+- macOS: if set, must be in the form `utun[0-9]+`. Any other name logs a warning and the first free utun device is used.
+- FreeBSD: any valid interface name. If `/dev/<dev>` does not exist, a new tun device is created and renamed to `dev`.
+- OpenBSD and NetBSD: if set, must be in the form `tun[0-9]+`. Any other name logs a warning and the first free tun
+  device is used.
+
+Changing `dev` takes effect after a restart. On macOS, OpenBSD, and NetBSD a reload only asks for a restart when `dev`
+names a specific device other than the one in use.
 
 ## tun.drop_local_broadcast
 
@@ -51,16 +60,23 @@ Toggles forwarding of multicast packets
 
 ## tun.tx_queue
 
-<Pill className="mb-24">Default: 500</Pill>
+<Pill className="mb-24">Default: 5000</Pill>
 
 Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number.
-Default is 500.
+Default is 5000. This setting only applies on Linux.
 
 ## tun.mtu
 
 <Pill className="mb-24">Default: 1300</Pill> <Pill className="mb-24">Reloadable: Linux</Pill>
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
+
+The largest MTU Nebula can carry is 8937. A larger value here, or on any route in [`tun.routes`](#tunroutes) or
+[`tun.unsafe_routes`](#tununsafe_routes), is capped to 8937 with a warning. On Windows, the MTU must be at least 1280
+when the overlay carries IPv6, the same as on Linux.
+
+Where the tun device is handed to Nebula by a host app, such as on iOS, Android, or a macOS network extension, the host
+app owns the MTU and this setting is ignored.
 
 See below for per-route overrides ([`tun.routes`](#tunroutes)).
 
