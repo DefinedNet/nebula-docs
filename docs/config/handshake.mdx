@@ -7,6 +7,9 @@ import { Pill } from '@components/Pill/Pill';
 
 # handshakes
 
+None of the `handshakes` settings are reloadable. Changing one takes effect after Nebula restarts, and a reload that
+changes one reports that a restart is required.
+
 ## handshakes.try_interval
 
 <Pill className="mb-24">Default: 100ms</Pill>
@@ -27,9 +30,18 @@ A 100ms interval with the default 10 retries will give a handshake 5.5 seconds t
 `trigger_buffer` is the size of the buffer channel for quickly sending handshakes after receiving the response for
 lighthouse queries.
 
+## handshakes.query_buffer
+
+<Pill className="mb-24">Default: 1024</Pill>
+
+`query_buffer` is the size of the buffer channel for queries to the lighthouses. Starting a handshake never waits on a
+full buffer: the lighthouse query is dropped instead and counted in the `lighthouse.query.dropped` metric. The handshake
+still proceeds with any addresses already known. Raise this on hosts that start many tunnels at once.
+
 ```yml
 handshakes:
   try_interval: 100ms
   retries: 10
   trigger_buffer: 64
+  query_buffer: 1024
 ```
