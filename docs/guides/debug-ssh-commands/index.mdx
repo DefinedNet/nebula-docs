@@ -14,6 +14,13 @@ sidebar_position: 9
 This guide describes useful commands built into the SSH server accessible over nebula, which can allow debugging network
 connectivity for the nebula host.
 
+:::tip
+
+On the nebula host itself, the same commands are available without setting up the SSH server, by running
+`sudo nebula ctl <command>`. See [Controlling Nebula locally with nebula ctl](/docs/guides/local-control-and-info-api/).
+
+:::
+
 First generate a new SSH key for the host you want to debug, via `ssh-keygen -t ed25519 -f ssh_host_ed25519_key`. You
 can set it to only accessible by `root` via `chown root:root ssh_host_ed25519_key`, which will ensure that regular users
 on that host cannot access the private key.
@@ -56,29 +63,32 @@ You should be able to run `help` once you're logged in.
 ```ssh
 steeeeve@nebula > help
 Available commands:
-change-remote - Changes the remote address used in the tunnel for the provided vpn ip
-close-tunnel - Closes a tunnel for the provided vpn ip
-create-tunnel - Creates a tunnel for the provided vpn ip and address
+change-remote - Changes the remote address used in the tunnel for the provided vpn addr
+close-tunnel - Closes a tunnel for the provided vpn addr
+create-tunnel - Creates a tunnel for the provided vpn address
 device-info - Prints information about the network device.
 help - prints available commands or help <command> for specific usage info
+identity - Prints the certificate identity of this node or of the host owning the provided vpn addr
 list-hostmap - List all known previously connected hosts
 list-lighthouse-addrmap - List all lighthouse map entries
 list-pending-hostmap - List all handshaking hosts
 log-format - Gets or sets the current log format
 log-level - Gets or sets the current log level
 logout - Ends the current session
-mutex-profile-fraction - Gets or sets runtime.SetMutexProfileFraction
-print-cert - Prints the current certificate being used or the certificate for the provided vpn ip
+print-cert - Prints the current certificate being used or the certificate for the provided vpn addr
 print-relays - Prints json details about all relay info
-print-tunnel - Prints json details about a tunnel for the provided vpn ip
-query-lighthouse - Query the lighthouses for the provided vpn ip
+print-tunnel - Prints json details about a tunnel for the provided vpn addr
+query-lighthouse - Query the lighthouses for the provided vpn address
 reload - Reloads configuration from disk, same as sending HUP to the process
-save-heap-profile - Saves a heap profile to the provided path
-save-mutex-profile - Saves a mutex profile to the provided path
-start-cpu-profile - Starts a cpu profile and write output to the provided file
-stop-cpu-profile - Stops a cpu profile and writes output to the previously provided file
 version - Prints the currently running version of nebula
 ```
+
+:::note
+
+The profiling commands `start-cpu-profile`, `stop-cpu-profile`, `save-heap-profile`, `save-mutex-profile`, and
+`mutex-profile-fraction` were removed in v1.12.0, along with the `sshd.sandbox_dir` setting, which is now ignored.
+
+:::
 
 You can discover additional information about each command by running `help <command>`.
 
@@ -88,12 +98,39 @@ list-hostmap - List all known previously connected hosts
   -by-index
     	gets all hosts in the hostmap from the index table
   -json
-    	outputs as json with more information
+    	outputs as json
   -pretty
     	pretty prints json, assumes -json
 ```
 
+Every command accepts `-json` and `-pretty`. `print-tunnel`, `print-relays`, and `query-lighthouse` print JSON even
+without them.
+
+## Running commands from a script
+
+A command can be passed straight to `ssh`, which exits with `1` when the command fails, for example an unknown command,
+a bad flag, a refused request, or a failed reload, and `0` otherwise:
+
+```console
+$ ssh -p 2222 127.0.0.1 close-tunnel 10.128.1.2 || echo "close-tunnel failed"
+```
+
+With `-json`, commands that act rather than report print `{"ok":true,"reason":"..."}`, or `"ok":false` with the reason
+when they refuse.
+
 ## Notes about some commands
+
+`identity [-pem] [<vpn addr>[:port]]` prints the identity in a certificate: its name, vpn addresses, networks, unsafe
+networks, groups, fingerprint, issuer, validity, and certificate version. With no address it prints this node's
+identity. With an address it prints the identity of the host that owns it, if a tunnel to that host is established and
+the address is inside this node's own networks. A port on the address is ignored. `-pem` prints the certificate itself
+instead.
+
+`create-tunnel [-address ip:port] <vpn addr>` starts a handshake with the host, querying the lighthouses for its
+addresses. `-address` adds an address to try.
+
+`reload` prints the outcome of the reload, including any keys that need a restart, and counts as failed when the new
+config did not load or part of it failed to apply.
 
 `query-lighthouse <some-ip>` will return an empty result set initially if the host is not connected, but it will trigger
 a background request to the lighthouse. Meaning, you need to run it twice to actually get a result.
