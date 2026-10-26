@@ -48,6 +48,8 @@ You'll need:
 1. The `nebula-cert` binary, and the `ca.key` and `ca.crt` files for the network
 1. Root access to the backends and to each client that will use the VIP
 
+Mobile Nebula accepts only one gateway per unsafe route, so phones and tablets can't use the VIP.
+
 IPv6 overlay addresses need version 2 certificates. If your network still uses version 1 certificates, see
 [Upgrading a Nebula network to IPv6 overlay addresses](/docs/guides/upgrade-to-cert-v2-and-ipv6/), or follow this guide
 with IPv4.
@@ -135,8 +137,11 @@ firewall:
       local_cidr: fdc8:d0db:a315:cb01::10/128
 ```
 
-`local_cidr` is required. On a host whose certificate has unsafe networks, a rule without `local_cidr` applies only to
-the host's own overlay address, so Nebula drops requests for the VIP before they reach the host.
+[`local_cidr`](/docs/config/firewall/#firewallinbound) is required. On a host whose certificate has unsafe networks, a
+rule without `local_cidr` applies only to the host's own overlay address, so Nebula drops requests for the VIP before
+they reach the host. The exception is a host with
+[`firewall.default_local_cidr_any`](/docs/config/firewall/#firewalldefault_local_cidr_any) set to `true`, where such a
+rule also covers the VIP.
 
 Because each request arrives over the client's own tunnel, `group`, `host` and `ca_name` match the client's certificate
 as usual.
@@ -172,10 +177,11 @@ Add the same `unsafe_routes` entry to every client that needs the service.
 
 The client hashes each packet's source and destination ports and maps the hash to a backend. All packets of one
 connection have the same ports, so a connection stays on one backend. Different connections from the same client use
-different source ports and spread across the backends.
+different source ports and spread across the backends. A client that always sends from the same source port, such as
+some UDP clients, sends all of its traffic to one backend.
 
-Give a backend more or less of the traffic with `weight` (default 1). With these weights `api-1` gets about two thirds
-of the connections:
+Give a backend more or less of the traffic with [`weight`](/docs/config/tun/#ecmp-support-for-unsafe_routes) (default
+1). With these weights `api-1` gets about two thirds of the connections:
 
 ```yaml
 tun:
@@ -208,9 +214,10 @@ hash to it go to it again. A connection that moved to another backend while it w
 **A connection opened while a tunnel is coming up can be reset.** If a connection starts while the client has a tunnel
 to some backends but not to the one it hashes to, its first packets go to another backend. As soon as the handshake
 finishes, the rest of its packets go to the backend it hashes to, which resets it. This happens after a backend's Nebula
-restarts, or after an idle tunnel is closed when `tunnels.drop_inactive` is enabled. Short requests often finish before
-the handshake does; long-lived or slow connections are the ones that break, and a retry succeeds. When a client first
-sends to the VIP it starts handshakes with every backend at once, so a freshly started client is rarely affected.
+restarts, or after an idle tunnel is closed when [`tunnels.drop_inactive`](/docs/config/tunnels/#tunnelsdrop_inactive)
+is enabled. Short requests often finish before the handshake does; long-lived or slow connections are the ones that
+break, and a retry succeeds. When a client first sends to the VIP it starts handshakes with every backend at once, so a
+freshly started client is rarely affected.
 
 **Changing the backend list or weights reshuffles some connections.** Adding a backend, removing one or changing a
 weight moves part of the hash space between backends. Connections in the part that moves land on a different backend and

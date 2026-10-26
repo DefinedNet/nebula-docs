@@ -64,7 +64,9 @@ The possible fields of a firewall rule are:
 - `local_cidr`: a local CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
   This can be used to filter destinations when using unsafe_routes. By default, this is set to only the VPN (overlay)
   networks assigned via the certificate networks field unless `default_local_cidr_any` is set to true. If there are
-  unsafe_routes present in this config file, `local_cidr` should be set appropriately for the intended use case.
+  unsafe_routes present in this config file, `local_cidr` should be set appropriately for the intended use case. A host
+  that serves an address from its own unsafe networks also needs `local_cidr` set to that address; see
+  [Serving one address from several hosts](/docs/guides/service-vips/).
 
 :::note
 

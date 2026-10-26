@@ -419,6 +419,12 @@ When you are running Nebula with `unsafe_routes` the OS of the host will forward
 specified to Nebula. Keep in mind that this could cause a local IP conflict if your underlay network happens to use the
 same subnet as the subnet specified in your `unsafe_routes` configuration.
 
+### Serve one address from several hosts
+
+An `unsafe_routes` entry can list several gateways, and Nebula spreads connections across them. To put a service behind
+one address that several Nebula hosts answer for, see
+[Serving one address from several hosts](/docs/guides/service-vips/).
+
 ### Works with Mobile Nebula
 
 After you've successfully completed the steps above, you can also access your extended networks from a device running
