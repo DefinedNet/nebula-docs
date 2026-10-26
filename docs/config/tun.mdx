@@ -85,7 +85,8 @@ See below for per-route overrides ([`tun.routes`](#tunroutes)).
 <Pill className="mb-24">Reloadable</Pill>
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
-here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis.
+here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis. Route MTUs are
+only applied on Linux, other platforms log a warning and use `tun.mtu`.
 
 ```yml
 tun:
@@ -118,7 +119,31 @@ tun:
       install: true # controls whether this route is installed in the systems routing table.
 ```
 
+Each entry takes:
+
+- `route`: the CIDR to route over nebula. Required.
+- `via`: the vpn address of the nebula host that forwards the traffic, or a list of gateways (see
+  [ECMP support](#ecmp-support-for-unsafe_routes)). Required.
+- `mtu`: the MTU for this route. Defaults to [`tun.mtu`](#tunmtu), must be at least 500, and is capped to 8937. Only
+  applied on Linux.
+- `metric`: the metric of the installed system route, from 0 to 2147483647. Defaults to `0`. Applied on Linux and
+  Windows. On Windows, changing only the metric on reload updates the existing route in place.
+- `install`: whether the route is installed in the system routing table. Defaults to `true`. Set to `false` when
+  something else, such as a routing daemon, installs the route.
+
+Numbers may be quoted, e.g. `metric: "100"`. If the same `route` is listed more than once, Nebula logs a warning and
+only the last entry is used.
+
 For more information, see the [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide.
+
+### unsafe_routes on macOS
+
+macOS keeps a single route per destination. If another interface already routes an unsafe route's destination, such as
+the local network you are connected to, Nebula logs a warning and leaves that route alone. Nebula installs its own route
+once the other one is removed, for example after moving to a different network.
+
+If Nebula's route is deleted by hand, it stays deleted until Nebula reloads or restarts, or until another interface
+routes the destination and later lets it go.
 
 ### ECMP support for `unsafe_routes`
 
@@ -148,6 +173,41 @@ unsafe_routes:
 The implementation uses [hash-threshold mapping](https://tools.ietf.org/html/rfc2992) (similar to the Linux kernel) to
 distribute traffic based on packet hashing. When a gateway becomes unreachable, traffic automatically fails over to the
 remaining available gateways, though load balancing may become uneven until the failed gateway recovers.
+
+## tun.network_category
+
+<Pill className="mb-24">Default: private</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows.
+
+Sets the Windows network category of the nebula interface. Without it, Windows often leaves the network as
+"Unidentified" and treats it as Public, which makes the host firewall more restrictive than you usually want for an
+overlay between trusted peers. Valid values are:
+
+- `private`: treat the nebula network as a private, trusted network.
+- `public`: treat it as a public, untrusted network.
+- `domain`: treat it as a domain-authenticated network.
+- `unset`: leave whatever Windows decided alone.
+
+Changing this takes effect after a restart. An invalid value refuses to start, and fails the reload.
+
+## tun.windows_bypass_wdf
+
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows.
+
+When true, Nebula installs a WFP (Windows Filtering Platform) PERMIT filter scoped to the nebula interface. WFP sits
+below Windows Defender Firewall, so inbound traffic on the nebula interface is allowed regardless of Defender Firewall
+rules, and Nebula's own [firewall](/docs/config/firewall/) decides what is allowed. The filter is removed when the
+interface goes away. Set to false to leave Windows Defender Firewall in charge. See
+[`listen.windows_bypass_wdf`](/docs/config/listen/#listenwindows_bypass_wdf) for the matching control over Nebula's UDP
+listener. Changing this takes effect after a restart.
+
+### DNS registration on Windows
+
+Nebula turns off DNS registration for its Windows interface, so the overlay addresses are not registered in Active
+Directory DNS or any other dynamic DNS server the host uses.
 
 ## tun.use_system_route_table
 
