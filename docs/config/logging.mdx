@@ -43,8 +43,10 @@ Controls the logging format. The options are `json` or `text`.
 
 Disables timestamp logging. Useful when output is redirected to logging system that already adds timestamps.
 
-Timestamps are always [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339) with nanosecond precision, e.g.
-`2006-01-02T15:04:05.999999999Z07:00`. The `logging.timestamp_format` setting was removed in v1.11.0 and is ignored.
+Timestamps are always [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339). The `text` format uses millisecond
+precision, e.g. `2026-10-28T14:03:07.120-04:00`, and the `json` format uses up to nanosecond precision with trailing
+zeros dropped, e.g. `2026-10-28T14:03:07.12034567-04:00`. The `logging.timestamp_format` setting was removed in v1.11.0
+and is ignored.
 
 ## Rate limited messages
 

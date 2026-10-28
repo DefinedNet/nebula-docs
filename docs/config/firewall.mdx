@@ -66,7 +66,9 @@ The possible fields of a firewall rule are:
 Quote group names. YAML converts unquoted values before Nebula sees them, so `group: 007` would be read as `7` and
 `group: 1.10` as `1.1`. Unquoted integers and booleans still work, but log a warning. A float, a date, a map, a nested
 list, a `null` entry in `groups`, or `group: []` is rejected with an error, which fails startup or fails the reload and
-keeps the previous firewall. A `group` or `groups` key with no value is treated as not set.
+keeps the previous firewall. A `group` or `groups` key with no value is rejected too, unless the rule also sets `host`,
+`cidr`, or a non-empty `group` or `groups`, because the rule would otherwise match any host. Use `host: any` to match
+any host.
 
 :::
 
@@ -92,7 +94,7 @@ Before Nebula v1.11.1, an IPv6 packet carrying a protocol Nebula does not parse 
 match a `tcp` or `udp` rule. These packets are now classified as their real protocol. If you carry such a protocol over
 IPv6 in the overlay, make sure a `proto: any` rule allows it.
 
-IPv6 packets whose extension headers are truncated or more than 8 headers deep are dropped.
+IPv6 packets whose extension headers are truncated or 8 or more headers deep are dropped.
 
 :::
 

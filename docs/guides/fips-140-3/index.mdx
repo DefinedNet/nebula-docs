@@ -59,6 +59,10 @@ In a FIPS 140-3 build, `nebula-cert ca` and `nebula-cert keygen` default to `-cu
 [`cipher: chachapoly`](/docs/config/cipher/). Use the default `cipher: aes`. Since the cipher must match on every host,
 a network with FIPS 140-3 hosts must use `aes` everywhere.
 
+Encrypted private keys are not supported. `nebula-cert ca -encrypt` fails, and `nebula-cert sign` cannot use a CA key
+that was encrypted by a non-FIPS build. Keep the CA key unencrypted and protect it some other way, for example on an
+offline machine.
+
 ## Confirming FIPS 140-3 mode
 
 When the interface comes up, Nebula logs `Nebula interface is active` with `fips140Version`, `fips140Enabled`, and
