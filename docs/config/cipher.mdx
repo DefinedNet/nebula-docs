@@ -25,7 +25,4 @@ Because most devices have hardware support for the AES instruction set (e.g. AES
 cipher: aes
 ```
 
-`cipher` is not reloadable. A reload that changes it reports that a restart is required, and a reload with an unknown
-cipher fails.
-
-Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`, at startup and on reload.
+Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`, at startup.
