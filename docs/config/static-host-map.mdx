@@ -40,6 +40,4 @@ DNS names are re-resolved periodically, and again whenever a handshake to that h
 last known good addresses; only a not found answer removes them. The [static_map](/docs/config/static-map/) settings
 control the resolution cadence, lookup timeout, and which IP version is used to reach static hosts.
 
-Every host listed in [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) must have an entry here. Nebula
-refuses to start, and fails a reload that changes `lighthouse.hosts`, if one is missing. Removing an entry on reload
-drops its addresses.
+Every host listed in [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) must have an entry here.

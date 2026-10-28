@@ -41,8 +41,8 @@ enforces FIPS 140-3 mode in `nebula`, `nebula-service`, and `nebula-cert`. `rele
 section 2.2 of the module's security policy: Linux amd64, arm64, arm-7, mips64, and ppc64le, Windows amd64 and arm64,
 macOS arm64, and FreeBSD amd64.
 
-A FIPS 140-3 build refuses to start if FIPS 140-3 mode is not enforced. Do not set `GODEBUG=fips140` when running it, or
-if you do, set it to `GODEBUG=fips140=only`.
+A FIPS 140-3 build refuses to start unless FIPS 140-3 mode is enforced, so leave `GODEBUG=fips140` unset or set it to
+`GODEBUG=fips140=only`.
 
 ## Restrictions
 
@@ -56,8 +56,8 @@ In a FIPS 140-3 build, `nebula-cert ca` and `nebula-cert keygen` default to `-cu
 `nebula-cert sign` refuses to sign with a Curve25519 CA.
 
 `nebula` refuses to start with a Curve25519 certificate in [`pki.cert`](/docs/config/pki/#pkicert), and with
-[`cipher: chachapoly`](/docs/config/cipher/). Use the default `cipher: aes`. Since the cipher must match on every host,
-a network with FIPS 140-3 hosts must use `aes` everywhere.
+[`cipher: chachapoly`](/docs/config/cipher/). Since the cipher must match on every host, a network with FIPS 140-3 hosts
+must use `aes` everywhere.
 
 Encrypted private keys are not supported. `nebula-cert ca -encrypt` fails, and `nebula-cert sign` cannot use a CA key
 that was encrypted by a non-FIPS build. Keep the CA key unencrypted and protect it some other way, for example on an

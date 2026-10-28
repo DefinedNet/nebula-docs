@@ -170,11 +170,11 @@ Nebula's DNS to a specific address or disable the stub listener.
 
 **`Could not start the local control socket`** — Nebula could not create the [control socket](/docs/config/local-api/),
 usually because the nebula user cannot create `/var/run/nebula`. See [Using nebula ctl](#using-nebula-ctl). This is not
-fatal: Nebula keeps running without the control socket, and tries again on every reload.
+fatal; Nebula keeps running without the control socket.
 
 **`could not set tun device name: nebula1 because device or resource busy`** — an interface with the
-[`tun.dev`](/docs/config/tun/#tundev) name already exists, either a persistent tun device created ahead of time or one
-held by another running Nebula. Nebula creates the device itself, so remove the existing one or pick another name.
+[`tun.dev`](/docs/config/tun/#tundev) name already exists, such as a persistent tun device or one held by another
+running Nebula. Remove the existing one or pick another name.
 
 **`Failed to set tun tx queue length: operation not permitted`** — logged when Nebula runs inside a container
 (LXC/Incus/Docker) where the tx queue length cannot be changed even with `CAP_NET_ADMIN`. It is harmless; the interface

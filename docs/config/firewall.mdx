@@ -46,9 +46,8 @@ The possible fields of a firewall rule are:
 - `port`: Takes `0` or `any` as any, a single number (e.g. `80`), a range (e.g. `200-901`), or `fragment` to match
   second and further fragments of fragmented packets (since there is no port available).
 
-- `proto`: One of `any`, `tcp`, `udp`, or `icmp`. `icmp` matches both ICMP and ICMPv6, and any `port` given on an `icmp`
-  rule is ignored with a warning. Traffic of any other IP protocol, such as GRE, SCTP, ESP, or IP-in-IP, only matches
-  `proto: any` rules.
+- `proto`: One of `any`, `tcp`, `udp`, or `icmp`. `icmp` matches both ICMP and ICMPv6, and `port` has no effect on
+  `icmp` rules. Traffic of any other IP protocol, such as GRE, SCTP, ESP, or IP-in-IP, only matches `proto: any` rules.
 
 - `ca_name`: An issuing CA name
 
@@ -64,8 +63,8 @@ The possible fields of a firewall rule are:
 :::tip
 
 Quote group names. YAML converts unquoted values before Nebula sees them, so `group: 007` would be read as `7` and
-`group: 1.10` as `1.1`. Booleans and decimal integers are (currently) accepted, with a warning.
-All other non-string types are rejected.
+`group: 1.10` as `1.1`. Booleans and decimal integers are (currently) accepted, with a warning. All other non-string
+types are rejected.
 
 :::
 
@@ -174,8 +173,8 @@ in the `local_cidr` field.
 
 <Pill className="mb-24">Reloadable</Pill>
 
-Settings for the Connection Tracker. Each timeout is a golang [Duration](https://pkg.go.dev/time#ParseDuration) and must
-be greater than zero, otherwise Nebula refuses to start or fails the reload.
+Settings for the Connection Tracker. Each timeout is a golang [Duration](https://pkg.go.dev/time#ParseDuration) greater
+than zero.
 
 ```yml
 conntrack:

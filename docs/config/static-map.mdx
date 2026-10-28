@@ -38,17 +38,15 @@ It is necessary to set this setting to `ip6` (or `ip`) for IPv6-only hosts.
 
 :::
 
-IPv6 addresses are only used if Nebula's UDP socket can send to them. With an IPv4
-[`listen.host`](/docs/config/listen/#listenhost), such as the default `0.0.0.0`, IPv6 results are ignored even when this
-is set to `ip` or `ip6`.
+With an IPv4 [`listen.host`](/docs/config/listen/#listenhost), such as the default `0.0.0.0`, IPv6 results are ignored
+even when this is set to `ip` or `ip6`.
 
 ## static_map.cadence
 
 <Pill className="mb-24">Default: 30s</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Interval to re-query DNS for hostnames listed in the static map. Hostnames are resolved in parallel. Starting a
-handshake with a host whose entry uses a hostname also triggers an immediate re-query, so a moved host is picked up
-without waiting for the next interval.
+Interval to re-query DNS for hostnames listed in the static map. Starting a handshake with a host whose entry uses a
+hostname also triggers an immediate re-query.
 
 ## static_map.lookup_timeout
 
@@ -57,5 +55,4 @@ without waiting for the next interval.
 Timeout for DNS lookup of static hosts.
 
 A lookup that fails or times out keeps the last addresses that resolved successfully and logs
-`DNS resolution failed for static_map host` with the addresses still in use. Only a not found answer (NXDOMAIN) removes
-them. On reload, resolved addresses are kept as long as [`static_map.network`](#static_mapnetwork) is unchanged.
+`DNS resolution failed for static_map host`. Only a not found answer (NXDOMAIN) removes them.

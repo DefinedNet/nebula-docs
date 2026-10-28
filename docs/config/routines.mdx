@@ -9,7 +9,7 @@ import { Pill } from '@components/Pill/Pill';
 
 <Pill className="mb-24">Default: 1</Pill>
 
-This option is only supported on Linux, and is not reloadable. Values above 65536 are lowered to 65536 with a warning.
+This option is only supported on Linux.
 
 `routines` is the number of thread pairs to run that consume from the tun and UDP queues. Currently, this defaults to
 `1` which means we have `1` tun queue reader and `1` UDP queue reader. Setting this above `1` will set `IFF_MULTI_QUEUE`

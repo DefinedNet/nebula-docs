@@ -37,9 +37,7 @@ pki:
     -----END NEBULA CERTIFICATE-----
 ```
 
-A CA certificate that this version of Nebula does not support, such as one from a newer certificate version or with an
-unknown curve, is skipped with a warning instead of failing the whole bundle. Expired CA certificates are logged with a
-warning. Nebula refuses to start, or fails the reload, only when no valid CA certificate remains.
+CA certificates that this version of Nebula does not support, such as one from a newer certificate version, are skipped.
 
 ## pki.cert
 
@@ -48,8 +46,7 @@ warning. Nebula refuses to start, or fails the reload, only when no valid CA cer
 :::note
 
 A new certificate takes effect on reload as long as its networks and curve match the running certificate. All other
-properties of the certificate can be changed. A certificate with different networks or a different curve, or removing a
-v2 certificate whose networks differ from the remaining v1 certificate, is refused until Nebula is restarted.
+properties of the certificate can be changed.
 
 :::
 
@@ -57,9 +54,8 @@ The `cert` is a certificate unique to every host on a Nebula network. The certif
 name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
 which informs other hosts on whether to trust a particular host certificate.
 
-`pki.cert` may contain one v1 and one v2 certificate. A certificate that this version of Nebula does not support, such
-as one from a newer certificate version, is skipped with a warning, so a bundle prepared for a future upgrade can be
-deployed ahead of time. Nebula refuses to start only if no usable certificate remains.
+`pki.cert` may contain one v1 and one v2 certificate. Certificates that this version of Nebula does not support are
+skipped, so a bundle prepared for a future upgrade can be deployed ahead of time.
 
 ## pki.key
 
@@ -119,12 +115,8 @@ The `blocklist` contains a list of individual hosts' certificate fingerprints wh
 certificate is otherwise valid (signed by a trusted CA and unexpired.) This should be used if a host's credentials are
 stolen or compromised.
 
-Each entry is the hex SHA-256 fingerprint shown by `nebula-cert print`. Entries are not case sensitive. An entry that is
-not a 64 character hex fingerprint fails startup. On reload the valid entries are still applied, but the reload is
-reported as failed.
-
-Tunnels to a blocklisted host are always torn down, regardless of [`pki.disconnect_invalid`](#pkidisconnect_invalid).
-Handshakes from blocklisted hosts are logged at the debug level and counted in the
+Each entry is the hex SHA-256 fingerprint shown by `nebula-cert print`. Tunnels to a blocklisted host are always torn
+down, regardless of [`pki.disconnect_invalid`](#pkidisconnect_invalid). Rejected handshakes are counted in the
 `handshake_manager.rejected.blocklisted` metric.
 
 ## pki.disconnect_invalid
@@ -140,11 +132,10 @@ Handshakes from blocklisted hosts are logged at the debug level and counted in t
 
 `pki.initiating_version` determines which nebula cert version to use when initiating new connections. Valid values are
 `1` and `2`. This setting only matters if both a v1 and a v2 certificate are configured, in which case it defaults to
-`1`. If only a v2 certificate is configured it defaults to `2`, and setting it to `1` without a v1 certificate is an
-error.
+`1`. If only a v2 certificate is configured it defaults to `2`.
 
-The default does not change on its own. Once all hosts in the mesh are configured with both a v1 and v2 certificate, set
-it to `2`. After all hosts in the mesh are using a v2 certificate then v1 certificates are no longer needed.
+Once all hosts in the mesh are configured with both a v1 and v2 certificate, set it to `2`. After all hosts in the mesh
+are using a v2 certificate then v1 certificates are no longer needed.
 
 In most instances this config option should not be needed, as Nebula will automatically select the correct certificate
 version to use.

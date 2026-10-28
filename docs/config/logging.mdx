@@ -19,7 +19,7 @@ logging:
 <Pill className="mb-24">Default: info</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Controls the verbosity of logs. The options are `trace`, `debug`, `info`, `warn` (or `warning`), and `error`. `fatal`
-and `panic` are still accepted for compatibility with older configs, and both behave like `error`.
+and `panic` are accepted as aliases for `error`.
 
 :::warning
 
@@ -45,14 +45,12 @@ Disables timestamp logging. Useful when output is redirected to logging system t
 
 Timestamps are always [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339). The `text` format uses millisecond
 precision, e.g. `2026-10-28T14:03:07.120-04:00`, and the `json` format uses up to nanosecond precision with trailing
-zeros dropped, e.g. `2026-10-28T14:03:07.12034567-04:00`. The `logging.timestamp_format` setting was removed in v1.11.0
-and is ignored.
+zeros dropped, e.g. `2026-10-28T14:03:07.12034567-04:00`. `logging.timestamp_format` was removed in v1.11.0.
 
 ## Rate limited messages
 
-Some errors that can repeat for every packet are logged at most once per second each, so a persistent failure cannot
-flood the log. The next line logged after some were held back carries a `suppressed` field with the number of lines
-skipped. These are:
+Some errors that can repeat for every packet are logged at most once per second each. The next line logged carries a
+`suppressed` field with the number of lines skipped. These are:
 
 - `Failed to write outgoing packet`
 - `Failed to WriteTo in sendVia`

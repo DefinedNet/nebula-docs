@@ -21,8 +21,8 @@ Nebula serves two local APIs, configured in the [`local_api`](/docs/config/local
 
 ## Running commands with nebula ctl
 
-`nebula ctl` talks to a Nebula already running on the same machine. Run it as root, as the user Nebula runs as, or as a
-member of [`local_api.control.group`](/docs/config/local-api/#local_apicontrolgroup). On Windows, run it from an
+`nebula ctl` connects to a Nebula already running on the same machine. Run it as root, as the user Nebula runs as, or as
+a member of [`local_api.control.group`](/docs/config/local-api/#local_apicontrolgroup). On Windows, run it from an
 elevated prompt.
 
 ```console
@@ -64,17 +64,15 @@ works too.
 ### Output and exit codes
 
 Commands print human readable text by default. Add `-json` for compact JSON, or `-pretty` for indented JSON.
-`print-tunnel`, `print-relays`, and `query-lighthouse` only have JSON output; without `-json` or `-pretty` they fail and
-say so.
+`print-tunnel`, `print-relays`, and `query-lighthouse` only have JSON output, and require `-json` or `-pretty`.
 
 In JSON, commands that act rather than report, such as `close-tunnel` or `reload`, print `{"ok":true,"reason":"..."}`,
 or `"ok":false` with the reason when they refuse.
 
-`nebula ctl` exits `0` on success and `1` on any failure: the socket could not be reached, the command or a flag was
-unknown, or the command failed. `nebula ctl reload` prints the outcome of the reload. It exits `1` when the new config
-did not load or part of it failed to apply, but not when it applied and only needs a restart to take full effect.
+`nebula ctl` exits `0` on success and `1` on any failure. `nebula ctl reload` prints the outcome of the reload, and
+exits `1` when the new config did not load or part of it failed to apply, but not when it only needs a restart.
 
-The control socket serves up to 8 connections at once. Beyond that `nebula ctl` reports that the socket is busy.
+The control socket serves up to 8 connections at once.
 
 ## Looking up identities with the info API
 
@@ -117,7 +115,7 @@ $ curl --unix-socket /var/run/nebula/info.sock 'http://localhost/v1/identity/10.
 }
 ```
 
-Lists are always present, empty rather than `null`. Errors are JSON as well, `{"error": "..."}`, with these statuses:
+Lists are empty rather than `null`. Errors are JSON as well, `{"error": "..."}`, with these statuses:
 
 - `400`: the address could not be parsed, the query was not `pretty`, or the request had a body.
 - `404`: there is no established tunnel for the address, the address is outside this node's networks, or the path is
@@ -131,9 +129,8 @@ connection arrived on the Nebula interface. Nebula drops packets whose source ad
 allow, but a connection that arrived on any other interface was never checked by Nebula. Before authorizing a connection
 with the info API, confirm it came in on the Nebula interface.
 
-The info API only answers for addresses inside this node's own overlay networks. An address in an overlay network this
-node is not part of could arrive through a peer's unsafe network, so it is never answered, even with a tunnel to its
-owner up. Only established tunnels are answered.
+The info API only answers for established tunnels and addresses inside this node's own overlay networks. An address in
+another overlay network could arrive through a peer's unsafe network, so it is never answered.
 
 :::
 

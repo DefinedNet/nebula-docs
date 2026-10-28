@@ -36,15 +36,10 @@ therefore without root). You will not be able to communicate over IP with a nebu
 
 `dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS.
 
-- Linux: any valid interface name. Nebula refuses to start if an interface with that name already exists, including a
-  persistent tun device created ahead of time with `ip tuntap add`, or one held by another running nebula.
-- macOS: if set, must be in the form `utun[0-9]+`. Any other name logs a warning and the first free utun device is used.
+- Linux: any valid interface name that does not already exist.
+- macOS: if set, must be in the form `utun[0-9]+`.
 - FreeBSD: any valid interface name. If `/dev/<dev>` does not exist, a new tun device is created and renamed to `dev`.
-- OpenBSD and NetBSD: if set, must be in the form `tun[0-9]+`. Any other name logs a warning and the first free tun
-  device is used.
-
-Changing `dev` takes effect after a restart. On macOS, OpenBSD, and NetBSD a reload only asks for a restart when `dev`
-names a specific device other than the one in use.
+- OpenBSD and NetBSD: if set, must be in the form `tun[0-9]+`.
 
 ## tun.drop_local_broadcast
 
@@ -62,8 +57,8 @@ Toggles forwarding of multicast packets
 
 <Pill className="mb-24">Default: 5000</Pill>
 
-Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number.
-Default is 5000. This setting only applies on Linux.
+Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number. This
+setting only applies on Linux.
 
 ## tun.mtu
 
@@ -71,12 +66,10 @@ Default is 5000. This setting only applies on Linux.
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
 
-The largest MTU Nebula can carry is 8937. A larger value here, or on any route in [`tun.routes`](#tunroutes) or
-[`tun.unsafe_routes`](#tununsafe_routes), is capped to 8937 with a warning. On Windows, the MTU must be at least 1280
-when the overlay carries IPv6, the same as on Linux.
+The maximum MTU is 8937, here and on any route in [`tun.routes`](#tunroutes) or
+[`tun.unsafe_routes`](#tununsafe_routes). When the overlay carries IPv6, the MTU must be at least 1280.
 
-Where the tun device is handed to Nebula by a host app, such as on iOS, Android, or a macOS network extension, the host
-app owns the MTU and this setting is ignored.
+On iOS, Android, and macOS network extensions, the MTU is set by the host app and this setting is ignored.
 
 See below for per-route overrides ([`tun.routes`](#tunroutes)).
 
@@ -86,7 +79,7 @@ See below for per-route overrides ([`tun.routes`](#tunroutes)).
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
 here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis. Route MTUs are
-only applied on Linux, other platforms log a warning and use `tun.mtu`.
+only applied on Linux.
 
 ```yml
 tun:
@@ -124,26 +117,19 @@ Each entry takes:
 - `route`: the CIDR to route over nebula. Required.
 - `via`: the vpn address of the nebula host that forwards the traffic, or a list of gateways (see
   [ECMP support](#ecmp-support-for-unsafe_routes)). Required.
-- `mtu`: the MTU for this route. Defaults to [`tun.mtu`](#tunmtu), must be at least 500, and is capped to 8937. Only
-  applied on Linux.
+- `mtu`: the MTU for this route, from 500 to 8937. Defaults to [`tun.mtu`](#tunmtu). Only applied on Linux.
 - `metric`: the metric of the installed system route, from 0 to 2147483647. Defaults to `0`. Applied on Linux and
-  Windows. On Windows, changing only the metric on reload updates the existing route in place.
+  Windows.
 - `install`: whether the route is installed in the system routing table. Defaults to `true`. Set to `false` when
   something else, such as a routing daemon, installs the route.
-
-Numbers may be quoted, e.g. `metric: "100"`. If the same `route` is listed more than once, Nebula logs a warning and
-only the last entry is used.
 
 For more information, see the [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide.
 
 ### unsafe_routes on macOS
 
-macOS keeps a single route per destination. If another interface already routes an unsafe route's destination, such as
-the local network you are connected to, Nebula logs a warning and leaves that route alone. Nebula installs its own route
-once the other one is removed, for example after moving to a different network.
-
-If Nebula's route is deleted by hand, it stays deleted until Nebula reloads or restarts, or until another interface
-routes the destination and later lets it go.
+macOS allows a single route per destination. If another interface already routes an unsafe route's destination, such as
+the local network you are connected to, Nebula's route is installed only after the other one is removed, for example
+after moving to a different network. A Nebula route deleted by hand stays deleted until Nebula reloads or restarts.
 
 ### ECMP support for `unsafe_routes`
 
@@ -180,16 +166,13 @@ remaining available gateways, though load balancing may become uneven until the 
 
 This option is only supported on Windows.
 
-Sets the Windows network category of the nebula interface. Without it, Windows often leaves the network as
-"Unidentified" and treats it as Public, which makes the host firewall more restrictive than you usually want for an
-overlay between trusted peers. Valid values are:
+Sets the Windows network category of the nebula interface. Otherwise Windows often treats the network as Public, which
+applies a more restrictive host firewall profile. Valid values are:
 
 - `private`: treat the nebula network as a private, trusted network.
 - `public`: treat it as a public, untrusted network.
 - `domain`: treat it as a domain-authenticated network.
-- `unset`: leave whatever Windows decided alone.
-
-Changing this takes effect after a restart. An invalid value refuses to start, and fails the reload.
+- `unset`: keep the category Windows assigns.
 
 ## tun.windows_bypass_wdf
 
@@ -197,17 +180,15 @@ Changing this takes effect after a restart. An invalid value refuses to start, a
 
 This option is only supported on Windows.
 
-When true, Nebula installs a WFP (Windows Filtering Platform) PERMIT filter scoped to the nebula interface. WFP sits
-below Windows Defender Firewall, so inbound traffic on the nebula interface is allowed regardless of Defender Firewall
-rules, and Nebula's own [firewall](/docs/config/firewall/) decides what is allowed. The filter is removed when the
-interface goes away. Set to false to leave Windows Defender Firewall in charge. See
-[`listen.windows_bypass_wdf`](/docs/config/listen/#listenwindows_bypass_wdf) for the matching control over Nebula's UDP
-listener. Changing this takes effect after a restart.
+When true, a WFP (Windows Filtering Platform) PERMIT filter is installed for the nebula interface. WFP is evaluated
+below Windows Defender Firewall, so inbound traffic on the nebula interface is controlled only by Nebula's own
+[firewall](/docs/config/firewall/). When false, Defender Firewall rules also apply. See
+[`listen.windows_bypass_wdf`](/docs/config/listen/#listenwindows_bypass_wdf) for the UDP listener.
 
 ### DNS registration on Windows
 
-Nebula turns off DNS registration for its Windows interface, so the overlay addresses are not registered in Active
-Directory DNS or any other dynamic DNS server the host uses.
+DNS registration is disabled on the nebula interface, so overlay addresses are not registered in Active Directory DNS or
+any other dynamic DNS server the host uses.
 
 ## tun.use_system_route_table
 
@@ -235,13 +216,12 @@ value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise th
 <Pill className="mb-24">Default: false</Pill>
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
-This option is only supported on Linux and is not reloadable.
+This option is only supported on Linux.
 
-When enabled, Nebula attempts to enable segmentation offloads on the tun device. The host network stack can then hand
-Nebula TCP and UDP payloads much larger than the MTU in a single read, and accept large coalesced packets on write,
-substantially reducing per-packet overhead for high-throughput flows. Nebula negotiates the best supported mode at
-startup (TSO with USO, then TSO alone on kernels older than 6.2, then no offloads) and logs the result in the
-`TUN offload status` message. Offloads are never used on a tun device that is handed to Nebula already open.
+Enables segmentation offloads on the tun device, so TCP and UDP payloads much larger than the MTU are read and written
+in a single operation, reducing per-packet overhead for high-throughput flows. The best supported mode is selected at
+startup (TSO with USO, TSO alone on kernels older than 6.2, or none) and logged in the `TUN offload status` message.
+Offloads are not used on a tun device that is passed to Nebula already open.
 
 For the biggest throughput gains, pair this option with
 [`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads).
@@ -251,31 +231,27 @@ For the biggest throughput gains, pair this option with
 <Pill className="mb-24">Default: true</Pill>
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
-This option is only supported on Linux and is not reloadable. It only takes effect when
-[`routines`](/docs/config/routines/) is greater than `1`.
+This option is only supported on Linux, and only takes effect when [`routines`](/docs/config/routines/) is greater than
+`1`.
 
-When enabled, each tun reader/encrypt OS thread is pinned to a single CPU. This keeps every thread's batched sends
-flowing through one XPS-selected NIC transmit ring, so packets within a flow stay ordered on the wire instead of being
-sprayed across multiple transmit rings and reordered.
+When enabled, each tun reader/encrypt OS thread is pinned to a single CPU. This keeps each thread's batched sends on one
+XPS-selected NIC transmit ring, so packets within a flow are not reordered across transmit rings.
 
-Unless [`tun.cpu_affinity`](#tuncpu_affinity) overrides it, Nebula picks the CPUs to pin to automatically: it prefers
-performance cores on heterogeneous CPUs (ARM big.LITTLE, Intel P/E hybrids, AMD compact cores), keeps all readers on one
-NUMA node and on distinct physical cores when the topology allows (SMT siblings last), leaves CPU 0's physical core as a
-last resort, and rotates its starting point per instance so multiple Nebula instances on the same host don't stack their
-readers onto the same cores.
+Unless [`tun.cpu_affinity`](#tuncpu_affinity) overrides it, CPUs are selected automatically. Performance cores are
+preferred on heterogeneous CPUs (ARM big.LITTLE, Intel P/E hybrids, AMD compact cores), readers are kept on one NUMA
+node and on distinct physical cores when possible (SMT siblings last), CPU 0's physical core is a last resort, and the
+starting point rotates per instance so multiple Nebula instances on the same host don't share cores.
 
 ## tun.cpu_affinity
 
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
-This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
-is `true` and [`routines`](/docs/config/routines/) is greater than `1`.
+This option is only supported on Linux, and only applies while [`tun.pin_threads`](#tunpin_threads) is `true` and
+[`routines`](/docs/config/routines/) is greater than `1`.
 
-Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine (see
-[`routines`](/docs/config/routines/)). A list shorter than `routines` is cycled across the queues; extra entries are
-ignored. IDs must be within the process's allowed CPU set, so the list respects `taskset` and cgroup cpusets. If any
-entry is not an integer or not in the allowed set, the whole override is ignored and Nebula falls back to the automatic
-selection described under [`tun.pin_threads`](#tunpin_threads).
+Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine. A list shorter than `routines`
+is cycled across the queues; extra entries are ignored. IDs must be within the process's allowed CPU set, so the list
+respects `taskset` and cgroup cpusets.
 
 ```yml
 tun:
@@ -289,11 +265,8 @@ tun:
 <Pill className="mb-24">Default: pid</Pill>
 <Pill className="mb-24">Added in v1.12.0</Pill>
 
-This option is only supported on Linux and is not reloadable. It only applies while [`tun.pin_threads`](#tunpin_threads)
-is `true`, [`routines`](/docs/config/routines/) is greater than `1`, and no [`tun.cpu_affinity`](#tuncpu_affinity)
-override is set.
+This option is only supported on Linux, and only applies while [`tun.pin_threads`](#tunpin_threads) is `true`,
+[`routines`](/docs/config/routines/) is greater than `1`, and no [`tun.cpu_affinity`](#tuncpu_affinity) override is set.
 
-Controls how the automatic CPU selector varies its starting point between Nebula instances. Valid values are `pid` and
-`port`. Use `port` if you want Nebula to choose the same cores every run (keyed by the bound UDP port), which is useful
-for reproducible benchmarking. An unknown value, or `port` when Nebula cannot read its bound port, logs a warning and
-uses `pid`.
+Controls how the automatic CPU selection varies its starting point between Nebula instances. Valid values are `pid` and
+`port`. Use `port` to select the same cores on every run (keyed by the bound UDP port), for reproducible benchmarking.

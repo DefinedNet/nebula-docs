@@ -103,17 +103,16 @@ and allows for easy rollback if issues arise.
 For each host you want to migrate, create a v2 certificate using the new CA. A v2 CA creates v2 certificates by default.
 This is the perfect time to add IPv6 addresses to your certificates.
 
-v2 certificates need a name between 1 and 253 bytes long, and signing one outside that range fails.
+v2 certificate names must be between 1 and 253 bytes long.
 
 :::note
 
 IPv6 addresses in the overlay do not need IPv6 on the underlay network: IPv6 overlay traffic travels between hosts over
 IPv4 just fine. To also let hosts reach each other over an IPv6 underlay, set
-[`listen.host`](/docs/config/listen/#listenhost) to `'::'`. With the default `0.0.0.0`, Nebula ignores IPv6 underlay
-addresses.
+[`listen.host`](/docs/config/listen/#listenhost) to `'::'`. With the default `0.0.0.0`, IPv6 underlay addresses are
+ignored.
 
-On Windows, a host whose overlay carries IPv6 needs a [`tun.mtu`](/docs/config/tun/#tunmtu) of at least 1280, the IPv6
-minimum, or Nebula will not start. Linux has the same requirement.
+A host whose overlay carries IPv6 needs a [`tun.mtu`](/docs/config/tun/#tunmtu) of at least 1280, the IPv6 minimum.
 
 :::
 

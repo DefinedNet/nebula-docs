@@ -34,38 +34,32 @@ local_api:
 The sockets are only created by the `nebula` and `nebula-service` binaries. Apps that embed Nebula, such as Mobile
 Nebula, do not create them, and neither does `nebula -test`.
 
-A problem with either socket never stops Nebula. It logs a warning, keeps forwarding traffic, and tries again on every
-reload, so a missing directory or a bad path can be fixed with a config edit and a reload. A reload with an unusable
-`local_api` section keeps the socket that is already running.
+A problem with either socket logs a warning but does not stop Nebula.
 
 ## local_api.control.enabled
 
 <Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Set to `false` to turn the control socket off. A reload that turns it off removes the socket, and one that turns it back
-on creates it again.
+Set to `false` to turn the control socket off.
 
 ## local_api.control.socket
 
 <Pill className="mb-24">Default: /var/run/nebula/ctl.sock</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-The path of the control socket. A reload moves the socket to a new path. `nebula ctl` reads this setting from the same
-config file to find the socket.
+The path of the control socket. `nebula ctl` reads this setting from the same config file to find the socket.
 
 On Linux, macOS, and the BSDs this must be an absolute path of at most 103 bytes. On Windows it is a full named pipe
 name, and the default is `\\.\pipe\ProtectedPrefix\Administrators\nebula-ctl`.
 
 The default path suits Nebula running as root. A Nebula running as another user, or a second Nebula on the same host,
-needs a path of its own. If a live socket from another Nebula is already at the path, the socket is not created and
-Nebula logs that the path is in use by another instance. A leftover socket from a Nebula that exited is replaced.
+needs a path of its own. A leftover socket from a Nebula that exited is replaced.
 
 ### Socket directory
 
-On Linux, macOS, and the BSDs, Nebula checks the directory holding the socket before creating it, because anyone who can
-write that directory could replace the socket with their own:
+On Linux, macOS, and the BSDs, the directory holding the socket is checked before the socket is created, because anyone
+who can write that directory could replace the socket with their own:
 
-- If the directory is missing, Nebula creates it with mode `0755`. Only the last directory is created, its parent must
-  exist.
+- A missing directory is created with mode `0755`. Only the last directory is created, its parent must exist.
 - The directory must be owned by root or by the user Nebula runs as.
 - The directory must not be writable by its group or by everyone, even with the sticky bit set. A socket in `/tmp` is
   refused.
@@ -90,8 +84,7 @@ tunnels, and changing the log level. Only name a group whose members you would t
 
 :::
 
-On Windows the access to a pipe cannot change while it is in use. A group added on reload takes effect after a restart,
-and a group removed or changed on reload stops the socket until Nebula is restarted.
+On Windows, a change to `group` takes effect after a restart.
 
 ## local_api.info.enabled
 
@@ -103,10 +96,9 @@ Set to `true` to serve the info API. [`local_api.info.socket`](#local_apiinfosoc
 
 <Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-The path of the info socket. There is no default, because the programs that use the info API have to be told where it is
-anyway. The same path rules, [directory checks](#socket-directory), and Windows pipe naming apply as for the control
-socket, and it must be a different path from the control socket. On Windows, name the pipe under
-`\\.\pipe\ProtectedPrefix\Administrators\`, Nebula warns about a pipe outside it.
+The path of the info socket. There is no default. The same path rules, [directory checks](#socket-directory), and
+Windows pipe naming apply as for the control socket, and it must be a different path from the control socket. On
+Windows, name the pipe under `\\.\pipe\ProtectedPrefix\Administrators\`.
 
 ## local_api.info.group
 
@@ -120,9 +112,8 @@ it is reasonable to open it to the programs that need it.
 
 <Pill className="mb-24">Default: "0600", or "0660" with a group</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-The file mode of the info socket on Linux, macOS, and the BSDs. It must be a quoted octal string such as `"0660"`; YAML
-reads an unquoted mode as a plain number, so one is refused. With a group set, the mode must give the group access. To
-let any user on the host use the info API, set this to `"0666"`.
+The file mode of the info socket on Linux, macOS, and the BSDs. It must be a quoted octal string such as `"0660"`. With
+a group set, the mode must give the group access. To let any user on the host use the info API, set this to `"0666"`.
 
 This setting has no effect on Windows.
 

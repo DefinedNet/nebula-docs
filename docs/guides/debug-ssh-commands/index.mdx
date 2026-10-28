@@ -86,7 +86,7 @@ version - Prints the currently running version of nebula
 :::note
 
 The profiling commands `start-cpu-profile`, `stop-cpu-profile`, `save-heap-profile`, `save-mutex-profile`, and
-`mutex-profile-fraction` were removed in v1.12.0, along with the `sshd.sandbox_dir` setting, which is now ignored.
+`mutex-profile-fraction` were removed in v1.12.0, along with the `sshd.sandbox_dir` setting.
 
 :::
 
@@ -108,8 +108,7 @@ without them.
 
 ## Running commands from a script
 
-A command can be passed straight to `ssh`, which exits with `1` when the command fails, for example an unknown command,
-a bad flag, a refused request, or a failed reload, and `0` otherwise:
+A command can be passed straight to `ssh`, which exits with `1` when the command fails and `0` otherwise:
 
 ```console
 $ ssh -p 2222 127.0.0.1 close-tunnel 10.128.1.2 || echo "close-tunnel failed"
@@ -123,14 +122,12 @@ when they refuse.
 `identity [-pem] [<vpn addr>[:port]]` prints the identity in a certificate: its name, vpn addresses, networks, unsafe
 networks, groups, fingerprint, issuer, validity, and certificate version. With no address it prints this node's
 identity. With an address it prints the identity of the host that owns it, if a tunnel to that host is established and
-the address is inside this node's own networks. A port on the address is ignored. `-pem` prints the certificate itself
-instead.
+the address is inside this node's own networks. `-pem` prints the certificate itself instead.
 
 `create-tunnel [-address ip:port] <vpn addr>` starts a handshake with the host, querying the lighthouses for its
 addresses. `-address` adds an address to try.
 
-`reload` prints the outcome of the reload, including any keys that need a restart, and counts as failed when the new
-config did not load or part of it failed to apply.
+`reload` prints the outcome of the reload, including any keys that need a restart.
 
 `query-lighthouse <some-ip>` will return an empty result set initially if the host is not connected, but it will trigger
 a background request to the lighthouse. Meaning, you need to run it twice to actually get a result.

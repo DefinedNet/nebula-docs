@@ -8,8 +8,7 @@ import { Pill } from '@components/Pill/Pill';
 # punchy
 
 `punchy` configures the sending of inbound/outbound packets at a regular interval to avoid expiration of firewall NAT
-mappings. See [NAT traversal and firewalls](/docs/guides/nat-traversal/) for when to reach for these settings and the
-NAT behaviors that make them necessary.
+mappings. See [NAT traversal and firewalls](/docs/guides/nat-traversal/) for when these settings are needed.
 
 Regardless of how `punchy` is configured, the lighthouse will notify hosts when a peer is attempting to handshake with
 it and Nebula will issue an "empty" packet to the initiating peer's IP addresses in an attempt to punch a hole through
