@@ -1,0 +1,120 @@
+---
+sidebar_position: 13
+description: Configure Nebula's local control socket and the optional info API.
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+# local_api
+
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+`local_api` configures the sockets that let programs on the same machine talk to a running Nebula. There are two:
+
+- The **control socket** serves the same commands as the [sshd](/docs/config/sshd/) debug console, for use with
+  `nebula ctl <command>`. It is on by default.
+- The **info socket** serves this node's identity, and the identity of the hosts it has tunnels with, over HTTP. It is
+  off by default.
+
+See [Controlling Nebula locally with `nebula ctl`](/docs/guides/local-control-and-info-api/) for how to use them.
+
+```yml
+local_api:
+  control:
+    enabled: true
+    socket: /var/run/nebula/ctl.sock
+    group: nebula
+  info:
+    enabled: false
+    socket: /var/run/nebula/info.sock
+    group: nebula-info
+    socket_mode: '0660'
+```
+
+The sockets are only created by the `nebula` and `nebula-service` binaries. Apps that embed Nebula, such as Mobile
+Nebula, do not create them, and neither does `nebula -test`.
+
+A problem with either socket logs a warning but does not stop Nebula.
+
+## local_api.control.enabled
+
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+Set to `false` to turn the control socket off.
+
+## local_api.control.socket
+
+<Pill className="mb-24">Default: /var/run/nebula/ctl.sock</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+The path of the control socket. `nebula ctl` reads this setting from the same config file to find the socket.
+
+On Linux, macOS, and the BSDs this must be an absolute path of at most 103 bytes. On Windows it is a full named pipe
+name, and the default is `\\.\pipe\ProtectedPrefix\Administrators\nebula-ctl`.
+
+The default path suits Nebula running as root. A Nebula running as another user, or a second Nebula on the same host,
+needs a path of its own. A leftover socket from a Nebula that exited is replaced.
+
+### Socket directory
+
+On Linux, macOS, and the BSDs, the directory holding the socket is checked before the socket is created, because anyone
+who can write that directory could replace the socket with their own:
+
+- A missing directory is created with mode `0755`. Only the last directory is created, its parent must exist.
+- The directory must be owned by root or by the user Nebula runs as.
+- The directory must not be writable by its group or by everyone, even with the sticky bit set. A socket in `/tmp` is
+  refused.
+
+Only the directory holding the socket is checked, not the directories above it.
+
+## local_api.control.group
+
+<Pill className="mb-24">Reloadable</Pill>
+
+By default, only root and the user Nebula runs as can use the control socket. On Windows, that is the account Nebula
+runs as, `SYSTEM`, and elevated members of `Administrators`. Other users are refused.
+
+`group` names a group whose members may also use the control socket. On Linux, macOS, and the BSDs it is a group name or
+numeric gid, and the socket is given to that group with mode `0660`. On Windows it is an account or group name,
+optionally domain qualified, or a SID such as `S-1-5-32-545`.
+
+:::warning
+
+The control socket can do everything the debug console can, including reloading the config, closing and creating
+tunnels, and changing the log level. Only name a group whose members you would trust with that.
+
+:::
+
+On Windows, a change to `group` takes effect after a restart.
+
+## local_api.info.enabled
+
+<Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+Set to `true` to serve the info API. [`local_api.info.socket`](#local_apiinfosocket) must also be set.
+
+## local_api.info.socket
+
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+The path of the info socket. There is no default. The same path rules, [directory checks](#socket-directory), and
+Windows pipe naming apply as for the control socket, and it must be a different path from the control socket. On
+Windows, name the pipe under `\\.\pipe\ProtectedPrefix\Administrators\`.
+
+## local_api.info.group
+
+<Pill className="mb-24">Reloadable</Pill>
+
+A group whose members may use the info socket, named the same way as
+[`local_api.control.group`](#local_apicontrolgroup). The info API is read-only and only serves certificate identity, so
+it is reasonable to open it to the programs that need it.
+
+## local_api.info.socket_mode
+
+<Pill className="mb-24">Default: "0600", or "0660" with a group</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+The file mode of the info socket on Linux, macOS, and the BSDs. It must be a quoted octal string such as `"0660"`. With
+a group set, the mode must give the group access. To let any user on the host use the info API, set this to `"0666"`.
+
+This setting has no effect on Windows.
+
+There is no matching setting for the control socket, which is always `0600`, or `0660` with a group.

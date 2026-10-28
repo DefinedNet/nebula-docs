@@ -15,12 +15,12 @@ Example:
 static_map:
   network: ip4
   cadence: 30s
-  lookup_timeout: 250ms
+  lookup_timeout: 5s
 ```
 
 ## static_map.network
 
-<Pill className="mb-24">Default: ip4</Pill>
+<Pill className="mb-24">Default: ip4</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 Select the IP version used to communicate with hosts in the static map. Valid values are `ip4`, `ip6`, and `ip` (for
 both.)
@@ -38,14 +38,21 @@ It is necessary to set this setting to `ip6` (or `ip`) for IPv6-only hosts.
 
 :::
 
+With an IPv4 [`listen.host`](/docs/config/listen/#listenhost), such as the default `0.0.0.0`, IPv6 results are ignored
+even when this is set to `ip` or `ip6`.
+
 ## static_map.cadence
 
-<Pill className="mb-24">Default: 30s</Pill>
+<Pill className="mb-24">Default: 30s</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Interval to re-query DNS for hostnames listed in the static map
+Interval to re-query DNS for hostnames listed in the static map. Starting a handshake with a host whose entry uses a
+hostname also triggers an immediate re-query.
 
 ## static_map.lookup_timeout
 
-<Pill className="mb-24">Default: 250ms</Pill>
+<Pill className="mb-24">Default: 5s</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Timeout for DNS lookup of static hosts
+Timeout for DNS lookup of static hosts.
+
+A lookup that fails or times out keeps the last addresses that resolved successfully and logs
+`DNS resolution failed for static_map host`. Only a not found answer (NXDOMAIN) removes them.

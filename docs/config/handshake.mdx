@@ -1,5 +1,5 @@
 ---
-sidebar_position: 17
+sidebar_position: 18
 description: Configuration of the Nebula handshake manager subsystem.
 ---
 
@@ -27,9 +27,17 @@ A 100ms interval with the default 10 retries will give a handshake 5.5 seconds t
 `trigger_buffer` is the size of the buffer channel for quickly sending handshakes after receiving the response for
 lighthouse queries.
 
+## handshakes.query_buffer
+
+<Pill className="mb-24">Default: 1024</Pill>
+
+`query_buffer` is the size of the buffer channel for queries to the lighthouses. When it is full, lighthouse queries are
+dropped and counted in the `lighthouse.query.dropped` metric. Raise this on hosts that start many tunnels at once.
+
 ```yml
 handshakes:
   try_interval: 100ms
   retries: 10
   trigger_buffer: 64
+  query_buffer: 1024
 ```

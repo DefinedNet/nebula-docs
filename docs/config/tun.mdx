@@ -13,7 +13,7 @@ tun:
   dev: nebula1
   drop_local_broadcast: false
   drop_multicast: false
-  tx_queue: 500
+  tx_queue: 5000
   mtu: 1300
   routes:
     - mtu: 8800
@@ -34,8 +34,12 @@ therefore without root). You will not be able to communicate over IP with a nebu
 
 ## tun.dev
 
-`dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS. For macOS: Not
-required. If set, must be in the form `utun[0-9]+`. For FreeBSD: Required to be set, must be in the form `tun[0-9]+`.
+`dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS.
+
+- Linux: any valid interface name that does not already exist.
+- macOS: if set, must be in the form `utun[0-9]+`.
+- FreeBSD: any valid interface name. If `/dev/<dev>` does not exist, a new tun device is created and renamed to `dev`.
+- OpenBSD and NetBSD: if set, must be in the form `tun[0-9]+`.
 
 ## tun.drop_local_broadcast
 
@@ -51,16 +55,21 @@ Toggles forwarding of multicast packets
 
 ## tun.tx_queue
 
-<Pill className="mb-24">Default: 500</Pill>
+<Pill className="mb-24">Default: 5000</Pill>
 
-Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number.
-Default is 500.
+Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number. This
+setting only applies on Linux.
 
 ## tun.mtu
 
 <Pill className="mb-24">Default: 1300</Pill> <Pill className="mb-24">Reloadable: Linux</Pill>
 
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
+
+The maximum MTU is 8937, here and on any route in [`tun.routes`](#tunroutes) or
+[`tun.unsafe_routes`](#tununsafe_routes). When the overlay carries IPv6, the MTU must be at least 1280.
+
+On iOS, Android, and macOS network extensions, the MTU is set by the host app and this setting is ignored.
 
 See below for per-route overrides ([`tun.routes`](#tunroutes)).
 
@@ -69,7 +78,8 @@ See below for per-route overrides ([`tun.routes`](#tunroutes)).
 <Pill className="mb-24">Reloadable</Pill>
 
 Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
-here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis.
+here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis. Route MTUs are
+only applied on Linux.
 
 ```yml
 tun:
@@ -102,7 +112,24 @@ tun:
       install: true # controls whether this route is installed in the systems routing table.
 ```
 
+Each entry takes:
+
+- `route`: the CIDR to route over nebula. Required.
+- `via`: the vpn address of the nebula host that forwards the traffic, or a list of gateways (see
+  [ECMP support](#ecmp-support-for-unsafe_routes)). Required.
+- `mtu`: the MTU for this route, from 500 to 8937. Defaults to [`tun.mtu`](#tunmtu). Only applied on Linux.
+- `metric`: the metric of the installed system route, from 0 to 2147483647. Defaults to `0`. Applied on Linux and
+  Windows.
+- `install`: whether the route is installed in the system routing table. Defaults to `true`. Set to `false` when
+  something else, such as a routing daemon, installs the route.
+
 For more information, see the [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide.
+
+### unsafe_routes on macOS
+
+macOS allows a single route per destination. If another interface already routes an unsafe route's destination, such as
+the local network you are connected to, Nebula's route is installed only after the other one is removed, for example
+after moving to a different network. A Nebula route deleted by hand stays deleted until Nebula reloads or restarts.
 
 ### ECMP support for `unsafe_routes`
 
@@ -133,6 +160,36 @@ The implementation uses [hash-threshold mapping](https://tools.ietf.org/html/rfc
 distribute traffic based on packet hashing. When a gateway becomes unreachable, traffic automatically fails over to the
 remaining available gateways, though load balancing may become uneven until the failed gateway recovers.
 
+## tun.network_category
+
+<Pill className="mb-24">Default: private</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows.
+
+Sets the Windows network category of the nebula interface. Otherwise Windows often treats the network as Public, which
+applies a more restrictive host firewall profile. Valid values are:
+
+- `private`: treat the nebula network as a private, trusted network.
+- `public`: treat it as a public, untrusted network.
+- `domain`: treat it as a domain-authenticated network.
+- `unset`: keep the category Windows assigns.
+
+## tun.windows_bypass_wdf
+
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows.
+
+When true, a WFP (Windows Filtering Platform) PERMIT filter is installed for the nebula interface. WFP is evaluated
+below Windows Defender Firewall, so inbound traffic on the nebula interface is controlled only by Nebula's own
+[firewall](/docs/config/firewall/). When false, Defender Firewall rules also apply. See
+[`listen.windows_bypass_wdf`](/docs/config/listen/#listenwindows_bypass_wdf) for the UDP listener.
+
+### DNS registration on Windows
+
+DNS registration is disabled on the nebula interface, so overlay addresses are not registered in Active Directory DNS or
+any other dynamic DNS server the host uses.
+
 ## tun.use_system_route_table
 
 <Pill className="mb-24">Default: false</Pill>
@@ -153,3 +210,63 @@ This option is only supported on Linux.
 Buffer size for reading route updates. `0` means the system default buffer size is used
 (`/proc/sys/net/core/rmem_default`). If using massive route updates, for example BGP, you may need to increase this
 value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise the system wide max.
+
+## tun.use_offloads
+
+<Pill className="mb-24">Default: false</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux.
+
+Enables segmentation offloads on the tun device, so TCP and UDP payloads much larger than the MTU are read and written
+in a single operation, reducing per-packet overhead for high-throughput flows. The best supported mode is selected at
+startup (TSO with USO, TSO alone on kernels older than 6.2, or none) and logged in the `TUN offload status` message.
+Offloads are not used on a tun device that is passed to Nebula already open.
+
+For the biggest throughput gains, pair this option with
+[`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads).
+
+## tun.pin_threads
+
+<Pill className="mb-24">Default: true</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux, and only takes effect when [`routines`](/docs/config/routines/) is greater than
+`1`.
+
+When enabled, each tun reader/encrypt OS thread is pinned to a single CPU. This keeps each thread's batched sends on one
+XPS-selected NIC transmit ring, so packets within a flow are not reordered across transmit rings.
+
+Unless [`tun.cpu_affinity`](#tuncpu_affinity) overrides it, CPUs are selected automatically. Performance cores are
+preferred on heterogeneous CPUs (ARM big.LITTLE, Intel P/E hybrids, AMD compact cores), readers are kept on one NUMA
+node and on distinct physical cores when possible (SMT siblings last), CPU 0's physical core is a last resort, and the
+starting point rotates per instance so multiple Nebula instances on the same host don't share cores.
+
+## tun.cpu_affinity
+
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux, and only applies while [`tun.pin_threads`](#tunpin_threads) is `true` and
+[`routines`](/docs/config/routines/) is greater than `1`.
+
+Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine. A list shorter than `routines`
+is cycled across the queues; extra entries are ignored. IDs must be within the process's allowed CPU set, so the list
+respects `taskset` and cgroup cpusets.
+
+```yml
+tun:
+  cpu_affinity:
+    - 2
+    - 4
+```
+
+## tun.pin_threads_key
+
+<Pill className="mb-24">Default: pid</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux, and only applies while [`tun.pin_threads`](#tunpin_threads) is `true`,
+[`routines`](/docs/config/routines/) is greater than `1`, and no [`tun.cpu_affinity`](#tuncpu_affinity) override is set.
+
+Controls how the automatic CPU selection varies its starting point between Nebula instances. Valid values are `pid` and
+`port`. Use `port` to select the same cores on every run (keyed by the bound UDP port), for reproducible benchmarking.

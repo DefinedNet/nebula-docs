@@ -14,8 +14,8 @@ listen:
   host: 0.0.0.0
   port: 4242
   batch: 64
-  read_buffer: 10485760
-  write_buffer: 10485760
+  read_buffer: 3412512
+  write_buffer: 3412512
 ```
 
 ## listen.host
@@ -23,7 +23,14 @@ listen:
 <Pill className="mb-24">Default: 0.0.0.0</Pill>
 
 `host` is the ip of the interface to use when binding the listener. The default is `0.0.0.0` for all IPv4 interfaces. To
-enable IPv6, use `'[::]'` instead. `host` may also contain a hostname.
+enable IPv6, use `'::'` instead, which listens on both IPv4 and IPv6. The older `'[::]'` form is still accepted. `host`
+may also contain a hostname.
+
+With an IPv4 `host`, including the default `0.0.0.0`, IPv6 is not used on the underlay. Peer IPv6 addresses from
+lighthouses or [`static_host_map`](/docs/config/static-host-map/) are ignored, and local IPv6 interface addresses are
+not reported to lighthouses. IPv6 addresses in
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) are still advertised. A lighthouse
+with an IPv4 `host` still stores and serves IPv6 addresses reported by other hosts.
 
 ## listen.port
 
@@ -35,14 +42,27 @@ nodes. Using 0 on lighthouses and relay hosts will likely lead to connectivity i
 
 <Pill className="mb-24">Default: 64</Pill>
 
-Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`).
+Sets the max number of packets to pull from the kernel for each syscall (under systems that support `recvmmsg`). Linux
+only.
+
+With GRO enabled by [`listen.udp_offloads`](#listenudp_offloads), each receive slot holds a 64KiB superpacket, so
+receive memory is `batch × 64KiB` per socket (about 4MiB per routine at the default). Lower values reduce memory at the
+cost of per-syscall throughput.
 
 ## listen.read_buffer, listen.write_buffer
 
+<Pill className="mb-24">Reloadable</Pill>
+
+This option is only supported on Linux.
+
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and
-`/proc/sys/net/core/rmem_default`). Maximum is limited by memory in the system, `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` is
-used to avoid having to raise the system wide max, `net.core.rmem_max` and `net.core.wmem_max`
+`/proc/sys/net/core/wmem_default`).
+
+`SO_RCVBUFFORCE` and `SO_SNDBUFFORCE` are tried first. These bypass the system wide max (`net.core.rmem_max` and
+`net.core.wmem_max`) but require `CAP_NET_ADMIN`. Without it, `SO_RCVBUF` and `SO_SNDBUF` are used, capped at the system
+wide max. A buffer smaller than requested produces a warning such as `listen.read_buffer was limited by the system`;
+raise `net.core.rmem_max` / `net.core.wmem_max` or grant `CAP_NET_ADMIN` to fix it.
 
 ## listen.send_recv_error
 
@@ -69,6 +89,7 @@ Valid values: `always`, `never`, `private`
 
 ## listen.so_mark
 
+<Pill className="mb-24">Default: 0</Pill> <Pill className="mb-24">Reloadable</Pill>
 <Pill className="mb-24">Added in v1.10.0</Pill>
 
 On Linux systems, Nebula can now mark packets using the
@@ -91,3 +112,42 @@ ip rule add not from all fwmark 4242 lookup 4242
 ip rule add from all lookup main suppress_prefixlength 0
 ip route add default dev nebula1 via <nebula_unsafe_route_g> table 4242
 ```
+
+## listen.rebind_on_network_change
+
+<Pill className="mb-24">Default: true</Pill>
+<Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on macOS.
+
+macOS scopes the UDP socket to the interface it was created on, so after a network change (wifi to wired, office to
+home) packets are sent out an interface with no route. When enabled, the listener is rebound once routing changes
+settle, so tunnels recover without waiting for dead tunnel detection. Not used on iOS, where the host app performs the
+rebind.
+
+## listen.udp_offloads
+
+<Pill className="mb-24">Default: false</Pill>
+<Pill className="mb-24">Added in v1.12.0</Pill>
+
+This option is only supported on Linux.
+
+Enables UDP Generic Segmentation Offload (GSO, Linux kernel 4.18+) and Generic Receive Offload (GRO) on the UDP
+socket(s). GSO passes a batch of packets for the same host to the kernel as one superpacket, reducing per-packet syscall
+and network stack overhead. GRO coalesces datagrams arriving from the same host into one large read. Support for each is
+probed at socket creation; kernels without support use standard sends and receives. GRO requires
+[`listen.batch`](#listenbatch) greater than `1`.
+
+GRO increases receive memory, see [`listen.batch`](#listenbatch). For the biggest throughput gains, pair with
+[`tun.use_offloads`](/docs/config/tun/#tunuse_offloads).
+
+## listen.windows_bypass_wdf
+
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Added in v1.11.0</Pill>
+
+This option is only supported on Windows (amd64 and arm64).
+
+When true, a WFP (Windows Filtering Platform) PERMIT filter is installed for UDP on the listener port. WFP is evaluated
+below Windows Defender Firewall, so inbound handshakes reach the listener regardless of Defender Firewall rules. When
+false, Defender Firewall rules apply to the listener port. See
+[`tun.windows_bypass_wdf`](/docs/config/tun/#tunwindows_bypass_wdf) for the nebula interface.

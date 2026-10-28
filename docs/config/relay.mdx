@@ -36,7 +36,7 @@ allows hosts to specify relays that are "close" to them. For example, if you hav
 VPC, you can set up a relay host dedicated to enabling connectivity to peers in that VPC.
 
 You cannot relay to a relay. Hosts configured as a relay (`am_relay: true`) may not specify other hosts as relays in
-their own config.
+their own config, and do not use relays themselves.
 
 ## relay.relays
 
@@ -56,12 +56,14 @@ will indicate its supported relays in addition to its known IP addresses.
 
 ## relay.am_relay
 
-<Pill className="mb-24">Reloadable</Pill>
+<Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Set `am_relay` to true to enable forwarding packets for other hosts. This host will only forward traffic for hosts which
-specify it as a relay in their own config file. The default is false.
+Set `am_relay` to true to enable forwarding packets for other hosts. Peers only relay through the hosts that the
+destination lists in its [`relay.relays`](#relayrelays), but the relay does not check that list: it forwards for any
+peer to any host it has a direct tunnel with.
 
 ## relay.use_relays
 
-Set `use_relays` to false to prevent this instance from attempting to establish connections through relays. The default
-is true.
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+Set `use_relays` to false to prevent this instance from attempting to establish connections through relays.

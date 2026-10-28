@@ -31,3 +31,10 @@ general, it is a good idea to enable this setting. It will be enabled by default
 
 Controls how long a tunnel must not see any inbound or outbound traffic before being considered inactive and eligible to
 be dropped. Only applies when [`tunnels.drop_inactive`](#tunnelsdrop_inactive) is enabled.
+
+## Automatic rekeying
+
+A tunnel is rehandshaked with new keys after sending 2<sup>34</sup> (about 17 billion) packets, which keeps it well
+inside the safe usage limits of its cipher. No configuration is needed. A tunnel that reaches its hard limit before the
+new handshake completes is removed with the log line `Dropping tunnel, message counter is exhausted`, and the dropped
+packets are counted in the `messages.tx.exhausted` metric.
