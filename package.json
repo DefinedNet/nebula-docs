@@ -5,59 +5,43 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "postinstall": "pnpm parse-domain-update",
-    "start": "docusaurus start",
-    "build": "pnpm parse-domain-update && docusaurus build",
-    "preview": "docusaurus serve",
+    "start": "astro dev",
+    "build": "pnpm parse-domain-update && astro build",
+    "preview": "astro preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc",
-    "test": "uvu -r tsm --dir ."
+    "typecheck": "astro check",
+    "test": "uvu -r tsm src '\\.test\\.ts$'"
   },
   "dependencies": {
-    "@docusaurus/core": "3.10.2",
-    "@docusaurus/plugin-content-docs": "3.10.2",
-    "@docusaurus/preset-classic": "3.10.2",
-    "@docusaurus/theme-common": "3.10.2",
-    "@mdx-js/react": "^3.1.1",
-    "clsx": "^2.1.1",
+    "@astrojs/markdown-satteri": "^0.4.6",
+    "@astrojs/mdx": "^8.1.2",
+    "@astrojs/react": "^7.1.2",
+    "@astrojs/starlight": "^0.42.8",
+    "@astrojs/starlight-docsearch": "^0.8.0",
+    "astro": "^7.4.5",
     "parse-domain": "^8.3.0",
-    "prism-react-renderer": "^2.4.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.10.2",
-    "@docusaurus/theme-classic": "^3.10.2",
-    "@docusaurus/tsconfig": "^3.10.2",
-    "@docusaurus/types": "^3.10.2",
+    "@astrojs/check": "^0.9.12",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.7",
-    "alias-hq": "^6.2.4",
-    "autoprefixer": "^10.4.27",
-    "docusaurus-plugin-module-alias": "^0.0.2",
     "fast-check": "^4.6.0",
-    "postcss-nesting": "^13.0.2",
     "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^1.1.2",
+    "starlight-links-validator": "^0.27.0",
     "tsm": "^2.3.0",
     "typescript": "^5.9.3",
     "uvu": "^0.5.6"
   },
-  "browserslist": {
-    "production": [
-      ">0.5%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "packageManager": "pnpm@9.7.0",
   "engines": {
-    "node": ">=18"
-  }
+    "node": ">=22.12.0"
+  },
+  "type": "module"
 }

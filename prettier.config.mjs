@@ -13,5 +13,6 @@ export default {
     '.css$',
   ],
   importOrderParserPlugins: ['jsx', 'typescript'],
-  plugins: ['@ianvs/prettier-plugin-sort-imports'],
+  plugins: ['@ianvs/prettier-plugin-sort-imports', 'prettier-plugin-astro'],
+  overrides: [{ files: '*.astro', options: { parser: 'astro' } }],
 };

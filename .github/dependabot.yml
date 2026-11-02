@@ -6,9 +6,10 @@ updates:
     directories:
       - '/'
     groups:
-      docusaurus-dependencies:
+      astro-dependencies:
         patterns:
-          - '@docusaurus/*'
+          - 'astro'
+          - '@astrojs/*'
       react-dependencies:
         patterns:
           - 'react*'

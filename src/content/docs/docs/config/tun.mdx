@@ -1,0 +1,155 @@
+---
+title: 'tun'
+description: Tun device configuration reference for Nebula mesh networking.
+sidebar:
+  order: 10
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+```yml
+tun:
+  disabled: false
+  dev: nebula1
+  drop_local_broadcast: false
+  drop_multicast: false
+  tx_queue: 500
+  mtu: 1300
+  routes:
+    - mtu: 8800
+      route: 10.0.0.0/16
+  unsafe_routes:
+    - route: 172.16.1.0/24
+      via: 192.168.100.99
+      mtu: 1300 # mtu will default to tun mtu if this option is not specified
+      install: true # controls whether this route is installed in the systems routing table.
+```
+
+## tun.disabled
+
+<Pill className="mb-24">Default: false</Pill>
+
+Allows the nebula interface (tun) to be disabled, which lets you run a lighthouse without a nebula interface (and
+therefore without root). You will not be able to communicate over IP with a nebula node that uses this setting.
+
+## tun.dev
+
+`dev` sets the interface name for your nebula interface. If not set, a default will be chosen by the OS. For macOS: Not
+required. If set, must be in the form `utun[0-9]+`. For FreeBSD: Required to be set, must be in the form `tun[0-9]+`.
+
+## tun.drop_local_broadcast
+
+<Pill className="mb-24">Default: false</Pill>
+
+Toggles forwarding of local broadcast packets, the address of which depends on the ip/mask encoded in pki.cert
+
+## tun.drop_multicast
+
+<Pill className="mb-24">Default: false</Pill>
+
+Toggles forwarding of multicast packets
+
+## tun.tx_queue
+
+<Pill className="mb-24">Default: 500</Pill>
+
+Sets the transmit queue length, if you notice lots of transmit drops on the tun it may help to raise this number.
+Default is 500.
+
+## tun.mtu
+
+<Pill className="mb-24">Default: 1300</Pill> <Pill className="mb-24">Reloadable: Linux</Pill>
+
+Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
+
+See below for per-route overrides ([`tun.routes`](#tunroutes)).
+
+## tun.routes
+
+<Pill className="mb-24">Reloadable</Pill>
+
+Route based MTU overrides. If you have known VPN IP paths that can support larger MTUs you can increase/decrease them
+here. This will override the default MTU ([`tun.mtu`](#tunmtu)) for Nebula packets on a per-route basis.
+
+```yml
+tun:
+  routes:
+    - mtu: 8800
+      route: 10.0.0.0/16
+```
+
+## tun.unsafe_routes
+
+<Pill className="mb-24">Reloadable</Pill>
+
+:::caution
+
+The nebula certificate of the `via` node MUST have the `route` defined in the subnets list in its certificate or it will
+silently refuse to route traffic.
+
+:::
+
+Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you
+have hosts/services that cannot run nebula.
+
+```yml
+tun:
+  unsafe_routes:
+    - route: 172.16.1.0/24
+      via: 192.168.100.99
+      mtu: 1300
+      metric: 100
+      install: true # controls whether this route is installed in the systems routing table.
+```
+
+For more information, see the [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide.
+
+### ECMP support for `unsafe_routes`
+
+<Pill className="mb-24">Added in v1.10.0</Pill>
+
+[Equal-Cost Multi-Path routing](https://en.wikipedia.org/wiki/Equal-cost_multi-path_routing) is now available for
+unsafe_routes, enabling load balancing and redundancy within a single host. You can now configure multiple gateways for
+the same route on one host, with optional weighting for unequal load distribution.
+
+```yaml
+unsafe_routes:
+  # Multiple gateways with equal weighting (default weight: 1)
+  - route: 192.168.100.0/24
+    via:
+      - gateway: 10.0.0.1
+      - gateway: 10.0.0.2
+
+  # Multiple gateways with custom weights
+  - route: 192.168.101.0/24
+    via:
+      - gateway: 10.0.0.1
+        weight: 10
+      - gateway: 10.0.0.2
+        weight: 5
+```
+
+The implementation uses [hash-threshold mapping](https://tools.ietf.org/html/rfc2992) (similar to the Linux kernel) to
+distribute traffic based on packet hashing. When a gateway becomes unreachable, traffic automatically fails over to the
+remaining available gateways, though load balancing may become uneven until the failed gateway recovers.
+
+## tun.use_system_route_table
+
+<Pill className="mb-24">Default: false</Pill>
+<Pill className="mb-24">Added in v1.7.0</Pill>
+
+This option is only supported on Linux.
+
+Set to true to manage unsafe routes directly on the system route table with gateway routes instead of in nebula
+configuration files.
+
+## tun.use_system_route_table_buffer_size
+
+<Pill className="mb-24">Default: 0</Pill>
+<Pill className="mb-24">Added in v1.10.0</Pill>
+
+This option is only supported on Linux.
+
+Buffer size for reading route updates. `0` means the system default buffer size is used
+(`/proc/sys/net/core/rmem_default`). If using massive route updates, for example BGP, you may need to increase this
+value to avoid packet loss. `SO_RCVBUFFORCE` is used to avoid having to raise the system wide max.

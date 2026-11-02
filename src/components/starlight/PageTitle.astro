@@ -1,0 +1,21 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import { categories } from '@src/util/categories';
+
+const { entry } = Astro.locals.starlightRoute;
+const currentLabel = entry.data.sidebar.label ?? entry.data.title;
+const category = categories.find(({ slug }) => entry.id.startsWith(`${slug}/`));
+
+const crumbs: { label: string; href?: string }[] = category
+  ? [{ label: category.label, href: `/${category.slug}/` }, { label: currentLabel }]
+  : [{ label: currentLabel }];
+---
+
+<nav class="breadcrumbs" aria-label="Breadcrumbs">
+  <ol>
+    {crumbs.map(({ label, href }) => (
+      <li>{href ? <a href={href}>{label}</a> : <span aria-current="page">{label}</span>}</li>
+    ))}
+  </ol>
+</nav>
+<Default />

@@ -1,0 +1,20 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import { categories } from '@src/util/categories';
+import ThemeSelect from './ThemeSelect.astro';
+
+// Category index pages are hidden from the sidebar, so Starlight leaves their group collapsed; open it.
+const { id, sidebar } = Astro.locals.starlightRoute;
+const label = categories.find(({ slug }) => slug === id)?.label;
+for (const entry of sidebar) {
+  if (entry.type === 'group' && entry.label === label) entry.collapsed = false;
+}
+---
+
+<Default />
+<div class="sidebar-footer">
+  <a href="https://defined.net" rel="noopener">
+    Defined Networking
+  </a>
+  <ThemeSelect />
+</div>

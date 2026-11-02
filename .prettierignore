@@ -1,8 +1,9 @@
 # build output
 build
 
-# ignore docusaurus cache files
-.docusaurus
+# Astro generated types and default output
+.astro
+dist
 
 # Logs
 logs

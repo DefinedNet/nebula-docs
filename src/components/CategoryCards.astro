@@ -1,0 +1,29 @@
+---
+import { getCollection } from 'astro:content';
+
+interface Props {
+  /** Collection id of the category, e.g. `docs/guides`. */
+  slug: string;
+}
+
+const { slug } = Astro.props;
+
+// Direct children only: `docs/guides/quick-start`, not anything nested under it.
+const pages = (
+  await getCollection('docs', ({ id }) => id.startsWith(`${slug}/`) && !id.slice(slug.length + 1).includes('/'))
+).sort(
+  (a, b) =>
+    (a.data.sidebar.order ?? Infinity) - (b.data.sidebar.order ?? Infinity) || a.data.title.localeCompare(b.data.title),
+);
+---
+
+<ul class="category-cards not-content">
+  {pages.map((page) => (
+    <li>
+      <a href={`/${page.id}/`}>
+        <span class="category-card-title">{page.data.sidebar.label ?? page.data.title}</span>
+        <span class="category-card-description">{page.data.description}</span>
+      </a>
+    </li>
+  ))}
+</ul>

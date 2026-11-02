@@ -1,19 +1,11 @@
 /**
- * Component styling.
+ * Component styling, written against Starlight's markup and the overrides in
+ * src/components/starlight/.
  *
  * The look: flat, layered surfaces separated by hairline borders instead of
  * shadows; restrained radii; semibold (not heavy) headings; and small
  * uppercase tracked labels for section and group headers.
  */
-
-/*
- * Narrower doc sidebar. theme-classic declares `--doc-sidebar-width: 300px` on
- * a bare `:root` in a stylesheet that loads after this one, so an equal
- * specificity `:root` here would lose the cascade. `html:root` outranks it.
- */
-html:root {
-  --doc-sidebar-width: 240px;
-}
 
 html,
 body {
@@ -22,83 +14,107 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* The uppercase tracked eyebrow, reused across the sidebar and footer */
-.dn-eyebrow,
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link,
-.footer__title {
+/* The uppercase tracked eyebrow, reused across the rail, tables, pagination and footer */
+.site-footer-title,
+.pagination-nav-sublabel,
+.sl-markdown-content th,
+.DocSearch .DocSearch-Hit-source,
+starlight-toc h2,
+.sidebar-content .group-label .large {
   font-family: var(--font-display);
   font-size: var(--label-size);
   font-weight: var(--label-weight);
   letter-spacing: var(--label-tracking);
+  line-height: 1.4;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-/* ---------------------------------------------------------------- navbar - */
-
-.navbar {
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--ifm-navbar-background-color);
-}
-
-/*
- * Desktop has no top bar: the logo, search and color mode toggle live in the
- * sidebar instead (see src/theme/DocSidebar/Desktop). Zeroing the navbar height
- * collapses the offsets derived from it — the sidebar container's negative top
- * margin and the TOC's sticky offset — so the layout closes up cleanly.
- *
- * Below this breakpoint the navbar stays: it carries the hamburger drawer that
- * is the only navigation on mobile, plus its own search and toggle.
- */
-@media (min-width: 997px) {
-  /*
-   * Scoped to pages that actually have the sidebar which replaces the top bar.
-   * Hiding it everywhere stranded the 404 and any src/pages route with no logo,
-   * search or colour-mode toggle. Where :has() is unsupported the rule simply
-   * does not apply, leaving the navbar visible — redundant chrome, not a
-   * broken page.
-   */
-  #__docusaurus:has(.theme-doc-sidebar-container) {
-    --ifm-navbar-height: 0px;
-  }
-
-  #__docusaurus:has(.theme-doc-sidebar-container) .navbar {
-    display: none;
-  }
-}
-
-.navbar__link,
-.navbar__brand {
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.navbar__link:hover {
+/* Weightier and higher contrast than the shared eyebrow, so sections anchor the rail */
+starlight-toc h2,
+.sidebar-content .group-label .large {
+  font-weight: 700;
   color: var(--text-strong);
 }
 
-.navbar__logo {
+/* -------------------------------------------------------------- header - */
+
+.page > .header {
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--sidebar-bg);
+}
+
+/* The menu button sits at the inline start of the mobile bar */
+[data-has-sidebar] .page > .header {
+  padding-inline: calc(var(--sl-nav-pad-x) + var(--sl-menu-button-size) + 0.25rem) var(--sl-nav-pad-x);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.site-title img {
   height: 1.75rem;
 }
 
-/* Icon-style navbar controls sit in a bordered pill, like the reference's chips */
-.navbar__items--right .clean-btn,
-.navbar__items--right .navbar__link {
+.sl-menu-button {
+  inset-inline: var(--sl-nav-pad-x) auto;
   border-radius: var(--radius-sm);
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--text-strong);
 }
 
-/* ------------------------------------------------------------- search box - */
+[data-theme='light'] .sl-menu-button {
+  background-color: transparent;
+  color: var(--text-strong);
+}
+
+.sl-menu-button:hover,
+[data-theme] .sl-menu-button:has(~ :popover-open) {
+  background-color: var(--surface-2);
+}
 
 /*
- * DocSearch ships its own palette and loads after this stylesheet, so plain
- * class overrides lose the cascade (the button was still rendering DocSearch's
- * default lavender at a 4px radius). It is designed to be themed through these
- * custom properties instead — its own rules consume them, so no specificity
- * fight — and they style the modal as well as the button.
+ * Desktop has no top bar: the header becomes the fixed top of the rail, with
+ * the logo centred over a full-width search box. Its height stays in
+ * --sl-nav-height (starlight.css) so the sidebar pane starts right below it.
  */
-.DocSearch {
+@media (min-width: 50rem) {
+  [data-has-sidebar] .page > .header {
+    width: var(--sl-sidebar-width);
+    padding: 1rem 0.75rem 0.75rem;
+    border-bottom: 0;
+    border-inline-end: 1px solid var(--border-color);
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .header-inner .site-title {
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .header-inner .site-title img {
+    height: 48px;
+  }
+}
+
+/* ---------------------------------------------------------- search box - */
+
+/*
+ * DocSearch is designed to be themed through these custom properties; its own
+ * rules consume them, so they style the modal as well as the button.
+ */
+:root {
   --docsearch-primary-color: var(--accent);
   --docsearch-text-color: var(--text-body);
   --docsearch-muted-color: var(--text-muted);
@@ -127,17 +143,17 @@ body {
   --docsearch-key-pressed-shadow: none;
 }
 
-/*
- * Shape and border rules need a specificity bump: DocSearch's own single-class
- * rules load after this file and would otherwise win. The trigger carries both
- * `DocSearch` and `DocSearch-Button`; the modal sits inside `.DocSearch
- * .DocSearch-Container`, so a descendant selector does it there.
- */
+.header-search sl-doc-search {
+  display: block;
+  width: 100%;
+}
 
 /* --- the trigger button --- */
 
 .DocSearch.DocSearch-Button {
   box-sizing: border-box;
+  width: 100%;
+  max-width: none;
   height: 2.25rem;
   margin: 0;
   padding: 0 0.625rem;
@@ -146,6 +162,8 @@ body {
   border-radius: var(--radius-sm);
   background: var(--field-bg);
   box-shadow: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
   transition:
     border-color 150ms ease,
     background-color 150ms ease;
@@ -155,10 +173,9 @@ body {
 .DocSearch.DocSearch-Button:focus-visible {
   border-color: var(--accent);
   background: var(--surface-raised);
-  box-shadow: none;
+  color: var(--text-muted);
 }
 
-/* Icon and placeholder share this span; it owns their spacing */
 .DocSearch.DocSearch-Button .DocSearch-Button-Container {
   display: flex;
   align-items: center;
@@ -173,6 +190,7 @@ body {
 }
 
 .DocSearch.DocSearch-Button .DocSearch-Button-Placeholder {
+  display: flex;
   padding: 0;
   font-family: var(--font-sans);
   font-size: 0.875rem;
@@ -184,6 +202,12 @@ body {
   align-items: center;
   min-width: auto;
   gap: 3px;
+  margin-inline-start: auto;
+}
+
+/* Starlight draws its own shortcut glyph here; the real key chips replace it */
+.DocSearch.DocSearch-Button .DocSearch-Button-Keys::before {
+  content: none;
 }
 
 .DocSearch.DocSearch-Button .DocSearch-Button-Key {
@@ -200,19 +224,32 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   box-shadow: none;
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   color: var(--text-muted);
 }
 
-/*
- * DocSearch renders the shortcut glyphs as SVGs sized 20px, which overflowed
- * the chip and threw the alignment off. Size them to the chip instead; the
- * flex centering above then does the aligning.
- */
+/* DocSearch sizes the shortcut glyphs at 20px, which overflows the chip */
 .DocSearch.DocSearch-Button .DocSearch-Button-Key svg {
   display: block;
   width: 0.6875rem;
   height: 0.6875rem;
+}
+
+/* Below the rail breakpoint the mobile bar has room for the icon and shortcut only */
+@media (max-width: 49.9375rem) {
+  .header-search {
+    flex-shrink: 0;
+  }
+
+  .DocSearch.DocSearch-Button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .DocSearch.DocSearch-Button .DocSearch-Button-Placeholder {
+    display: none;
+  }
 }
 
 /* --- the modal --- */
@@ -259,12 +296,6 @@ body {
 }
 
 .DocSearch .DocSearch-Hit-source {
-  font-family: var(--font-display);
-  font-size: var(--label-size);
-  font-weight: var(--label-weight);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-  color: var(--text-muted);
   background: transparent;
   padding-top: 1rem;
 }
@@ -309,278 +340,394 @@ body {
   padding: 0;
 }
 
-/* ------------------------------------------------------- touch targets - */
-
-/*
- * Below the desktop breakpoint every control is finger-driven. WCAG 2.2 SC
- * 2.5.8 (AA) sets a 24x24 CSS px minimum — the drawer's close button was 21x21
- * and failed outright, while the hamburger (30), colour-mode toggle (32) and
- * drawer rows (36/28) cleared it but sat well under a comfortable 44.
- *
- * Scoped to mobile: the desktop rail keeps its tighter 32px rhythm, where a
- * mouse makes the smaller target a non-issue.
- */
-@media (max-width: 996px) {
-  .navbar__toggle,
-  .navbar-sidebar__close,
-  .navbar button[class*='toggleButton'] {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .navbar .DocSearch-Button {
-    min-height: 44px;
-  }
-
-  /* Drawer rows, including the collapsible category headers and their carets */
-  .navbar-sidebar .menu__link,
-  .navbar-sidebar .menu__caret {
-    min-height: 44px;
-    align-items: center;
-  }
-
-  .navbar-sidebar .menu__caret {
-    min-width: 44px;
-    justify-content: center;
-  }
-}
-
 /* ------------------------------------------------------------- sidebar - */
 
-.theme-doc-sidebar-container {
+.sidebar-pane {
   background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color) !important;
 }
 
-/*
- * theme-classic pads this scroll container `8px 0 8px 8px`, so nav rows sat 8px
- * further from the left edge than the right. Zero the horizontal padding and
- * let .theme-doc-sidebar-menu below provide one symmetric gutter, matching the
- * logo, search and footer inset.
- */
-.theme-doc-sidebar-container .menu.thin-scrollbar {
-  padding-left: 0;
-  padding-right: 0;
+.sidebar-content {
+  gap: 0;
+  padding: 0.5rem 0.75rem 0;
 }
 
-.theme-doc-sidebar-menu {
-  padding: 0.5rem 0.75rem 2rem;
-  font-size: 0.875rem;
+.sidebar-content::after {
+  content: none;
 }
 
-/* Tighter rhythm for the desktop rail only; horizontal padding holds the 12px gutter */
-.theme-doc-sidebar-container .menu__link {
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
+.sidebar-content sl-sidebar-state-persist {
+  padding-bottom: 2rem;
 }
 
-.menu__link {
+.sidebar-content ul {
+  --sl-sidebar-item-padding-inline: 0.75rem;
+}
+
+/* Top-level groups read as section labels, not as links */
+.sidebar-content .top-level > li + li {
+  margin-top: 1.25rem;
+}
+
+.sidebar-content summary {
+  padding: 0.375rem 0.75rem 0.25rem;
+}
+
+.sidebar-content summary .caret {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+}
+
+/* "Get started" holds a single page, so it is a plain label with no collapse */
+.sidebar-content .top-level > li:first-child > details > summary {
+  pointer-events: none;
+}
+
+.sidebar-content .top-level > li:first-child > details > summary .caret {
+  display: none;
+}
+
+/* Nested items sit flush under their section label, with no indent or rule */
+.sidebar-content ul ul li {
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.sidebar-content a {
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.4;
   color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
   transition:
     background-color 120ms ease,
     color 120ms ease;
 }
 
-/*
- * theme-classic clamps sidebar labels to two lines (-webkit-line-clamp on the
- * inner label span, in DocSidebarItem/{Link,Category}/styles.module.css), which
- * silently ellipsised the longest guide titles. Let them wrap in full. The
- * class names are CSS-module hashed, hence the prefix match; the two spellings
- * differ in case, so both are listed.
- */
-.theme-doc-sidebar-menu [class*='linkLabel'],
-.theme-doc-sidebar-menu [class*='categoryLinkLabel'] {
-  display: block;
-  overflow: visible;
-  line-clamp: none;
-  -webkit-line-clamp: none;
-}
-
-.menu__link:hover,
-.menu__list-item-collapsible:hover {
+.sidebar-content a:hover,
+.sidebar-content a:focus-visible {
   background-color: var(--surface-2);
   color: var(--text-strong);
 }
 
 /* The selected page reads as a solid brand-purple chip */
-.menu__link--active,
-.menu__link--active:hover {
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus-visible {
+  background-color: var(--accent-solid);
   color: var(--accent-solid-text);
   font-weight: 600;
-  background-color: var(--accent-solid);
 }
 
-.menu__link--active:not(.menu__link--sublist) {
-  background-color: var(--accent-solid);
+/* Pinned to the bottom of the rail; scrolls with the nav when it runs long */
+.sidebar-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: auto -0.75rem 0;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--sidebar-bg);
+}
+
+.sidebar-footer > a {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.sidebar-footer > a:hover {
+  color: var(--accent);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background-color: var(--surface-2);
+  color: var(--text-strong);
+}
+
+.theme-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+[data-theme='light'] .theme-toggle-dark,
+[data-theme='dark'] .theme-toggle-light {
+  display: none;
 }
 
 /*
- * A standalone section label injected from sidebars.js as an `html` item. It is
- * not a link, so it carries the category-label styling on its own rather than
- * inheriting the .menu__link rules.
+ * Below the rail breakpoint every control is finger-driven, so rows and
+ * buttons clear a comfortable 44px target (WCAG 2.2 SC 2.5.8 sets 24px as the
+ * AA floor).
  */
-.dn-sidebar-label {
-  padding: 0.25rem 0.75rem;
-  font-family: var(--font-display);
-  font-size: var(--label-size);
-  font-weight: 700;
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
+@media (max-width: 49.9375rem) {
+  .sidebar-content a,
+  .sidebar-content summary,
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .theme-toggle {
+    min-width: 44px;
+  }
+}
+
+/* ------------------------------------------------------- page outline - */
+
+/*
+ * No rule and no indicator bar: the current section is marked by the type
+ * itself, going accent-coloured and semibold.
+ */
+.right-sidebar {
+  border-inline-start: 0;
+}
+
+.right-sidebar-panel {
+  padding: 1rem;
+}
+
+.right-sidebar-panel starlight-toc h2 {
+  margin: 0;
+  padding: 0 0 0.5rem 0.75rem;
+}
+
+.right-sidebar-panel starlight-toc ul ul {
+  padding-inline-start: 0;
+}
+
+.right-sidebar-panel starlight-toc a {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  transition: color 120ms ease;
+}
+
+.right-sidebar-panel starlight-toc ul ul a {
+  padding-inline-start: 1.25rem;
+}
+
+/* The page title is already the first thing on the page */
+.right-sidebar-panel starlight-toc li:has(> a[href='#_top']) {
+  display: none;
+}
+
+.right-sidebar-panel starlight-toc a:hover {
   color: var(--text-strong);
 }
 
-/* Top-level categories read as section labels, not as links */
-.menu__list-item.theme-doc-sidebar-item-category-level-1 {
-  margin-top: 1.25rem;
+.right-sidebar-panel starlight-toc a[aria-current='true'],
+.right-sidebar-panel starlight-toc a[aria-current='true']:hover {
+  color: var(--accent);
+  font-weight: 600;
 }
 
-/* Weightier and higher contrast than the shared eyebrow, so sections anchor the rail */
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link {
-  font-weight: 700;
+mobile-starlight-toc nav {
+  border-top: 0;
+  background-color: var(--surface-bg);
+}
+
+mobile-starlight-toc summary {
+  border-bottom-color: var(--border-color);
+}
+
+mobile-starlight-toc .toggle {
+  border-color: var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--field-bg);
+}
+
+mobile-starlight-toc .dropdown {
+  border-color: var(--border-color);
+  background-color: var(--surface-raised);
+}
+
+/* -------------------------------------------------------- breadcrumbs - */
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.breadcrumbs li + li::before {
+  content: '›';
+  color: var(--text-muted);
+}
+
+.breadcrumbs a,
+.breadcrumbs [aria-current='page'] {
+  border-radius: var(--radius-sm);
+  padding: 0.4375rem 0.625rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.breadcrumbs a {
+  color: var(--text-muted);
+}
+
+.breadcrumbs a:hover {
+  background-color: var(--surface-2);
   color: var(--text-strong);
 }
 
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link {
-  padding-bottom: 0.25rem;
-}
-
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible:hover,
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link:hover {
-  background-color: transparent;
+.breadcrumbs [aria-current='page'] {
+  background-color: var(--surface-2);
   color: var(--text-strong);
-}
-
-/* Section labels never take a highlight box, active or not */
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible--active,
-.menu__list-item.theme-doc-sidebar-item-category-level-1 > .menu__list-item-collapsible > .menu__link--active {
-  background-color: transparent;
-}
-
-/* Nested items sit flush under their section label, with no indent or rule */
-.menu__list .menu__list {
-  margin-left: 0;
-  padding-left: 0;
-  border-left: none;
-}
-
-.menu__caret::before,
-.menu__link--sublist-caret::after {
-  width: 16px;
-  min-width: 16px;
-  height: 16px;
-  background-size: 16px 16px;
-  opacity: 0.5;
 }
 
 /* ------------------------------------------------------------ content - */
 
-.theme-doc-markdown {
-  font-size: 1rem;
+.content-panel {
+  border-top: 0;
 }
 
-.markdown h1:first-child {
-  --ifm-h1-font-size: 2.125rem;
-  letter-spacing: -0.02em;
+.content-panel:first-child {
+  padding-top: 1rem;
+  padding-bottom: 0;
+}
+
+.content-panel + .content-panel {
+  padding-top: 0;
+}
+
+h1#_top {
+  margin-top: 0;
   margin-bottom: 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
 }
 
-/*
- * Infima re-declares the heading sizes scoped to `.markdown` (h2 at 2rem, h3 at
- * 1.5rem), which overrides the :root scale in theme.css. Restate them here so
- * the ramp stays 34 / 24 / 19 and h1 reads clearly larger than h2.
- */
-.markdown > h2 {
-  --ifm-h2-font-size: 1.5rem;
+/* Category index pages get a larger title */
+main:has(.category-cards) h1#_top {
+  font-size: 3rem;
+  letter-spacing: normal;
+}
 
-  letter-spacing: -0.01em;
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+/* Starlight wraps each heading with its anchor link, so spacing and the section rule go on the wrapper */
+.sl-markdown-content .level-h2 {
   margin-top: 2.5rem;
   padding-top: 1.75rem;
   border-top: 1px solid var(--border-subtle);
 }
 
-.markdown > h3 {
-  --ifm-h3-font-size: 1.1875rem;
-
+.sl-markdown-content .level-h3 {
   margin-top: 2rem;
 }
 
-.markdown > h4 {
+.sl-markdown-content .level-h4 {
   margin-top: 1.5rem;
-  color: var(--text-strong);
+}
+
+.sl-markdown-content h2 {
+  letter-spacing: -0.01em;
+}
+
+.sl-markdown-content :is(ul, ol):not(.not-content) {
+  padding-inline-start: 2rem;
 }
 
 /* Config reference pages open with a heading that is really an identifier */
-.markdown h1 code,
-.markdown h2 code,
-.markdown h3 code {
+.sl-markdown-content :is(h1, h2, h3) code {
   font-size: 0.9em;
   background: var(--surface-2);
   border: 1px solid var(--border-color);
 }
 
-.markdown a {
-  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--accent);
+  text-decoration: none;
   text-underline-offset: 0.2em;
 }
 
-.markdown a:hover {
-  text-decoration-color: var(--accent);
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration: underline;
 }
 
-.markdown blockquote {
-  border-left: 2px solid var(--accent);
-  background: var(--surface-1);
+/* Inside an aside a link takes the aside's text colour, so the underline is what marks it */
+.sl-markdown-content .starlight-aside a:not(:where(.not-content *)) {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.sl-markdown-content blockquote {
+  border-inline-start: 2px solid var(--accent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   padding: 0.75rem 1rem;
+  background: var(--surface-1);
   color: var(--text-muted);
 }
 
-.markdown hr {
+.sl-markdown-content hr {
   border: none;
   border-top: 1px solid var(--border-subtle);
 }
 
-/* ---------------------------------------------------------------- code - */
-
-.markdown code {
+.sl-markdown-content :not(pre) > code {
+  padding: 0.15em 0.35em;
   border: 1px solid var(--border-subtle);
-}
-
-div[class^='codeBlockContainer'] {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: none;
-}
-
-div[class^='codeBlockTitle'] {
-  border-bottom: 1px solid var(--border-color);
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-  color: var(--text-muted);
+  border-radius: 5px;
   background: var(--surface-2);
+  font-size: 0.875em;
+}
+
+/* <InlineToc> renders as a bulleted list in body copy */
+.sl-markdown-content .inline-toc ul {
+  margin-top: 0;
 }
 
 /* -------------------------------------------------------------- tables - */
 
 /*
- * Keep Infima's `display: block; overflow: auto`. That is what lets a wide
- * table scroll inside the content column; `display: table` made it push the
- * whole document sideways on narrow viewports. border-radius still clips the
- * corners of a scrolling block, so the rounded border survives.
+ * `display: block; overflow: auto` lets a wide table scroll inside the content
+ * column instead of pushing the whole document sideways on narrow viewports;
+ * border-radius still clips the corners of a scrolling block.
  */
-.markdown table {
+.sl-markdown-content table {
   display: block;
   overflow: auto;
   border-collapse: collapse;
@@ -588,223 +735,206 @@ div[class^='codeBlockTitle'] {
   border-radius: var(--radius-md);
 }
 
-.markdown table thead tr {
+.sl-markdown-content thead tr {
   border-bottom: 1px solid var(--border-color);
 }
 
-.markdown table th {
-  font-family: var(--font-display);
-  font-size: var(--label-size);
-  font-weight: var(--label-weight);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.markdown table td,
-.markdown table th {
+.sl-markdown-content :is(td, th) {
   border: none;
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.625rem 0.875rem;
 }
 
-.markdown table tr:last-child td {
+.sl-markdown-content th {
+  background: var(--surface-1);
+}
+
+.sl-markdown-content tr:last-child td {
   border-bottom: none;
 }
 
-/* --------------------------------------------------------- admonitions - */
+/* --------------------------------------------------------------- asides - */
 
 /*
- * Each admonition type takes a brand colour through --admonition-accent, which
- * drives the left rule, the heading and icon, and a faint wash of the same hue
- * over the surface. Body copy stays --text-body: Infima tints the whole block's
- * text with the alert colour, which is hard to read at paragraph length.
+ * Each aside type takes a brand colour through --admonition-accent, which
+ * drives the left rule, the title and icon, and a faint wash of the same hue
+ * over the surface. Body copy stays --text-body, readable at paragraph length.
  */
-.theme-admonition {
+.starlight-aside {
   --admonition-accent: var(--dn-color-gray-55);
   --admonition-tint: 7%;
 
   border: 1px solid color-mix(in srgb, var(--admonition-accent) 25%, var(--border-color));
-  border-left: 3px solid var(--admonition-accent);
+  border-inline-start: 3px solid var(--admonition-accent);
   border-radius: var(--radius-md);
-  box-shadow: none;
   background: color-mix(in srgb, var(--admonition-accent) var(--admonition-tint), var(--surface-1));
   color: var(--text-body);
 }
 
-html[data-theme='dark'] .theme-admonition {
+[data-theme='dark'] .starlight-aside {
   --admonition-tint: 12%;
 }
 
 /* Brand secondaries, one per type */
-.theme-admonition-tip {
+.starlight-aside--tip {
   /* Green and orange carry high luminance, so they need deep stops to clear
-     AA (4.5:1) for 13px heading text against their own tint */
+     AA (4.5:1) for 13px title text against their own tint */
   --admonition-accent: hsl(var(--dn-color-green-hs), 28%);
 }
 
-.theme-admonition-info {
-  /* 45% only reached 3.99:1 against the tinted surface; 40% clears AA */
-  --admonition-accent: hsl(var(--dn-color-blue-hs), 40%);
-}
-
-.theme-admonition-note {
+.starlight-aside--note {
   --admonition-accent: var(--dn-color-purple-50);
 }
 
-.theme-admonition-warning,
-.theme-admonition-caution {
+.starlight-aside--caution {
   --admonition-accent: hsl(var(--dn-color-orange-hs), 32%);
 }
 
-.theme-admonition-danger {
+.starlight-aside--danger {
   --admonition-accent: hsl(var(--dn-color-red-hs), 41%);
 }
 
 /* Dark mode lifts each hue so it reads against the dark ground */
-html[data-theme='dark'] .theme-admonition-tip {
+[data-theme='dark'] .starlight-aside--tip {
   --admonition-accent: hsl(var(--dn-color-green-hs), 62%);
 }
 
-html[data-theme='dark'] .theme-admonition-info {
-  --admonition-accent: hsl(var(--dn-color-blue-hs), 66%);
-}
-
-html[data-theme='dark'] .theme-admonition-note {
+[data-theme='dark'] .starlight-aside--note {
   --admonition-accent: hsl(var(--dn-color-purple-hs), 75%);
 }
 
-html[data-theme='dark'] .theme-admonition-warning,
-html[data-theme='dark'] .theme-admonition-caution {
+[data-theme='dark'] .starlight-aside--caution {
   --admonition-accent: hsl(var(--dn-color-orange-hs), 62%);
 }
 
-html[data-theme='dark'] .theme-admonition-danger {
+[data-theme='dark'] .starlight-aside--danger {
   --admonition-accent: hsl(var(--dn-color-red-hs), 66%);
 }
 
-/*
- * Admonition titles stay in sentence case rather than Docusaurus's default
- * uppercase: several are full sentences or questions, which shout when
- * uppercased. Weight and size carry the label role instead.
- */
-.theme-admonition > div:first-child {
+/* Titles stay in sentence case; several are full sentences or questions */
+.starlight-aside__title {
   font-family: var(--font-display);
   font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
   color: var(--admonition-accent);
 }
 
-.theme-admonition > div:first-child svg {
+.starlight-aside__icon {
   fill: currentColor;
 }
 
-/* ----------------------------------------------------- cards & indexes - */
-
-/*
- * `display: flex` on the grid cell makes the card stretch to the cell's full
- * height, so cards sitting side by side match regardless of how long their
- * descriptions run — the ragged bottoms were the worst of the old layout.
- *
- * Scoped to the card-list item rather than a page wrapper: generated index pages
- * render inside .generatedIndexPage, not .theme-doc-markdown, so a wrapper-based
- * selector would miss them. This matches both, plus any inline <DocCardList>.
- */
-section.row > article[class*='docCardListItem'] {
-  display: flex;
-  margin-bottom: 1rem;
+.starlight-aside__content {
+  color: var(--text-body);
 }
 
-.card {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  box-shadow: none !important;
-}
+/* ----------------------------------------------------- category cards - */
 
-/* ------------------------------------------------------------ TOC & nav - */
-
-/*
- * No rule and no indicator bar: the current section is marked by the type
- * itself, going accent-coloured and semibold. Keeps the column to just its
- * words.
- */
-.table-of-contents {
-  font-size: 0.8125rem;
+.category-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: 1rem 2rem;
+  margin: 2rem 0 0;
   padding: 0;
+  list-style: none;
 }
 
-.table-of-contents__left-border {
-  border-left: none;
-  padding-left: 0;
-}
-
-.table-of-contents li {
+.category-cards li {
   margin: 0;
 }
 
-.table-of-contents__link {
-  display: block;
-  padding: 0.3125rem 0.75rem;
-  color: var(--text-muted);
-  transition: color 120ms ease;
-}
-
-.table-of-contents__link:hover {
-  color: var(--text-strong);
-}
-
-.table-of-contents__link--active {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.table-of-contents .table-of-contents .table-of-contents__link {
-  padding-left: 1.5rem;
-}
-
-/* <TOCInline> reuses .table-of-contents but renders as a bulleted list in body copy, so it keeps the list indent. */
-[class*='tableOfContentsInline'] ul {
-  padding-left: var(--ifm-list-left-padding);
-}
-
-.pagination-nav__link {
+/* Cards stretch to the row height, so side-by-side cards match whatever their descriptions run to */
+.category-cards a {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  height: 100%;
+  padding: 1.125rem 2.5rem 1.125rem 1.25rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--surface-1);
-  padding: 1rem 1.25rem;
+  text-decoration: none;
   transition:
     border-color 150ms ease,
     background-color 150ms ease;
 }
 
-.pagination-nav__link:hover {
+.category-cards a::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 1.25rem;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  opacity: 0;
+  transform: translate(-4px, -50%) rotate(45deg);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.category-cards a:hover {
   border-color: var(--accent);
   background: var(--surface-raised);
 }
 
-/* Room for the chevron on the side the link points toward */
-.pagination-nav__link--prev {
-  padding-left: 2.5rem;
+.category-cards a:hover::after {
+  opacity: 1;
+  transform: translate(0, -50%) rotate(45deg);
 }
 
-.pagination-nav__link--next {
-  padding-right: 2.5rem;
-}
-
-.pagination-nav__sublabel {
+.category-card-title {
   font-family: var(--font-display);
-  font-size: var(--label-size);
-  font-weight: var(--label-weight);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-strong);
+}
+
+.category-card-description {
+  font-size: 0.875rem;
+  line-height: 1.55;
   color: var(--text-muted);
 }
 
-.pagination-nav__label {
+/* ---------------------------------------------------------- pagination - */
+
+.pagination-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.pagination-nav-link {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem 1rem 2.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.pagination-nav-link--next {
+  grid-column: 2;
+  align-items: flex-end;
+  padding: 1rem 2.5rem 1rem 1.25rem;
+  text-align: end;
+}
+
+.pagination-nav-link:hover {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.pagination-nav-label {
   font-family: var(--font-display);
   font-size: 0.9375rem;
   font-weight: 600;
@@ -812,21 +942,12 @@ section.row > article[class*='docCardListItem'] {
   transition: color 150ms ease;
 }
 
-.pagination-nav__link:hover .pagination-nav__label {
+.pagination-nav-link:hover .pagination-nav-label {
   color: var(--accent);
 }
 
-/*
- * Docusaurus renders the direction as guillemets inside the label text
- * (« / »). Drop those for a drawn chevron that can sit apart from the label
- * and animate on hover.
- */
-.pagination-nav__link--prev .pagination-nav__label::before,
-.pagination-nav__link--next .pagination-nav__label::after {
-  content: none;
-}
-
-.pagination-nav__link::before {
+/* A drawn chevron on the side the link points toward, nudged outward on hover */
+.pagination-nav-link::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -839,72 +960,94 @@ section.row > article[class*='docCardListItem'] {
     transform 150ms ease;
 }
 
-.pagination-nav__link--prev::before {
+.pagination-nav-link--prev::before {
   left: 1.25rem;
   transform: translateY(-50%) rotate(-135deg);
 }
 
-.pagination-nav__link--next::before {
+.pagination-nav-link--next::before {
   right: 1.25rem;
   transform: translateY(-50%) rotate(45deg);
 }
 
-.pagination-nav__link:hover::before {
+.pagination-nav-link:hover::before {
   border-color: var(--accent);
 }
 
-.pagination-nav__link--prev:hover::before {
+.pagination-nav-link--prev:hover::before {
   transform: translateY(-50%) translateX(-3px) rotate(-135deg);
 }
 
-.pagination-nav__link--next:hover::before {
+.pagination-nav-link--next:hover::before {
   transform: translateY(-50%) translateX(3px) rotate(45deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pagination-nav__link::before,
-  .pagination-nav__link--prev:hover::before,
-  .pagination-nav__link--next:hover::before {
+  .pagination-nav-link::before,
+  .category-cards a::after {
     transition: border-color 150ms ease;
   }
 
-  .pagination-nav__link--prev:hover::before {
+  .pagination-nav-link--prev:hover::before {
     transform: translateY(-50%) rotate(-135deg);
   }
 
-  .pagination-nav__link--next:hover::before {
+  .pagination-nav-link--next:hover::before {
     transform: translateY(-50%) rotate(45deg);
   }
-}
 
-.breadcrumbs__item .breadcrumbs__link {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  background: transparent;
-  border-radius: var(--radius-sm);
-}
-
-.breadcrumbs__item--active .breadcrumbs__link {
-  background: var(--surface-2);
-  color: var(--text-strong);
+  .category-cards a:hover::after {
+    transform: translate(-4px, -50%) rotate(45deg);
+  }
 }
 
 /* -------------------------------------------------------------- footer - */
 
-.footer {
+.site-footer {
+  margin-top: 2rem;
+  padding: 2.5rem var(--sl-content-pad-x) 2rem;
   border-top: 1px solid var(--border-color);
   font-size: 0.875rem;
 }
 
-.footer__link-item {
-  color: var(--text-muted);
+.site-footer-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 2rem;
+  max-width: 60rem;
+  margin: 0 auto;
 }
 
-.footer__link-item:hover {
+.site-footer-title {
+  margin: 0 0 0.75rem;
+}
+
+.site-footer ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
   color: var(--accent);
 }
 
-.footer__copyright {
+.site-footer-copyright {
+  max-width: 60rem;
+  margin: 2rem auto 0;
   font-size: 0.8125rem;
   color: var(--text-muted);
+  text-align: center;
+}
+
+.mb-24 {
+  margin-bottom: 24px;
 }

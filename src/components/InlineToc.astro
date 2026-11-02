@@ -1,0 +1,21 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+type TocItem = MarkdownHeading & { children: TocItem[] };
+
+interface Props {
+  items?: TocItem[];
+}
+
+// The route TOC nests h3s under their h2, with the page title as its first entry.
+const items = Astro.props.items ?? Astro.locals.starlightRoute.toc?.items.slice(1) ?? [];
+---
+
+<ul class="inline-toc">
+  {items.map((item) => (
+    <li>
+      <a href={`#${item.slug}`}>{item.text}</a>
+      {item.children.length > 0 && <Astro.self items={item.children} />}
+    </li>
+  ))}
+</ul>
