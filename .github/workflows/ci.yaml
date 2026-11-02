@@ -101,6 +101,11 @@ jobs:
     needs: build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # Dependabot runs get a read-only token unless the job asks for more, and read
+    # CLOUDFLARE_API_TOKEN from the Dependabot secrets rather than the Actions ones.
+    permissions:
+      contents: read
+      pull-requests: write
     timeout-minutes: 10
     # Queue deploys in order instead of racing them, otherwise the last to finish wins.
     concurrency:
