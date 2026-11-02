@@ -51,6 +51,7 @@
   --sl-sidebar-pad-x: 0.75rem;
   --sl-menu-button-size: 2.75rem;
   --sl-content-width: 54.25rem;
+  --sl-content-gap-y: 1.25rem;
 
   /* Space for the inline-start menu button in the mobile header */
   --header-menu-offset: calc(var(--sl-menu-button-size) + 0.5rem);
@@ -80,14 +81,18 @@
 
 /*
  * Wide layouts center an 82.5rem page beside the left rail and split it 3:1 between the article
- * and the outline. 100vw stands in for the frame width because the outline is position: fixed.
+ * and the outline. The outline is position: fixed, so widths come from the frame's container
+ * units: 100vw would count a classic scrollbar and push the page off center.
  */
 @media (min-width: 72rem) {
   :root {
     scroll-padding-top: 1.5rem;
-    --page-width: min(100vw - var(--sl-sidebar-width), 82.5rem);
-    --page-gutter: calc((100vw - var(--sl-sidebar-width) - var(--page-width)) / 2);
+    --page-width: min(100cqw, 82.5rem);
+    --page-gutter: calc((100cqw - var(--page-width)) / 2);
     --toc-column: calc(var(--page-gutter) + var(--page-width) / 4);
+  }
+  .main-frame {
+    container-type: inline-size;
   }
   /* Pages without an outline keep the article column and leave its space empty */
   [data-has-sidebar] .main-pane {
