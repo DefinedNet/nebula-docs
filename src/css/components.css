@@ -344,11 +344,12 @@ starlight-toc h2,
 
 .sidebar-pane {
   background-color: var(--sidebar-bg);
+  scrollbar-width: thin;
 }
 
 .sidebar-content {
   gap: 0;
-  padding: 0.5rem 0.75rem 0;
+  padding: 1rem 0.75rem 0;
 }
 
 .sidebar-content::after {
@@ -369,7 +370,23 @@ starlight-toc h2,
 }
 
 .sidebar-content summary {
+  align-items: flex-start;
+  min-height: 1.75rem;
   padding: 0.375rem 0.75rem 0.25rem;
+}
+
+.sidebar-content .group-label {
+  font-size: var(--label-size);
+  line-height: 1.4;
+}
+
+/* Items stack 0.25rem apart, including below their section label */
+.sidebar-content ul ul {
+  margin-top: 0.25rem;
+}
+
+.sidebar-content ul ul li + li {
+  margin-top: 0.25rem;
 }
 
 .sidebar-content summary .caret {
@@ -380,7 +397,13 @@ starlight-toc h2,
 
 /* "Get started" holds a single page, so it is a plain label with no collapse */
 .sidebar-content .top-level > li:first-child > details > summary {
+  min-height: 0;
+  padding-block: 0.25rem;
   pointer-events: none;
+}
+
+.sidebar-content .top-level > li:first-child .group-label {
+  line-height: 1.7;
 }
 
 .sidebar-content .top-level > li:first-child > details > summary .caret {
@@ -396,7 +419,7 @@ starlight-toc h2,
 
 .sidebar-content a {
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 500;
