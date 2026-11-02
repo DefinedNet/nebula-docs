@@ -104,7 +104,7 @@ If any listener binds below port 1024:
 sudo setcap 'cap_net_admin,cap_net_bind_service+ep' /usr/local/bin/nebula
 ```
 
-:::warning
+:::caution
 
 File capabilities apply to anyone who can execute the binary — any local user could then create tun devices and modify
 routes by running it. Prefer the systemd approach where possible, or restrict execute permission on the binary to the

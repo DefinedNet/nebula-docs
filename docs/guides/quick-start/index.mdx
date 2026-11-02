@@ -101,7 +101,7 @@ This will create files named `ca.key` and `ca.cert` in the current directory. Th
 sensitive** file you'll create, because it is the key used to sign the certificates for individual nebula hosts. Please
 store this file somewhere safe, preferably with strong encryption.
 
-:::info
+:::note
 
 By default, this CA will be created with a one-year expiration, and all certificates signed will be valid until one
 second before expiration of the CA.
@@ -141,7 +141,7 @@ to define traffic rules in a nebula network.
 ./nebula-cert sign -name "server" -ip "192.168.100.9/24" -groups "servers"
 ```
 
-:::info
+:::note
 
 Without passing a `-duration XXhXXmXXs` flag, certificates will be valid up until one second before their signing CA
 expires.
