@@ -1,0 +1,9 @@
+{
+  "label": "Certificates",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Signing, renewing, and rotating the certificates that identify Nebula hosts.",
+    "slug": "/guides/certificates"
+  }
+}

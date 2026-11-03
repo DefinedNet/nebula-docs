@@ -43,6 +43,7 @@ const config: Config = {
         alias: hq.get('webpack'),
       },
     ],
+    require.resolve('./src/plugins/llmsTxt.js'),
   ],
 
   headTags: [
@@ -87,6 +88,9 @@ const config: Config = {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: 'https://github.com/definednet/nebula-docs/tree/main/',
         },
+        // No blog on this site. Leaving the preset default on publishes an
+        // empty /blog/ page and lists it in the sitemap.
+        blog: false,
         theme: {
           customCss: [
             require.resolve('./src/css/base.css'),
@@ -102,7 +106,6 @@ const config: Config = {
 
   themeConfig: {
     image: 'img/nebula-docs-og.jpg',
-    metadata: [{ name: 'keywords', content: 'nebula, overlay network, VPN, mesh networking, defined networking' }],
     navbar: {
       title: 'Nebula documentation',
       logo: {

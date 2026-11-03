@@ -1,0 +1,190 @@
+---
+title: Nebula's security model
+sidebar_label: Security model
+description: >-
+  Nebula's threat model and cryptography: what a compromised lighthouse, relay, host, or CA key can do, the Noise IX
+  handshake, AES-256-GCM and ChaCha20-Poly1305, FIPS 140-3 builds, and how to report a vulnerability.
+summary: >-
+  A plain-language account of what Nebula protects, what it does not, and what each component can do if it falls into
+  the wrong hands, with the cryptographic details and the vulnerability reporting process.
+sidebar_position: 6
+---
+
+# Nebula's security model
+
+This page describes what Nebula's design protects against and what it does not. It walks through each component, asks
+what an attacker gains by compromising it, and then covers the cryptography, the operational controls that limit damage,
+and how to report a vulnerability. It is for anyone evaluating Nebula or responsible for running it. It avoids claims
+about strength; the goal is to let you reason about your own threat model. Background on the components is in
+[How Nebula works](/docs/how-nebula-works/).
+
+## What Nebula guarantees
+
+Between two hosts with a tunnel up:
+
+- **Confidentiality and integrity of overlay traffic.** Every packet is encrypted and authenticated with keys known only
+  to the two endpoints. Nothing on the path, including lighthouses and relays, can read or alter it undetected.
+- **Mutual authentication.** Each side has verified that the other holds a certificate signed by a trusted CA, is within
+  its validity period, is not blocklisted, and possesses the matching private key. See
+  [Certificates, groups, and the firewall](/docs/concepts/certificates-and-groups/).
+- **Address binding.** A peer can only send from the overlay addresses in its certificate (and from subnets in its
+  `unsafeNetworks`). Source addresses are checked against the certificate before the firewall runs.
+- **Policy enforced at the receiver.** Each host's [firewall](/docs/config/firewall/) decides what to accept based on
+  the peer's certificate. There is no central server whose compromise changes that decision.
+
+Nebula does not hide that two hosts are communicating, how much, or when. An observer on the underlay sees UDP datagrams
+between two addresses with sizes and timing. Nor does Nebula protect a host from itself: a compromised process on a host
+can do anything that host's certificate allows.
+
+## Component by component
+
+### A compromised lighthouse
+
+A [lighthouse](/docs/concepts/lighthouses/) holds the map of overlay addresses to underlay addresses and relay lists. An
+attacker who controls it:
+
+- **Can** learn which hosts exist, their overlay addresses, their public underlay addresses, and roughly when each was
+  last online. For many deployments that metadata is sensitive.
+- **Can** answer queries with wrong addresses, which denies service, or with no addresses, which prevents new tunnels.
+  It can steer a pair of hosts toward a relay it controls, but see below for what a relay gets.
+- **Can** do whatever its own certificate allows, since a lighthouse is also a host. If your firewall rules allow
+  `group: any` to reach a service, the lighthouse can reach it.
+- **Cannot** read, alter, or inject overlay traffic between other hosts. It is never on the path.
+- **Cannot** forge an identity or admit a new host. It has no CA key, and hosts verify each other's certificates
+  directly.
+- **Cannot** change any host's firewall rules.
+
+Mitigations: run lighthouses on hardened hosts, give them a certificate with no groups that your rules grant access to,
+and keep them patched. The [`lighthouse.remote_allow_list`](/docs/config/lighthouse/#lighthouseremote_allow_list)
+setting lets hosts refuse addresses a lighthouse hands them outside expected ranges.
+
+### A compromised relay
+
+A [relay](/docs/concepts/relays/) forwards encrypted packets between two peers that cannot reach each other directly. An
+attacker who controls it:
+
+- **Can** see the underlay addresses of both peers, which overlay hosts are talking through it, and the size and timing
+  of every packet.
+- **Can** drop, delay, or reorder packets for the tunnels it carries.
+- **Cannot** decrypt the traffic. The session keys were agreed between the two endpoints through the relay, not with it.
+  It cannot modify packets without the receiver's authentication check failing.
+
+Mitigations: relays carry no more trust than lighthouses, so the same hardening applies. A host that must never be
+relayed can set [`relay.use_relays: false`](/docs/config/relay/#relayuse_relays).
+
+### A compromised host
+
+A host with a valid certificate and its private key is a member of the network. An attacker who controls it:
+
+- **Can** reach every port on every host whose firewall rules allow the compromised host's certificate: its name, its
+  groups, its overlay address, or its CA.
+- **Can** read and send traffic on that host's overlay address, since the host decrypts its own tunnels.
+- **Cannot** claim a different name, address, or group. Those are signed, and the attacker does not have the CA key.
+- **Cannot** reach anything the rules do not allow. There is no privilege escalation path within the overlay; a laptop's
+  certificate stays a laptop's certificate.
+
+This is where group design matters most. A rule like `port: any, proto: any, group: any` on every server means one
+stolen laptop reaches everything. Narrow rules bound the damage. To cut the host off, add its fingerprint to
+[`pki.blocklist`](/docs/config/pki/#pkiblocklist) on every host, and enable
+[`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) so existing tunnels drop too.
+
+### A stolen CA key
+
+The CA private key can sign a certificate with any name, address, and groups the CA's constraints allow. An attacker
+with it can mint a host that your rules will treat as anything it chooses, and no blocklist entry stops a fresh
+certificate. This is the one compromise that affects the whole network at once.
+
+The response is to rotate: create a new CA, add it to every host's trust bundle, reissue every certificate, and remove
+the old CA. [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/) is the procedure. Until the
+old CA is out of the bundle, certificates it signed, including the attacker's, are still trusted.
+
+Prevention is cheaper. Encrypt the key with `nebula-cert ca -encrypt` (v1.7.0 and later), keep it off any machine that
+is on the network, and consider a PKCS#11 hardware token (P256 only; see the
+[`pki` reference](/docs/config/pki/#pkcs11-support)).
+
+## Cryptography
+
+Nebula's handshake is built on the [Noise Protocol Framework](https://noiseprotocol.org/) using the **IX** pattern, in
+which both parties send their static public keys during the handshake, so each side authenticates the other in a single
+round trip. The handshake subtype appears in logs as `ix_psk0`; the pre-shared key slot in that name is empty in current
+Nebula, so the authentication comes from the certificates, not from a shared secret. Each handshake generates fresh
+ephemeral keys, so compromising a host's long-term key later does not expose the traffic of sessions that have already
+ended.
+
+The primitives, as configured through the CA and the [`cipher`](/docs/config/cipher/) setting:
+
+| Function      | Options                                                          | Chosen by                                      |
+| ------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Key agreement | Curve25519 (default) or NIST P-256                               | `nebula-cert ca -curve`; hosts follow their CA |
+| Signatures    | Ed25519 with Curve25519, ECDSA with P-256                        | Same                                           |
+| Encryption    | AES-256-GCM (`aes`, default) or ChaCha20-Poly1305 (`chachapoly`) | `cipher`, which must match on every host       |
+| Hash          | SHA-256                                                          | Fixed                                          |
+
+`cipher` must be identical on every host in a network. Certificates signed by a Curve25519 CA and a P-256 CA can coexist
+in one trust bundle during a migration, but a given host's own certificate determines which curve it uses in its
+handshakes.
+
+One property of the IX pattern worth knowing: the first message of a handshake is sent before any shared key exists, so
+the initiator's certificate in that message is readable by anyone who can capture the packet. The responder's
+certificate travels encrypted. If the names and groups in your certificates are themselves sensitive, treat the underlay
+as able to see the initiating host's.
+
+## Certificate expiry as a forcing function
+
+Every certificate has a `notAfter`, and the default is to expire with the CA, which itself defaults to one year. A host
+with an expired certificate cannot handshake, and with
+[`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) set, its existing tunnels are closed as well. This
+is deliberate. Expiry bounds how long a forgotten or stolen credential stays useful, and it forces an operator to
+exercise the reissue and rotation procedures regularly instead of discovering them during an incident. Shorter lifetimes
+(`nebula-cert sign -duration`) tighten the bound at the cost of more frequent signing; the
+[certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) guide covers automating it.
+
+## No central policy server
+
+Nebula has nothing that distributes keys, rules, or membership at runtime. The consequences cut both ways.
+
+- There is no server whose compromise or outage changes what any host accepts. Firewall rules and the trust bundle are
+  local files; the lighthouse cannot alter them.
+- There is also no server to push a change through. Revoking a host, changing a rule, or adding a CA means updating
+  config on every affected host and reloading. Nebula assumes you have configuration management; without it, the
+  blocklist in particular is easy to apply incompletely.
+
+[Managed Nebula](https://admin.defined.net) adds that distribution layer as a hosted service, which is a different trust
+model: Defined Networking's control plane then holds the CA and pushes config. Evaluate it on its own terms at
+[docs.defined.net](https://docs.defined.net/).
+
+## FIPS 140-3 builds
+
+For deployments with compliance requirements, Nebula can be built with Go's
+[FIPS 140-3 mode](https://go.dev/doc/security/fips140) using `make fips140` or `make release-fips140`. In a build with
+FIPS 140 enforcement on, `cipher: chachapoly` is rejected and `nebula-cert ca` defaults to the P-256 curve. The standard
+release binaries are not FIPS builds; you compile these yourself. The older BoringCrypto build targets are deprecated in
+favor of this mode. The README's
+[Curve P256 and FIPS 140-3 mode](https://github.com/slackhq/nebula#curve-p256-and-fips-140-3-mode) section has the build
+targets.
+
+## Security bulletins
+
+Nebula publishes bulletins for security-relevant defects, with affected versions and the fix, under
+[Security bulletins](/docs/security/). Subscribe to
+[release notifications on GitHub](https://github.com/slackhq/nebula/releases) to learn about fixes as they ship, and see
+[Monitoring and upgrades](/docs/guides/operations/monitoring-and-upgrades/) for keeping hosts current.
+
+## Reporting a vulnerability
+
+The project's [SECURITY.md](https://github.com/slackhq/nebula/blob/master/SECURITY.md) asks that you report suspected
+vulnerabilities privately rather than in a public issue:
+
+- Critical issues, and anyone interested in a bug bounty, go through Slack's HackerOne program at
+  [hackerone.com/slack](https://hackerone.com/slack).
+- Everything else goes through GitHub's private advisory form at
+  [github.com/slackhq/nebula/security/advisories/new](https://github.com/slackhq/nebula/security/advisories/new).
+
+## See also
+
+- [Certificates, groups, and the firewall](/docs/concepts/certificates-and-groups/)
+- [`pki` reference](/docs/config/pki/) and [`cipher` reference](/docs/config/cipher/)
+- [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/)
+- [Security bulletins](/docs/security/)
+- [Noise Protocol Framework specification](https://noiseprotocol.org/noise.html)
+- [Nebula vs WireGuard](https://www.defined.net/compare/nebula-vs-wireguard/) for how the two handshakes differ

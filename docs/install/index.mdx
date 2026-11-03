@@ -1,0 +1,282 @@
+---
+title: Install Nebula
+sidebar_label: Install
+description:
+  Install Nebula on Linux, macOS, Windows, FreeBSD, iOS, Android, or Docker from distribution packages, release
+  archives, or source, and verify the download.
+summary:
+  Every platform Nebula runs on and the quickest way to get the nebula and nebula-cert binaries onto it, from
+  distribution packages and Homebrew to the GitHub release archives, the official Docker image, and building from
+  source.
+sidebar_position: 2
+---
+
+# Install Nebula
+
+Nebula ships as two static binaries: `nebula`, the daemon that runs on every host, and `nebula-cert`, the tool that
+creates your certificate authority and signs host certificates. Every package and release archive below contains both.
+You need `nebula` on each host that joins the network and `nebula-cert` only where you sign certificates, which can be a
+laptop that never runs Nebula at all.
+
+This page covers getting the binaries in place. For creating a CA, a lighthouse, and your first two hosts, continue to
+the [quick start](/docs/guides/quick-start/). The latest release is
+[v1.12.0](https://github.com/slackhq/nebula/releases/latest).
+
+| Platform                             | Recommended method                                      |
+| ------------------------------------ | ------------------------------------------------------- |
+| Arch, Fedora, Debian, Ubuntu, Alpine | [Distribution package](#linux-packages)                 |
+| Any other Linux                      | [Release archive](#linux-release-archives)              |
+| macOS                                | [Homebrew](#macos) or the release archive               |
+| Windows                              | [Release zip](#windows), run as a Windows service       |
+| FreeBSD                              | [`pkg install nebula`](#freebsd) or the release archive |
+| iOS, Android                         | [Mobile Nebula](#ios-and-android) from the app stores   |
+| Docker, Kubernetes                   | [`nebulaoss/nebula`](#docker) image                     |
+| Routers, NAS, single-board computers | See the [platform guides](/docs/platforms/)             |
+| Anything else Go supports            | [Build from source](#build-from-source)                 |
+
+## Linux packages
+
+The distributions below package Nebula in their main repositories, as listed in the
+[Nebula README](https://github.com/slackhq/nebula#distribution-packages). Packaged versions lag the GitHub release,
+sometimes by several versions, so check the version before relying on a feature added in a recent release (relays in
+v1.6.0, encrypted CA keys in v1.7.0, certificate v2 and IPv6 overlays in v1.10.0, lighthouse self-resolution in
+v1.11.0).
+
+```shell
+# Arch Linux (extra repository)
+sudo pacman -S nebula
+
+# Fedora
+sudo dnf install nebula
+
+# Debian and Ubuntu
+sudo apt install nebula
+
+# Alpine Linux (community repository)
+sudo apk add nebula
+```
+
+- **Arch Linux** tracks upstream closely; the [`nebula` package](https://archlinux.org/packages/extra/x86_64/nebula/) in
+  `extra` was at 1.12.0 within days of the release.
+- **Fedora** carries [`nebula`](https://packages.fedoraproject.org/pkgs/nebula/nebula/) in every supported release; at
+  the time of writing Fedora 43 had 1.10.3 and Fedora 44 and later had 1.11.2.
+- **Debian** has [`nebula`](https://packages.debian.org/source/stable/nebula) in stable (trixie, 1.9.3), oldstable
+  (bookworm, 1.6.1), and testing/unstable (1.11.0), on amd64, arm64, armhf, and several other architectures. The
+  [package tracker](https://tracker.debian.org/pkg/nebula) shows the current version in each suite.
+- **Ubuntu** has [`nebula`](https://packages.ubuntu.com/search?keywords=nebula&searchon=names) in 24.04 LTS (1.6.1) and
+  26.04 LTS (1.10.3). It is not in 22.04. If the packaged version is too old, use a release archive instead.
+- **Alpine** has [`nebula`](https://pkgs.alpinelinux.org/packages?name=nebula) in `community`; enable that repository in
+  `/etc/apk/repositories` if you have not already.
+
+Distribution packages generally install a service unit and expect configuration under `/etc/nebula/`, but the exact
+paths are the packager's choice. List the package's files (`pacman -Ql nebula`, `rpm -ql nebula`, `dpkg -L nebula`,
+`apk info -L nebula`) to see where the unit and example config landed. The
+[Arch Wiki Nebula page](https://wiki.archlinux.org/title/Nebula) is a good walkthrough for the Arch package.
+
+## Linux release archives
+
+Every release on the [GitHub releases page](https://github.com/slackhq/nebula/releases/latest) ships a tarball per Linux
+architecture containing `nebula` and `nebula-cert`. Pick by `uname -m`:
+
+| `uname -m`           | Archive                                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `x86_64`             | `nebula-linux-amd64.tar.gz`                                                                              |
+| `i686`, `i386`       | `nebula-linux-386.tar.gz`                                                                                |
+| `aarch64`            | `nebula-linux-arm64.tar.gz`                                                                              |
+| `armv7l`             | `nebula-linux-arm-7.tar.gz`                                                                              |
+| `armv6l`             | `nebula-linux-arm-6.tar.gz` (`arm-5` for ARMv5 without a VFP unit)                                       |
+| `mips`, `mipsel`     | `nebula-linux-mips.tar.gz`, `nebula-linux-mipsle.tar.gz` (also `mips-softfloat` for CPUs without an FPU) |
+| `mips64`, `mips64el` | `nebula-linux-mips64.tar.gz`, `nebula-linux-mips64le.tar.gz`                                             |
+| `ppc64le`            | `nebula-linux-ppc64le.tar.gz`                                                                            |
+| `riscv64`            | `nebula-linux-riscv64.tar.gz`                                                                            |
+| `loongarch64`        | `nebula-linux-loong64.tar.gz`                                                                            |
+
+Download, [verify](#verify-the-download), extract, and put the binaries on the path:
+
+```shell
+curl -LO https://github.com/slackhq/nebula/releases/latest/download/nebula-linux-amd64.tar.gz
+tar -xzf nebula-linux-amd64.tar.gz
+sudo install -m 0755 nebula nebula-cert /usr/local/bin/
+sudo mkdir -p /etc/nebula
+nebula -version
+```
+
+`/usr/local/bin/nebula` and `/etc/nebula/config.yml` are the paths the
+[example systemd unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service) expects.
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) covers installing that unit, and
+[Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/) shows how to drop root once it works.
+
+## macOS
+
+With [Homebrew](https://formulae.brew.sh/formula/nebula):
+
+```shell
+brew install nebula
+```
+
+The formula installs both binaries and a launchd service. `sudo brew services start nebula` starts Nebula now and at
+boot; it reads its configuration from `$HOMEBREW_PREFIX/etc/nebula/` (usually `/opt/homebrew/etc/nebula/` on Apple
+silicon and `/usr/local/etc/nebula/` on Intel). The `sudo` is required because creating the `utun` device needs root on
+macOS.
+
+Without Homebrew, download `nebula-darwin.zip` from the releases page. It contains one `nebula` and one `nebula-cert`
+universal binary that runs natively on both Intel and Apple silicon Macs:
+
+```shell
+curl -LO https://github.com/slackhq/nebula/releases/latest/download/nebula-darwin.zip
+unzip nebula-darwin.zip
+sudo install -m 0755 nebula nebula-cert /usr/local/bin/
+```
+
+If macOS refuses to run a binary you downloaded with a browser, it is the quarantine attribute, which you can remove
+with `xattr -d com.apple.quarantine /usr/local/bin/nebula`. The
+[launchd plist](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.plist) in the Nebula
+repository runs the release binary as a service; see
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/).
+
+## Windows
+
+Download `nebula-windows-amd64.zip` (or `nebula-windows-arm64.zip` for Windows on Arm) from the releases page. The zip
+contains:
+
+```text
+nebula.exe
+nebula-cert.exe
+dist\windows\wintun\bin\amd64\wintun.dll   (plus x86, arm, and arm64 builds)
+dist\windows\wintun\README.md and LICENSE.txt
+```
+
+Nebula uses the [Wintun](https://www.wintun.net/) driver for its tunnel device, and it is bundled: there is nothing to
+install separately. Nebula loads `wintun.dll` from `dist\windows\wintun\bin\<arch>\` relative to `nebula.exe`, so keep
+the `dist` folder next to the executable when you move things around. Extract the zip to a folder such as
+`C:\Program Files\Nebula`, put your `config.yml`, `ca.crt`, `host.crt`, and `host.key` alongside, and run from an
+Administrator prompt:
+
+```text
+cd "C:\Program Files\Nebula"
+.\nebula.exe -config config.yml
+```
+
+Creating the tunnel device requires Administrator rights. To run at boot, the same binary installs itself as a Windows
+service named `Nebula`:
+
+```text
+.\nebula.exe -service install -config "C:\Program Files\Nebula\config.yml"
+.\nebula.exe -service start
+```
+
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) has the full set of `-service` subcommands.
+
+## FreeBSD
+
+Nebula is in the ports tree as [`security/nebula`](https://www.freshports.org/security/nebula/):
+
+```shell
+pkg install nebula
+```
+
+The port installs the binaries under `/usr/local/bin`, an example config at `/usr/local/etc/nebula/config.yml.example`,
+and an rc script. Copy the example to `/usr/local/etc/nebula/config.yml`, add `nebula_enable="YES"` to `/etc/rc.conf`,
+and start it with `service nebula start`. The rc script also supports `service nebula configtest`, which runs
+`nebula -test` against the configured file.
+
+The releases page also has `nebula-freebsd-amd64.tar.gz` and `nebula-freebsd-arm64.tar.gz` if you want the newest
+version before the port catches up, as well as OpenBSD and NetBSD archives. For pfSense and OPNsense, which are
+FreeBSD-based but not meant to have software installed this way, read
+[Nebula with pfSense and OPNsense](/docs/platforms/pfsense-and-opnsense/) first.
+
+## iOS and Android
+
+Mobile Nebula is the official client from Defined Networking, built on the same Nebula code:
+
+- [Mobile Nebula on the App Store](https://apps.apple.com/us/app/mobile-nebula/id1509587936)
+- [Mobile Nebula on Google Play](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula)
+- [Source code](https://github.com/DefinedNet/mobile_nebula)
+
+The app generates its own key pair, so you sign a certificate for its public key rather than copying a `.key` file to
+the phone. [Nebula on iOS and Android](/docs/platforms/mobile/) walks through that, and
+[Signing certificates with public keys](/docs/guides/sign-certificates-with-public-keys/) explains the mechanism.
+
+## Docker
+
+The official image is [`nebulaoss/nebula`](https://hub.docker.com/r/nebulaoss/nebula), published for `linux/amd64` and
+`linux/arm64` and tagged by release (`nebulaoss/nebula:1.12.0`). It is built on a distroless base: the entrypoint is
+`/nebula` and the default arguments are `-config /config/config.yml`, so mount a directory containing `config.yml` and
+your certificates at `/config`:
+
+```shell
+docker run --name nebula --network host --cap-add NET_ADMIN \
+  --volume ./config:/config --rm nebulaoss/nebula
+```
+
+`--network host` lets the tunnel device live in the host's network namespace, and `NET_ADMIN` is what creating it
+requires. [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/) covers Compose files, `/dev/net/tun` on
+hosts that need it passed through, and running Nebula as a DaemonSet.
+
+## Build from source
+
+Nebula is a Go program with no C dependencies. With [Go installed](https://go.dev/doc/install):
+
+```shell
+git clone https://github.com/slackhq/nebula.git
+cd nebula
+make bin            # nebula and nebula-cert for this machine, in the current directory
+make bin-windows    # cross-compile for Windows amd64, into build/windows-amd64/
+make all            # every supported platform, into build/
+```
+
+The [Makefile](https://github.com/slackhq/nebula/blob/master/Makefile) lists the other targets, including `make release`
+for tarballs identical in layout to the GitHub ones and `make docker` for the container image.
+
+## Compliance builds
+
+The default handshake and signature curve is Curve25519 with AES-256-GCM, which is the right choice for almost everyone.
+For deployments with specific compliance requirements, the README documents two options:
+
+- **NIST P-256.** Create the CA with `nebula-cert ca -curve P256`. The CA then signs with ECDSA P-256 and hosts holding
+  those certificates use P-256 for the ECDH handshake. All hosts in a network must use the same curve.
+- **FIPS 140-3.** `make fips140` and `make release-fips140` build with Go's native FIPS 140-3 mode (`GOFIPS140`, set at
+  compile time). Those binaries run only in FIPS 140-only mode and accept only P-256 certificates and the `aes` cipher;
+  `nebula-cert ca` and `keygen` default to `-curve P256` in them, and encrypted CA keys (`-encrypt`) are not supported.
+  See the [Go FIPS 140-3 documentation](https://go.dev/doc/security/fips140).
+
+The older BoringCrypto builds (`make bin-boringcrypto`, `make release-boringcrypto`) are deprecated and will be removed
+in the release after v1.12.0. Migrate to the native FIPS 140-3 build.
+
+## Verify the download
+
+Every release includes a `SHASUM256.txt` with SHA-256 checksums for each archive and for the binaries inside them.
+Download it next to the archive and check:
+
+```shell
+curl -LO https://github.com/slackhq/nebula/releases/latest/download/SHASUM256.txt
+sha256sum --check --ignore-missing SHASUM256.txt
+```
+
+On macOS use `shasum -a 256 --check --ignore-missing SHASUM256.txt`. On Windows,
+`Get-FileHash .\nebula-windows-amd64.zip` in PowerShell prints a hash to compare against the file by eye. Any output
+other than `OK` for the file you downloaded means it was corrupted or altered in transit; download it again from GitHub.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) hosts run Defined Networking's client, which bundles Nebula and fetches
+certificates and configuration from the control plane, so there are no binaries to copy or certificates to sign by hand.
+Installation instructions per platform are in the [Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## Next steps
+
+Head to the [quick start](/docs/guides/quick-start/) to create a certificate authority, run a lighthouse, and connect
+two hosts.
+
+## See also
+
+- [Nebula quick start](/docs/guides/quick-start/)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)
+- [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/)
+- [Platform guides](/docs/platforms/) for Raspberry Pi, OpenWrt, NAS appliances, Proxmox, and more
+- [Nebula releases on GitHub](https://github.com/slackhq/nebula/releases/latest)
+- [Distribution packages in the Nebula README](https://github.com/slackhq/nebula#distribution-packages)

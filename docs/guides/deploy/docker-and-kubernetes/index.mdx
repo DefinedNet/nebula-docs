@@ -1,0 +1,317 @@
+---
+title: Running Nebula in Docker, Kubernetes, and LXC
+sidebar_label: Docker, Kubernetes, and LXC
+description:
+  How to run Nebula in a container with the official nebulaoss/nebula Docker image, Docker Compose, a Kubernetes
+  DaemonSet, and an LXC container on Proxmox.
+summary:
+  The official nebulaoss/nebula image runs a lighthouse or an ordinary host from a mounted config directory. This guide
+  gives docker run and Compose examples, explains what host networking and the tun device are for, sketches a Kubernetes
+  DaemonSet, and shows the device passthrough an LXC container on Proxmox needs.
+sidebar_position: 2
+---
+
+# Running Nebula in Docker, Kubernetes, and LXC
+
+Nebula is a static binary with no runtime dependencies, which makes it an easy container. The catch is that it wants to
+create a tun interface and add routes on the machine it runs on, and a container's job is normally to prevent exactly
+that. This guide is for anyone running Nebula on a host that already runs containers, a Kubernetes node, or a Proxmox
+LXC container, and it shows the small set of privileges Nebula needs in each case.
+
+Two things are true for every setup below. Nebula gives the _host_ (or container) an overlay address, not other
+containers on that host; see [What bridge networking does](#what-bridge-networking-does) for the alternative. And a
+lighthouse that only needs to answer queries can run with [`tun.disabled: true`](/docs/config/tun/#tundisabled), which
+removes every privilege requirement and makes it the easiest Nebula container to run.
+
+## The official image
+
+Nebula publishes [`nebulaoss/nebula`](https://hub.docker.com/r/nebulaoss/nebula) for `linux/amd64` and `linux/arm64`,
+built from [`docker/Dockerfile`](https://github.com/slackhq/nebula/blob/master/docker/Dockerfile) in the repository by
+the release workflow. It is a distroless image with no shell, containing only `/nebula` and `/nebula-cert`. The relevant
+lines of the Dockerfile:
+
+```text
+VOLUME ["/config"]
+ENTRYPOINT ["/nebula"]
+CMD ["-config", "/config/config.yml"]
+```
+
+So by default the container runs `nebula -config /config/config.yml`, and everything it needs (config, CA certificate,
+host certificate, and key) goes in a directory you mount at `/config`. Paths inside `config.yml` must be the paths as
+seen inside the container:
+
+```yaml
+pki:
+  ca: /config/ca.crt
+  cert: /config/host.crt
+  key: /config/host.key
+```
+
+Tags are `latest` and the release version without its `v`, for example `nebulaoss/nebula:1.12.0`. Pin the version tag on
+anything you care about, since `latest` moves with each release.
+
+Because there is no shell in the image, `docker exec` into it won't work. Run one-off commands such as `nebula-cert`
+with a different entrypoint instead:
+
+```shell
+docker run --rm -v ./config:/config --entrypoint /nebula-cert nebulaoss/nebula:1.12.0 print -path /config/host.crt
+```
+
+## Docker: a lighthouse
+
+A lighthouse needs to receive UDP on a fixed port from the internet. With host networking it binds the host's port
+directly, which is the simplest way to get that. If the lighthouse also acts as a relay or needs an overlay interface,
+add `--cap-add NET_ADMIN` and `--device /dev/net/tun` as in the host example below; a plain lighthouse with
+`tun.disabled: true` needs neither.
+
+```shell
+docker run -d --name nebula-lighthouse \
+  --network host \
+  --restart unless-stopped \
+  -v ./config:/config:ro \
+  nebulaoss/nebula:1.12.0
+```
+
+The same thing as a `compose.yml`:
+
+```yaml
+services:
+  nebula:
+    image: nebulaoss/nebula:1.12.0
+    container_name: nebula-lighthouse
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./config:/config:ro
+```
+
+With a config along these lines in `./config/config.yml` (the lighthouse-specific parts; see the
+[`lighthouse` reference](/docs/config/lighthouse/) for the rest):
+
+```yaml
+lighthouse:
+  am_lighthouse: true
+listen:
+  host: '::'
+  port: 4242
+tun:
+  disabled: true
+```
+
+Open UDP 4242 in the host's firewall and in whatever cloud firewall sits in front of it;
+[Running a lighthouse on a cloud VM](/docs/guides/deploy/cloud-lighthouse/) walks through that per provider.
+
+## Docker: an ordinary host
+
+An ordinary host needs the tun device, so it needs two extra things: the `NET_ADMIN` capability to create the interface
+and set routes, and the `/dev/net/tun` device node passed into the container. Host networking is still required, because
+the overlay interface has to land in the host's network namespace to be useful to anything but the container itself.
+
+```shell
+docker run -d --name nebula \
+  --network host \
+  --cap-add NET_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  --restart unless-stopped \
+  -v ./config:/config:ro \
+  nebulaoss/nebula:1.12.0
+```
+
+```yaml
+services:
+  nebula:
+    image: nebulaoss/nebula:1.12.0
+    container_name: nebula
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+    volumes:
+      - ./config:/config:ro
+```
+
+Then `docker compose up -d` and check `docker logs nebula` for `Handshake message received` lines once a peer connects.
+The config directory is mounted read-only because Nebula never writes to it, and a container shouldn't be able to alter
+its own credentials.
+
+:::note
+
+The Docker Hub page's `docker run` example mounts the config directory at `/etc/nebula`. The image's default command
+reads `/config/config.yml`, so either mount at `/config` as shown here or pass your own `-config` path as the command.
+
+:::
+
+Config reload works the same as outside a container: `docker kill -s HUP nebula` sends `SIGHUP`. Keys that aren't
+reloadable need `docker restart nebula`. A note on `:ro` and reloads: if you replace files inside `./config` from the
+host, the container sees the new contents immediately, so rotating certificates is a file copy followed by a `HUP`.
+
+### What bridge networking does
+
+If you leave out `--network host`, Nebula runs in the container's own network namespace. The tun interface is created
+there, so the _container_ gets the overlay address and nothing else on the host can use it. That is occasionally what
+you want: a single service that should be reachable only over Nebula can run in the same namespace
+(`network_mode: "service:nebula"` in Compose, or `--network container:nebula`) and inherit the tunnel without the host
+being on the overlay at all.
+
+For everything else it causes two problems. Peers can't reach the host over the overlay, and inbound hole punching goes
+through Docker's NAT, which behaves like an extra [hard NAT](/docs/guides/nat-traversal/) in front of the host.
+Publishing the UDP port with `-p 4242:4242/udp` makes a bridged lighthouse reachable, but ordinary hosts should use host
+networking.
+
+## Kubernetes
+
+The usual reason to run Nebula on Kubernetes is to put every _node_ on the overlay, so that the cluster can be reached
+from elsewhere or can reach hosts outside it. That is a DaemonSet with host networking, the same privileges as the
+Docker example, and a per-node certificate. It is not a CNI plugin; pods don't get overlay addresses, and pod-to-pod
+networking is unchanged.
+
+The sketch below is a starting point to adapt, not a drop-in manifest. In particular, each node needs its own
+certificate with its own overlay IP, and the simplest way to express that is one Secret per node selected by a
+`nodeSelector` or a small controller; the sketch shows a single Secret for readability.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-config
+  namespace: nebula-system
+stringData:
+  config.yml: |
+    pki:
+      ca: /config/ca.crt
+      cert: /config/host.crt
+      key: /config/host.key
+    static_host_map:
+      '192.168.100.1': ['203.0.113.10:4242']
+    lighthouse:
+      hosts:
+        - '192.168.100.1'
+    listen:
+      host: '::'
+      port: 4242
+    punchy:
+      punch: true
+    firewall:
+      outbound:
+        - port: any
+          proto: any
+          host: any
+      inbound:
+        - port: any
+          proto: icmp
+          host: any
+  ca.crt: |
+    -----BEGIN NEBULA CERTIFICATE-----
+    ...
+  host.crt: |
+    -----BEGIN NEBULA CERTIFICATE-----
+    ...
+  host.key: |
+    -----BEGIN NEBULA X25519 PRIVATE KEY-----
+    ...
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nebula
+  namespace: nebula-system
+spec:
+  selector:
+    matchLabels:
+      app: nebula
+  template:
+    metadata:
+      labels:
+        app: nebula
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: nebula
+          image: nebulaoss/nebula:1.12.0
+          securityContext:
+            capabilities:
+              add: ['NET_ADMIN']
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: tun
+              mountPath: /dev/net/tun
+      volumes:
+        - name: config
+          secret:
+            secretName: nebula-config
+        - name: tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+```
+
+Things to adjust:
+
+- **Privileges.** `NET_ADMIN` plus a `hostPath` mount of `/dev/net/tun` is the minimal form, but some container runtimes
+  and admission policies block character devices for non-privileged pods. If Nebula logs an error opening the tun
+  device, `securityContext: { privileged: true }` is the blunt fix; try the narrow one first.
+- **Secrets.** A Secret mounted as a volume shows up as files, which is what the `pki` paths above expect. Keep the
+  private key out of ConfigMaps and out of Git.
+- **Per-node identity.** Every node must present a different certificate. Reusing one certificate on several nodes gives
+  them the same overlay IP and breaks discovery. See
+  [Signing certificates with public keys](/docs/guides/sign-certificates-with-public-keys/) for issuing certificates
+  without copying private keys around.
+- **The lighthouse.** Don't run the lighthouse as a pod on a node whose address changes. If the cluster has a node with
+  a stable public IP it can host one; otherwise put the lighthouse on a small VM outside the cluster, as in
+  [Running a lighthouse on a cloud VM](/docs/guides/deploy/cloud-lighthouse/).
+
+A community Helm chart, [henryzhangsta/nebula-vpn-helm](https://github.com/henryzhangsta/nebula-vpn-helm), packages this
+pattern as a DaemonSet with per-node certificates in its values file. It is not maintained by the Nebula project or
+Defined Networking, so read it before relying on it.
+
+## LXC on Proxmox
+
+An LXC container is closer to a VM than a Docker container: it has its own init system, so you install Nebula inside it
+exactly as on a normal Linux host and run it [as a service](/docs/guides/deploy/running-as-a-service/). The one thing
+Proxmox does not give a container by default is `/dev/net/tun`.
+
+On current Proxmox VE, pass the device through with the `dev` option in the container's config
+(`/etc/pve/lxc/<CTID>.conf`), documented in the
+[`pct.conf` reference](https://pve.proxmox.com/pve-docs/pct.conf.5.html):
+
+```text
+dev0: /dev/net/tun
+```
+
+The older method, which still works and is what most community guides show, adds raw LXC lines to the same file:
+
+```text
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+```
+
+Restart the container after either change (`pct stop <CTID>` and `pct start <CTID>`), then confirm `/dev/net/tun` exists
+inside it. Nebula then runs as root inside the container with no further changes; unprivileged containers work too,
+because the device node is what matters, not the container's privilege level. The
+[Proxmox page](/docs/platforms/proxmox/) covers the rest of a Proxmox deployment, including running Nebula on the
+Proxmox host itself instead.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) publishes a `dnclient` container image for the same purposes; the
+[Fly.io lighthouse walkthrough](https://www.defined.net/blog/deploy-your-lighthouse-to-fly-dot-io/) on the Defined blog
+is an example of running it as a container. Certificates and config are enrolled rather than mounted. See the
+[Managed Nebula docs](https://docs.defined.net/) for details.
+
+:::
+
+## See also
+
+- [`nebulaoss/nebula` on Docker Hub](https://hub.docker.com/r/nebulaoss/nebula)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)
+- [Running a lighthouse on a cloud VM](/docs/guides/deploy/cloud-lighthouse/)
+- [Nebula on Proxmox](/docs/platforms/proxmox/)
+- [`tun` reference](/docs/config/tun/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)

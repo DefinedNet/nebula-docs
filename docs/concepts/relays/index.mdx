@@ -1,0 +1,120 @@
+---
+title: Relays
+sidebar_label: Relays
+description:
+  What a Nebula relay is, when a tunnel uses one, why relayed traffic stays end-to-end encrypted, who can be a relay,
+  and how relays compare to Tailscale's DERP and TURN.
+summary:
+  Relays are Nebula's fallback when two hosts cannot reach each other directly. This page covers the role, its limits,
+  and its costs, and points to the config and troubleshooting pages.
+sidebar_position: 4
+---
+
+# Relays
+
+A relay is a Nebula host that forwards encrypted packets between two peers that cannot build a direct tunnel. Relays
+exist because UDP hole punching does not work through every NAT, and a mesh VPN that only worked when punching succeeded
+would leave hosts behind CGNAT and symmetric NATs unreachable. This page explains when Nebula uses a relay, what a relay
+can and cannot see, who can run one, and what it costs. The config keys are in the
+[`relay` reference](/docs/config/relay/). Relays were added in Nebula v1.6.0.
+
+## When a tunnel is relayed
+
+When host A wants to reach host B, A gets B's underlay addresses and B's list of relays from a lighthouse (or from its
+own config), then sends handshake packets toward B's addresses and, through each of those relays, toward B. If a direct
+handshake completes, the tunnel is direct. If the only handshake that completes is the one through a relay, the tunnel
+is relayed, and every packet between A and B for the life of that tunnel goes A to relay to B.
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) explains which NAT pairings end up here; in short, it is when
+both hosts are behind NATs that assign a new external port per destination, so neither can predict an address the other
+can hit.
+
+A relayed tunnel works like a direct one from the applications' point of view. The difference shows in the logs, where
+handshake lines carry a `(relayed)` suffix, and in the `print-tunnel` and `print-relays` output of the
+[debug SSH server](/docs/guides/debug-ssh-commands/).
+
+## The relay cannot read the traffic
+
+A relay does not terminate the tunnel. A and B complete their Noise handshake with each other through the relay, so the
+session keys exist only on A and B. What the relay sees for each packet is:
+
+- the underlay address and port of the peer it received the packet from and the one it forwards to,
+- which pair of overlay hosts the packet belongs to, since it has to know where to forward it,
+- the packet size and timing.
+
+It cannot decrypt the payload, and because the payload is authenticated encryption, it cannot modify a packet without
+the receiver rejecting it. It can drop or delay packets, which is a denial of service, not a disclosure. The relay also
+has its own tunnel to each of A and B, which is how it authenticates that both are members of the network, but those
+tunnels carry the relay control messages, not A and B's data in the clear.
+
+## Who can be a relay
+
+Any host becomes a relay by setting [`relay.am_relay: true`](/docs/config/relay/#relayam_relay). It needs what a
+lighthouse needs: a public IP (or port forward) and a fixed UDP port, because hosts that cannot reach each other must
+both be able to reach it. The lighthouse is a natural choice since it already meets those requirements, and in small
+networks it is common for one machine to be both. The two roles are independent: a lighthouse with `am_relay: false`
+relays nothing, and a relay need not be a lighthouse.
+
+A host does not use just any relay. Each host lists, in its own [`relay.relays`](/docs/config/relay/#relayrelays), the
+relays that peers may use to reach _it_. A relay only forwards for hosts that have listed it. This lets you place relays
+near the hosts that need them, for example one inside a private VPC for the hosts in that VPC.
+
+One restriction: **you cannot relay through a relay.** A host with `am_relay: true` may not list other relays in its own
+`relay.relays`, and a relayed tunnel always has exactly one hop in the middle.
+
+Setting [`relay.use_relays: false`](/docs/config/relay/#relayuse_relays) stops a host from ever handshaking through a
+relay, which is occasionally useful on a host that must only ever connect directly.
+
+## How peers learn about relays
+
+Each host's `relay.relays` list is included in its reports to the lighthouse. When another host queries the lighthouse
+for that host, the answer carries the relay list alongside the underlay addresses, so the asking host knows which relays
+to try without any extra configuration. The relay hosts themselves need nothing beyond `am_relay: true` and
+reachability. The relay and both peers all handshake with each other, so the relay's certificate must be signed by a CA
+that the peers trust, and theirs by one the relay trusts.
+
+## What it costs
+
+- **Latency.** Packets take two underlay hops instead of one, and the relay may be geographically far from both peers.
+- **Bandwidth.** All relayed traffic passes through the relay's connection in both directions. A cheap cloud instance
+  relaying several busy hosts will saturate its link or its CPU before those hosts do.
+- **A dependency.** A direct tunnel survives any other host going away; a relayed tunnel dies if its relay does. Run
+  more than one relay and list all of them where it matters.
+
+If many tunnels in a network are relayed, treat it as a symptom. The usual causes are fixable:
+[`punchy`](/docs/config/punchy/) not enabled, a port forward that is not advertised with
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs), or an enterprise firewall that can
+be switched to endpoint-independent mapping. See
+[Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/).
+
+## Compared with DERP and TURN
+
+**Tailscale DERP.** DERP servers forward encrypted WireGuard packets between Tailscale nodes when a direct path is not
+available, and they cannot decrypt them, so the privacy property is the same as a Nebula relay. The differences are
+operational: DERP is a dedicated service run by Tailscale (or by you, for Headscale) that every node is pre-configured
+to use, and it carries traffic over HTTPS, so it also works on networks that block UDP. A Nebula relay is an ordinary
+mesh member that you opt in, selected per destination host, and it uses the same UDP transport as everything else, so it
+does not help on a network that blocks outbound UDP.
+
+**TURN.** TURN ([RFC 8656](https://www.rfc-editor.org/rfc/rfc8656.html)) is the relay step of the ICE procedure used by
+WebRTC and VoIP. A client allocates a relayed address on a TURN server and peers send to that. It serves the same
+purpose, a last-resort path when hole punching fails, but it is a separate protocol with its own authentication, not a
+member of the network it serves. Nebula relays reuse the mesh's certificates for authentication and the mesh's tunnels
+for transport.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), any host can be marked as a relay in the admin panel and the relay lists
+in every host's config are generated for you. See
+[Using dedicated relays](https://docs.defined.net/guides/using-dedicated-relays/).
+
+:::
+
+## See also
+
+- [`relay` reference](/docs/config/relay/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [NAT types and why they matter](/docs/concepts/nat-types/)
+- [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/)
+- [Relay](https://www.defined.net/docs/glossary/relay/) in the Defined Networking glossary

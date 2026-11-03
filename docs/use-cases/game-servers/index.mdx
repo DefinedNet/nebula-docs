@@ -1,0 +1,149 @@
+---
+title: Hosting a game server for friends over Nebula
+sidebar_label: Game servers
+description:
+  Host a Minecraft or other game server for friends over Nebula with no port forwarding and no public exposure; each
+  friend authenticates with a certificate you signed.
+summary:
+  Sign a certificate for each friend, open only the game's port to a friends group, and have them connect to the
+  server's overlay address. Covers LAN discovery, performance, and revoking access.
+sidebar_position: 2
+---
+
+# Hosting a game server for friends over Nebula
+
+This page is for anyone running a game server at home for a handful of friends. Minecraft Java Edition on tcp/25565 is
+the example, but the pattern is the same for any game with a server you host: Valheim, Terraria, Factorio, a Source
+engine dedicated server.
+
+Defined Networking's blog post
+[Playing Minecraft with friends over Nebula](https://www.defined.net/blog/minecraft-over-nebula/) does this with Managed
+Nebula. This page does it with open source Nebula, where you sign the certificates yourself.
+
+## Why do it this way
+
+- **No port forward.** Your home router stays closed. The server reaches out to the lighthouse, friends do the same, and
+  the tunnels are punched from the inside ([NAT traversal and firewalls](/docs/guides/nat-traversal/)).
+- **No public exposure.** The game server listens on a private overlay address. Nobody can scan for it, and server
+  software with a weak or missing authentication story is not on the internet.
+- **Friends authenticate by certificate.** Only a host with a certificate signed by your CA can even complete a
+  handshake, and the firewall then limits them to the game's port. There is no password to share.
+
+You need one lighthouse with a public IP (a cheap cloud VM; see
+[Cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/)) and the [quick start](/docs/guides/quick-start/) done once.
+Everything below assumes an overlay of `192.168.100.0/24`.
+
+## Sign a certificate for each friend
+
+Never handle a friend's private key. Have each friend generate a key pair on their own machine and send you only the
+public key:
+
+```shell
+nebula-cert keygen -out-key alice.key -out-pub alice.pub
+```
+
+You sign the public key with a `friends` group and send back the certificate plus `ca.crt`:
+
+```shell
+nebula-cert sign -in-pub alice.pub -name "alice" -networks "192.168.100.101/24" -groups "friends" -duration 720h
+```
+
+`-duration 720h` makes the certificate expire in thirty days, which is a quiet way to drop someone who stops playing.
+Leave it off and the certificate lasts until the CA expires.
+[Signing without a key](/docs/guides/sign-certificates-with-public-keys/) covers the flow in detail, and
+[Certificates and groups](/docs/concepts/certificates-and-groups/) explains what the certificate carries.
+
+Give each friend a config that points at your lighthouse. They need `nebula`, `ca.crt`, their `.crt`, their `.key`, and
+the config; [Install Nebula](/docs/install/) lists the packages and
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) keeps it running on Windows, macOS, and Linux.
+
+## Open only the game's port
+
+On the game server host, allow the game's port from the `friends` group and nothing else:
+
+```yaml
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+
+    - port: 25565
+      proto: tcp
+      group: friends
+```
+
+Friends can ping the server and connect to Minecraft. They cannot reach SSH, a web UI, file shares, or anything else on
+that host, and they cannot reach each other unless each of their configs allows it (by default nothing inbound is
+allowed, so they cannot). Games that use UDP need a `proto: udp` rule, and some need a range (`port: 27015-27020`);
+check the game's documentation for its ports. The [`firewall` reference](/docs/config/firewall/) has every field.
+
+If the game server runs on a machine that cannot run Nebula (a console, an appliance), run Nebula on another LAN host
+and route to it with an [unsafe route](/docs/guides/unsafe_routes/). Remember that the firewall rule then needs
+`local_cidr` set to the game server's LAN address.
+
+## Connecting
+
+Friends add the server by its overlay address: `192.168.100.10:25565` in the Minecraft multiplayer screen, or whatever
+address field the game has. With [lighthouse DNS](/docs/guides/using-lighthouse-dns/) enabled they can use the
+certificate name instead, for example `mc:25565`; [DNS for Nebula hosts](/docs/guides/networking/dns/) covers resolver
+setup on each OS.
+
+## LAN discovery does not cross the overlay
+
+Many games find servers with a LAN broadcast or multicast announcement. Minecraft's "Open to LAN" and most "LAN games"
+lists work this way. Nebula is a routed network, not a bridged one, so those announcements do not appear on friends'
+machines. Two tun settings govern this: [`tun.drop_local_broadcast`](/docs/config/tun/#tundrop_local_broadcast) and
+[`tun.drop_multicast`](/docs/config/tun/#tundrop_multicast). Both default to `false` in the config reference, which lets
+Nebula forward broadcast and multicast packets within the overlay subnet, but forwarding a broadcast still means sending
+it to every host in the subnet, and games rarely cope with discovery over a routed path. Plan on typing the address. The
+blog post above takes the same approach: friends enter the host's Nebula IP and port by hand.
+
+## Performance
+
+A direct tunnel adds a few milliseconds and a little CPU for AES-256-GCM. For a game server that is not noticeable. If a
+friend's tunnel is relayed, every packet makes an extra hop through the relay and latency goes up accordingly; see
+[Relays](/docs/concepts/relays/) and
+[Telling direct from relayed](/docs/guides/nat-traversal/#telling-direct-from-relayed). Enabling
+[`punchy.punch`](/docs/config/punchy/#punchypunch) and [`punchy.respond`](/docs/config/punchy/#punchyrespond) on every
+host gets more tunnels direct. [Performance tuning](/docs/guides/operations/performance-tuning/) covers MTU and the rest
+if you are pushing a lot of traffic.
+
+## Revoking a friend
+
+Two options, and they combine well:
+
+- **Short durations.** Sign with `-duration` and re-sign the friends who are still around. Nothing to distribute; the
+  certificate simply stops working.
+- **Blocklist.** Add the certificate's fingerprint (from `nebula-cert print -path alice.crt`) to
+  [`pki.blocklist`](/docs/config/pki/#pkiblocklist) on the game server and reload. The blocklist is per host and is not
+  distributed by lighthouses, so put it on every host the friend could reach; for a game server that is usually just
+  one.
+
+[Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) explains expiry, renewal, and the
+[`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) setting that drops a tunnel as soon as its
+certificate expires.
+
+## Managed Nebula
+
+:::note
+
+The [Minecraft blog post](https://www.defined.net/blog/minecraft-over-nebula/) uses
+[Managed Nebula](https://admin.defined.net), where friends enroll with a code instead of exchanging keys, and the
+firewall rule is set once in the admin panel. The free tier covers a group of friends.
+
+:::
+
+## See also
+
+- [Playing Minecraft with friends over Nebula](https://www.defined.net/blog/minecraft-over-nebula/)
+- [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)
+- [`firewall` reference](/docs/config/firewall/)
+- [`pki` reference](/docs/config/pki/)
+- [Remote access to your homelab with Nebula](/docs/use-cases/homelab-remote-access/)
+- [Nebula FAQ](/docs/faq/)

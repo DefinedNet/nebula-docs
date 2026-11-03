@@ -1,0 +1,136 @@
+---
+title: Nebula with Home Assistant
+sidebar_label: Home Assistant
+description: >-
+  Reach Home Assistant remotely over Nebula without port forwarding or a cloud subscription, using the community Nebula
+  add-on or a Nebula gateway next to it, and Mobile Nebula on your phone.
+summary: >-
+  Home Assistant remote access without exposing it to the internet: the community Nebula add-on for Home Assistant OS, a
+  Nebula host beside it for other installs, and how a phone running Mobile Nebula reaches the dashboard at its overlay
+  address or through an unsafe route.
+sidebar_position: 6
+---
+
+# Nebula with Home Assistant
+
+Home Assistant is one of the most common reasons to want remote access to a home network and one of the worst things to
+expose directly to the internet. Nebula gives your phone and laptop a private route to it with no port forward on the
+router, no reverse proxy, and no third-party relay in the path. This page covers the two ways to get Nebula next to Home
+Assistant, and how the [Mobile Nebula](/docs/platforms/mobile/) app on a phone reaches the dashboard.
+
+Which way depends on how Home Assistant is installed:
+
+| Installation                            | Where Nebula runs                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Home Assistant OS (the appliance image) | The [community add-on](#the-community-add-on), since you can't install software on the host         |
+| Home Assistant Supervised               | The add-on, or Nebula directly on the host OS                                                       |
+| Home Assistant Container or Core        | Nebula on the same host, [as on any Linux machine](#nebula-on-the-same-host-or-a-gateway-beside-it) |
+| Any install                             | A Nebula [gateway](#nebula-on-the-same-host-or-a-gateway-beside-it) on another device on the LAN    |
+
+## The community add-on
+
+[`mr-ransel/addon-nebula`](https://github.com/mr-ransel/addon-nebula) packages Nebula as a Home Assistant add-on. It is
+a community project, not maintained by the Nebula or Home Assistant teams, so read its README and open issues before
+relying on it, and expect its options to change between versions. Its configuration is declared in the add-on's
+[`config.yaml`](https://github.com/mr-ransel/addon-nebula/blob/main/nebula/config.yaml): it runs with host networking,
+the `NET_ADMIN` capability, and `/dev/net/tun`, which is exactly what Nebula needs, and it is built for `amd64` and
+`aarch64`, so it works on a Raspberry Pi running Home Assistant OS.
+
+### Install it
+
+From the add-on's README:
+
+1. In Home Assistant go to **Settings** > **Add-ons** > **Add-on store**.
+2. Open the three-dot menu in the top right, choose **Repositories**, paste `https://github.com/mr-ransel/addon-nebula`,
+   and add it.
+3. Back in the store, find the **Nebula** add-on and install it.
+
+### Choose a mode
+
+The add-on's [documentation](https://github.com/mr-ransel/addon-nebula/blob/main/nebula/DOCS.md) describes several ways
+to run it, from fully managed to bring-your-own-everything:
+
+- **Quick start.** Enable `hass_is_lighthouse` and `hass_is_cert_authority`. The add-on creates a CA, makes the Home
+  Assistant box the lighthouse, and signs certificates for the nodes you list in `node_list`. Set `nebula_network_cidr`
+  to the overlay range and `hass_advertise_addrs` to the public address or dynamic DNS name and port that reach your
+  house. Because the box is the lighthouse, this mode needs a UDP port forward (4242 by default) on your router to it,
+  and it needs a real public IP; see
+  [A home lighthouse on a Pi](/docs/platforms/raspberry-pi/#a-home-lighthouse-on-a-pi) for what that involves. The
+  add-on includes a script that writes each node's `.crt` and `.key` and a QR code, which is what Mobile Nebula scans.
+- **Your own CA.** Turn `hass_is_cert_authority` off and place certificates you signed elsewhere under
+  `/ssl/nebula/nodes/<node_name>` and the CA certificate under `/ssl/nebula/nodes/ca`. The add-on then uses what you
+  provide and signs nothing.
+- **Your own lighthouses.** Turn the lighthouse flag off and list them in `other_lighthouses`. The box becomes an
+  ordinary host joining your existing network, which is the right choice if you already have a
+  [cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/) and no public IP at home.
+- **Custom config.** Put a complete Nebula `config.yaml` at `/ssl/nebula/config.yaml` (replacing the symlink the add-on
+  creates) and the add-on runs it as-is, ignoring the generated one. The generated file in the `nodes` folder is a
+  useful starting point. This is the mode to use when you want full control of [firewall](/docs/config/firewall/) rules
+  and other settings.
+
+The documentation notes that the add-on bundled Nebula 1.10.x at the time of writing, which creates version 2
+certificates by default when it acts as the CA; other hosts need Nebula 1.9.5 or later to connect and 1.10.0 or later
+for full support, and `-version 1` can be passed through a node's `extra_args` if you need version 1 certificates. Check
+the add-on's changelog for the bundled version.
+
+## Nebula on the same host, or a gateway beside it
+
+If Home Assistant runs as a container or in a Python environment on a Linux box you control, Nebula just goes on that
+box: follow the [quick start](/docs/guides/quick-start/) and
+[run it as a service](/docs/guides/deploy/running-as-a-service/). Home Assistant listens on port 8123 on every address
+by default, so it answers on the host's overlay address once a Nebula firewall rule allows it:
+
+```yaml
+firewall:
+  inbound:
+    - port: 8123
+      proto: tcp
+      groups:
+        - home
+```
+
+If Home Assistant OS is on a dedicated device and you would rather not use the add-on, put Nebula on another always-on
+host on the same LAN, such as a [Raspberry Pi](/docs/platforms/raspberry-pi/#a-gateway-into-the-home-lan),
+[OpenWrt router](/docs/platforms/openwrt/#the-router-as-a-gateway-for-the-lan), or [NAS](/docs/platforms/nas/), and make
+it a gateway for the LAN with [`unsafe_routes`](/docs/guides/unsafe_routes/). Home Assistant is then reached at its
+normal LAN address through the tunnel. Sign the gateway's certificate with the LAN subnet
+(`-unsafe-networks 192.168.1.0/24`), or just Home Assistant's address (`-unsafe-networks 192.168.1.25/32`) if that is
+all you want to expose, and add the matching `unsafe_routes` entry on each client. The add-on's docs describe the same
+trick for reaching other LAN devices from the Home Assistant box.
+
+## From a phone with Mobile Nebula
+
+[Mobile Nebula](/docs/platforms/mobile/) on iOS or Android is how most people will actually use this. Add a site with
+the CA, the phone's certificate, and the lighthouse's static host map entry; the add-on's QR code or your own
+`nebula-cert sign -in-pub` workflow produces the certificate, as described in
+[Signing certificates with public keys](/docs/guides/sign-certificates-with-public-keys/). Then:
+
+- If Nebula runs on the Home Assistant box (add-on or same-host install), open `http://<overlay-address>:8123` in the
+  browser, or set that URL as the server address in the Home Assistant companion app.
+- If you are going through a gateway, add the LAN route to the site in Mobile Nebula under the site's advanced
+  configuration (**Unsafe routes**: route `192.168.1.0/24` or `192.168.1.25/32`, via the gateway's overlay address),
+  reconnect, and use Home Assistant's normal LAN URL.
+
+Keep the Nebula tunnel connected on the phone and the companion app keeps working away from home, including
+notifications that need to reach the server. Mobile Nebula's own documentation covers always-on and on-demand behaviour
+per platform.
+
+## Managed Nebula
+
+:::note
+
+With [Managed Nebula](https://admin.defined.net), the lighthouse and certificates are handled for you, so the add-on's
+"your own lighthouses" and "your own CA" modes don't apply; instead run Defined Networking's client beside Home
+Assistant or on a gateway host, and enrol the phone from the admin panel. See the
+[Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [Nebula on iOS and Android](/docs/platforms/mobile/)
+- [Nebula on a Raspberry Pi](/docs/platforms/raspberry-pi/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Homelab remote access](/docs/use-cases/homelab-remote-access/)
+- [The Nebula add-on repository](https://github.com/mr-ransel/addon-nebula) (community)
+- [Signing certificates with public keys](/docs/guides/sign-certificates-with-public-keys/)

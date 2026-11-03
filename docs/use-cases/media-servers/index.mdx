@@ -1,0 +1,122 @@
+---
+title: Reaching Plex, Jellyfin, and other home services remotely
+sidebar_label: Media servers
+description:
+  Reach Plex, Jellyfin, Immich, Nextcloud, or any web service on your LAN remotely over Nebula without port forwarding
+  or a public hostname.
+summary:
+  Run Nebula on the server or on a LAN gateway, allow the service port to a family group, and have clients use the
+  overlay address or a private DNS name. Covers mobile apps, Plex's own relay, and TLS.
+sidebar_position: 3
+---
+
+# Reaching Plex, Jellyfin, and other home services remotely
+
+This page is for anyone with a web service on their home LAN (Plex, Jellyfin, Immich, Nextcloud, Home Assistant, a NAS
+web UI) who wants to use it away from home without forwarding a port or putting a login page on the internet. The
+service does not need to know Nebula exists; it just sees connections from a private address.
+
+The pattern is the same for every service, so this page treats it as "a web service on the LAN" and names ports only as
+examples.
+
+## Two ways to put the service on the overlay
+
+**Run Nebula on the server itself.** Simplest and most secure. The service becomes reachable at the server's overlay
+address, and the Nebula firewall on that host decides who can connect. This works on any Linux box, on Docker hosts
+([Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/)), and on most NAS platforms
+([Synology, TrueNAS, Unraid](/docs/platforms/nas/)).
+
+**Run Nebula on a gateway and route to the server.** If the service runs somewhere Nebula cannot (a smart TV app, an
+appliance, a VM you would rather not touch), run Nebula on one LAN host and publish the LAN subnet with an unsafe route.
+Clients then reach the service at its normal LAN address.
+[Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) is the walkthrough;
+[OpenWrt](/docs/platforms/openwrt/) and [pfSense and OPNsense](/docs/platforms/pfsense-and-opnsense/) cover doing it on
+the router.
+
+Either way you need a lighthouse with a public IP;
+[Remote access to your homelab](/docs/use-cases/homelab-remote-access/) covers where to put it and what to do behind
+CGNAT.
+
+## Firewall rule for the service
+
+Sign the devices that should have access with a `family` group, and on the server allow only the service's port from
+that group. Jellyfin's default HTTP port is used here; substitute the port your service listens on:
+
+```yaml
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+
+    - port: 8096
+      proto: tcp
+      group: family
+```
+
+If the service sits behind a reverse proxy on the same host, allow the proxy's port (usually 443) instead and keep the
+backend port closed. Add a second rule with `group: admin` for SSH or the admin UI if you want those reachable from
+fewer devices. When the server is reached through a gateway's unsafe route, the rule lives on the gateway and must set
+`local_cidr` to the server's LAN address; see the [`firewall` reference](/docs/config/firewall/).
+
+## How clients connect
+
+Clients use the overlay address, for example `http://192.168.100.10:8096`. Give it a name so nobody has to remember
+that: enable [lighthouse DNS](/docs/guides/using-lighthouse-dns/) so the certificate name resolves, or add records for
+overlay addresses to a resolver you already run. [DNS for Nebula hosts](/docs/guides/networking/dns/) compares the
+options and explains how to point each OS at the resolver over the overlay.
+
+Mobile apps work the same way once the phone runs [Mobile Nebula](/docs/platforms/mobile/). Add the server in the
+Jellyfin, Plex, Immich, or Nextcloud app by its overlay address or DNS name, exactly as you would on the LAN. Leave the
+Nebula connection enabled and the app keeps working as the phone moves between Wi-Fi and cellular.
+
+## Plex Remote Access versus direct overlay access
+
+Plex has its own remote access feature: the server registers with plex.tv, and the apps find it through Plex's service,
+falling back to a bandwidth-limited Plex relay when a direct connection cannot be made. That path is independent of
+Nebula. Over the overlay you connect to the server's private address directly, which Plex treats like a local
+connection; the relay and its limits are not involved, and you can disable Remote Access in the Plex server settings so
+nothing is advertised publicly. Plex's own documentation describes the trade-offs of its relay; the relevant detail here
+is that a Nebula connection bypasses it entirely.
+
+Jellyfin, Immich, and Nextcloud have no equivalent service and simply need to be reachable, which is exactly what the
+overlay provides.
+
+## TLS
+
+Nothing here is exposed to the public internet, and the Nebula tunnel is already encrypted and authenticated, so plain
+HTTP over the overlay is not the risk it would be elsewhere. Many apps still want HTTPS, and some features (browser
+APIs, secure cookies) require it. Your options:
+
+- **Self-signed or internal CA.** Issue a certificate for the service's DNS name from a small internal CA and trust it
+  on your devices. No public exposure is needed.
+- **A real certificate for a name you own.** Use the DNS-01 challenge with an ACME client so the certificate can be
+  issued without the service being reachable from the internet. The name resolves to the overlay address only on your
+  own resolver.
+
+Do not confuse these with Nebula's own certificates. Nebula certificates authenticate hosts to each other; TLS
+certificates authenticate the web service to a browser. They are separate systems with separate CAs.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) provides the lighthouse, enrolls phones and servers with a code, and lets
+you write the `family` firewall rule once in the admin panel. The overlay and the service configuration are otherwise
+identical to what is described here.
+
+:::
+
+## See also
+
+- [Remote access to your homelab with Nebula](/docs/use-cases/homelab-remote-access/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [DNS for Nebula hosts](/docs/guides/networking/dns/)
+- [Running Nebula on a NAS](/docs/platforms/nas/)
+- [Mobile Nebula](/docs/platforms/mobile/)
+- [`firewall` reference](/docs/config/firewall/)

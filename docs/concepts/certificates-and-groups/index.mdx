@@ -1,0 +1,198 @@
+---
+title: Certificates, groups, and the firewall
+sidebar_label: Certificates and groups
+description:
+  What a Nebula certificate contains, how the CA signs it and hosts verify it, how firewall rules match on groups, host
+  names, CIDRs, and issuing CA, and how to revoke with the blocklist.
+summary:
+  Identity in Nebula is a signed certificate, and policy is a firewall that reads it. This page explains the certificate
+  fields, verification, group design, multiple CAs, revocation, and CA key protection.
+sidebar_position: 5
+---
+
+# Certificates, groups, and the firewall
+
+Nebula has no accounts, no login, and no central policy server. A host is whatever its certificate says it is, and other
+hosts decide what to allow by reading that certificate. This page explains what is in a certificate, how trust is
+established, and how the [firewall](/docs/config/firewall/) turns certificate fields into access decisions. It is for
+anyone designing a network's groups or operating its certificate authority. The hands-on tasks live in the
+[certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/),
+[CA rotation](/docs/guides/rotating-certificate-authority/), and
+[signing with public keys](/docs/guides/sign-certificates-with-public-keys/) guides.
+
+## What a certificate contains
+
+`nebula-cert sign` produces a certificate and, unless you supply a public key, a private key. `nebula-cert print` shows
+the certificate's contents. For a v2 certificate:
+
+```json
+{
+  "curve": "CURVE25519",
+  "details": {
+    "groups": ["servers", "web"],
+    "isCa": false,
+    "issuer": "74303f85545a26409fc73a3da0969858fc6262111b1476705083f519779e4a0c",
+    "name": "web01",
+    "networks": ["192.168.100.5/24", "fdc8:d0db:a315:cb00::5/64"],
+    "notAfter": "2026-12-09T12:34:34-06:00",
+    "notBefore": "2025-12-09T12:39:44-06:00",
+    "unsafeNetworks": []
+  },
+  "fingerprint": "2fbf4b456d6759b42a3479676149ee438e6888e3a405aa48ea14b45d04222972",
+  "publicKey": "63a0ec7427540c0b3996254f2b7d0f90afbc6a1a94befb3d36c0b66db1847811",
+  "signature": "e0be1d62ac8652f4682e371e51723d71b97128e4f687f7e2c2366c37a0df7471f2aaef2164...",
+  "version": 2
+}
+```
+
+- **`name`**: a label, usually the hostname. Firewall rules can match on it. It does not have to be unique, but
+  [lighthouse DNS](/docs/guides/using-lighthouse-dns/) and your own sanity are easier if it is.
+- **`networks`**: the host's overlay address with its network mask. This is where a host's IP comes from; there is no
+  other way to assign one. A v1 certificate holds exactly one IPv4 address (the field is called `Ips`). A v2
+  certificate, the default since v1.10.0, can hold several IPv4 and IPv6 addresses. See
+  [Upgrading to IPv6](/docs/guides/upgrade-to-cert-v2-and-ipv6/).
+- **`groups`**: zero or more free-form strings. They have no meaning until a firewall rule refers to one.
+- **`unsafeNetworks`** (`Subnets` in v1): CIDRs outside the overlay that this host is allowed to route for. A gateway
+  configured with [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes) must have the subnet here, or peers reject
+  packets from it. See [Unsafe routes](/docs/guides/unsafe_routes/).
+- **`notBefore` and `notAfter`**: the validity window. A host whose certificate is outside it cannot handshake. The
+  default lifetime is one second before the CA expires; pass `-duration` to `nebula-cert sign` for something shorter.
+- **`issuer`**: the fingerprint of the CA that signed this certificate. Rules can match on it.
+- **`publicKey`** and **`curve`**: the host's static public key, Curve25519 by default or P256 if the CA uses that
+  curve. The matching private key stays on the host.
+- **`signature`**: the CA's signature over everything above.
+- **`fingerprint`**: a hash of the certificate, used to identify it in the [blocklist](#revocation-the-blocklist).
+
+A CA certificate has the same shape with `isCa: true` and no issuer. If a CA was created with `-networks`, `-groups`, or
+`-unsafe-networks`, those act as constraints: `nebula-cert sign` refuses to issue a certificate outside them, and hosts
+reject a certificate that exceeds its CA's constraints.
+
+## How the CA signs and hosts verify
+
+The CA is a key pair in two files, `ca.key` and `ca.crt`. `nebula-cert sign` uses `ca.key` to sign each host
+certificate. `ca.crt`, the public half, goes into every host's [`pki.ca`](/docs/config/pki/#pkica). `ca.key` goes
+nowhere: it is not in any host's config and no running process reads it.
+
+When host A handshakes with host B, each sends its certificate and proves possession of the matching private key through
+the handshake itself. Each side then checks the other's certificate: the signature verifies against a CA in the local
+trust bundle, the current time is within `notBefore` and `notAfter`, the fingerprint is not in the local
+[`pki.blocklist`](/docs/config/pki/#pkiblocklist), and the certificate's contents are within its CA's constraints. Both
+directions are checked, so authentication is mutual: a host cannot talk to the network without a valid certificate, and
+the network cannot be impersonated to a host by anything without one. There is no step where a server is consulted.
+[Nebula's security model](/docs/concepts/security-model/) covers what this does and does not protect against.
+
+After the handshake, the peer's overlay address is pinned to the tunnel. A packet arriving through the tunnel with a
+source address not in the peer's `networks` or `unsafeNetworks` is dropped before the firewall even sees it.
+
+## How the firewall reads the certificate
+
+The firewall has two rule lists, [`inbound`](/docs/config/firewall/#firewallinbound) and
+[`outbound`](/docs/config/firewall/#firewalloutbound), and both default to deny. Each rule names a port and protocol
+plus one or more conditions on the _peer's_ certificate. The [`firewall` reference](/docs/config/firewall/) defines each
+field; the identity fields are:
+
+- **`host`**: the peer's `name`, or `any`.
+- **`group`**: one group the peer must have, or `any`.
+- **`groups`**: a list; the peer must have _every_ group listed. `groups: [laptop, prod]` matches a laptop in production
+  and nothing else.
+- **`cidr`**: a CIDR that the peer's overlay address must fall in (`0.0.0.0/0`, `::/0`, or `any` for all).
+- **`ca_name`** and **`ca_sha`**: the name or fingerprint of the CA that issued the peer's certificate. Use these when
+  more than one CA is in the trust bundle and you want to treat their hosts differently.
+- **`local_cidr`**: not about the peer; it restricts which _local_ destination addresses the rule covers, which matters
+  for hosts with `unsafe_routes`.
+
+Since v1.9.0 a rule passes when
+`port AND proto AND (ca_sha OR ca_name) AND (host OR group OR groups OR cidr) AND local_cidr` all hold, where an unset
+condition is treated as satisfied. A packet is allowed if any rule passes. There are no deny rules; to block something,
+do not allow it.
+
+Nothing in this evaluation is fetched from anywhere. Changing who can reach a service means either editing that
+service's rules (and reloading, since firewall rules are reloadable) or issuing a certificate with different groups.
+
+## Designing groups
+
+Groups are the only thing in a certificate that you choose freely, so they are where the design happens.
+
+- **Name roles, not machines.** `servers`, `laptops`, `ssh`, `monitoring`, `db` are good groups. Rules read naturally
+  (`allow 22/tcp from group ssh`) and a new host joins a role by being signed into it.
+- **Add environment where it matters.** `prod`, `staging`, and `dev` as groups let a rule say `groups: [db, prod]` for
+  the production database and nothing else. Keep them orthogonal to roles rather than making `prod-db`, `staging-db`,
+  and so on.
+- **Avoid encoding things that change.** A group is baked into a certificate until you reissue it. Teams get renamed,
+  people change roles, and projects end; putting those in groups means re-signing certificates whenever they do. Put
+  stable facts in groups and keep the volatile mapping in your rules.
+- **One certificate, one host.** Resist sharing a certificate across machines to save signing steps. Revocation is by
+  fingerprint, so a shared certificate can only be revoked for everyone at once.
+- **Lighthouses and relays are hosts too.** Give them a group like `infra` so that the rules that must reach them (ICMP
+  for troubleshooting, the [debug SSH](/docs/config/sshd/) port) can be written without opening those ports to the whole
+  network.
+
+The short lifetime of a certificate is a feature here: when a design turns out wrong, the next reissue fixes it.
+
+## Multiple CAs in one trust bundle
+
+[`pki.ca`](/docs/config/pki/#pkica) can hold several CA certificates, concatenated. A host then trusts certificates
+signed by any of them. Two uses:
+
+- **Rotation.** Add the new CA to every host's bundle, reissue certificates under it host by host, then remove the old
+  CA. There is no moment when any host is untrusted.
+  [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/) is the procedure.
+- **Segmentation.** Different CAs for different parts of an organization, with `ca_name` or `ca_sha` in firewall rules
+  to decide what each part may reach, and CA-level `-networks` and `-groups` constraints to stop one CA's operator from
+  issuing certificates that overlap another's.
+
+## Revocation: the blocklist
+
+Nebula has no OCSP, no CRL, and no revocation server. To revoke a certificate, add its fingerprint to
+[`pki.blocklist`](/docs/config/pki/#pkiblocklist) on every host and reload:
+
+```yml
+pki:
+  blocklist:
+    - 2fbf4b456d6759b42a3479676149ee438e6888e3a405aa48ea14b45d04222972
+```
+
+A blocklisted certificate fails the handshake even though it is signed and unexpired. With
+[`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) enabled, existing tunnels to it are also closed. The
+blocklist is not distributed by lighthouses; a host that does not have the entry still accepts the certificate, so you
+need configuration management to push it everywhere. In practice, two things reduce how often you need it: short
+certificate lifetimes, so a lost laptop's certificate expires soon anyway, and group-based rules, so a compromised
+host's reach is already bounded.
+
+If what leaked is the CA key rather than a host key, the blocklist cannot help, because the attacker can sign fresh
+certificates with new fingerprints. Rotate the CA.
+
+## Protecting the CA key
+
+`ca.key` is the one secret in a Nebula network that is worth more than any single host.
+
+- **Encrypt it.** Since v1.7.0, `nebula-cert ca -encrypt` prompts for a passphrase and writes the key encrypted; you
+  enter the passphrase on each `nebula-cert sign`. The key derivation is Argon2 and its parameters are adjustable with
+  the `-argon-memory`, `-argon-iterations`, and `-argon-parallelism` flags.
+- **Keep it off the network.** Sign on an offline machine or a locked-down workstation, and use
+  [signing with public keys](/docs/guides/sign-certificates-with-public-keys/) so host private keys never travel to it.
+- **Use a hardware token for P256.** CA keys on a PKCS#11 device are supported in builds made with the `pkcs11` tag, for
+  the P256 curve only. The [`pki.key`](/docs/config/pki/#pkcs11-support) reference lists the requirements.
+- **Plan the rotation before you need it.** The default CA lifetime is one year, and host certificates expire with it.
+  Put the expiry on a calendar and read [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/)
+  before the last month.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) operates the certificate authority, signs and renews host certificates
+automatically, and distributes firewall rules and blocklists to hosts, which is the part of this page that is hardest to
+automate yourself. Groups become roles and tags in the admin panel. See the
+[Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [`pki` reference](/docs/config/pki/)
+- [`firewall` reference](/docs/config/firewall/)
+- [Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)
+- [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/)
+- [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)
+- [Upgrading to IPv6 and v2 certificates](/docs/guides/upgrade-to-cert-v2-and-ipv6/)

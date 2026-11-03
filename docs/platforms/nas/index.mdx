@@ -1,0 +1,182 @@
+---
+title: Nebula on Synology, TrueNAS, and Unraid
+sidebar_label: NAS appliances
+description:
+  Run Nebula on a Synology, TrueNAS, or Unraid NAS in a Docker container with host networking, NET_ADMIN, and
+  /dev/net/tun, so the NAS is reachable from anywhere over the overlay.
+summary:
+  NAS appliances don't ship Nebula, but all three major ones run containers. This page gives the one container recipe
+  that works on each, the vendor UI to put it in, the Synology tun and route gotchas, and how to expose the NAS's
+  services over Nebula.
+sidebar_position: 4
+---
+
+# Nebula on Synology, TrueNAS, and Unraid
+
+A NAS is usually the thing people most want to reach from outside the house: file shares, backups, media, the web UI.
+None of the big NAS operating systems package Nebula, but all three run Docker containers, and the official
+[`nebulaoss/nebula`](https://hub.docker.com/r/nebulaoss/nebula) image in a container with host networking gives the NAS
+a Nebula address like any other host. Its shares and web UI then answer on that address with no port forwarding.
+
+This page is the same recipe three times, with the vendor-specific UI and gotchas for each. Read
+[Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/) for the general container guidance it builds on.
+
+## The container recipe
+
+Whatever the UI calls it, the container needs four things:
+
+1. **Host networking**, so the `nebula1` tunnel is created in the NAS's own network namespace and the NAS's services are
+   reachable on the overlay address.
+2. **The `NET_ADMIN` capability**, which creating a tun device requires. Full privileged mode also works but grants far
+   more than needed.
+3. **`/dev/net/tun`** passed through from the host.
+4. **A directory mounted at `/config`** containing `config.yml`, `ca.crt`, `host.crt`, and `host.key`. The image's
+   entrypoint runs `/nebula -config /config/config.yml`.
+
+As a Compose file, which all three platforms can consume one way or another:
+
+```yaml
+services:
+  nebula:
+    image: nebulaoss/nebula:1.12.0
+    container_name: nebula
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - /path/on/the/nas/nebula:/config
+    restart: unless-stopped
+```
+
+Prepare the config directory first: sign a certificate for the NAS as in the [quick start](/docs/guides/quick-start/),
+and in `config.yml` add Nebula [firewall](/docs/config/firewall/) rules for the services you want reachable, for example
+SMB on 445, the web UI port, SSH on 22, limited to a group:
+
+```yaml
+firewall:
+  inbound:
+    - port: 445
+      proto: tcp
+      groups:
+        - home
+    - port: 22
+      proto: tcp
+      groups:
+        - admin
+```
+
+Because the container shares the host's network stack, every port the NAS listens on is reachable over the tunnel
+subject only to those rules. Start with ICMP and one service, confirm it works, then add the rest.
+
+## Synology
+
+On DSM 7.2 and later the container runtime is **Container Manager** (older DSM versions had a package simply called
+Docker, with the same concepts). Two ways to run the recipe:
+
+- **Project** (recommended): Container Manager's **Project** feature takes a `docker-compose.yml`. Create a project,
+  give it a **Path** on a volume (that path is where you also put the `nebula/` config directory), and under **Source**
+  paste the Compose file above or upload it. This is the straightforward way to declare `cap_add` and `devices`; the
+  container wizard's **Configure capabilities** option can add `NET_ADMIN` to an unprivileged container, but check
+  whether your DSM version lets you map a device there.
+- **Container wizard**: if you create the container by hand instead, choose **Execute container using high privilege**
+  (privileged mode) and set **Network** to use the same network as the Docker host. This works but is broader than
+  `NET_ADMIN`. See the
+  [Container Manager help](https://kb.synology.com/en-us/DSM/help/ContainerManager/docker_container?version=7) for the
+  current labels.
+
+Two Synology-specific gotchas, both from the Nebula issue tracker and community guides:
+
+**The tun device may not exist.** On some DSM versions `/dev/net/tun` is absent until the kernel module is loaded, and
+the container fails to start with an error about opening the tun device. Check over SSH with `ls -l /dev/net/tun`. If it
+is missing, community guides for other VPN containers load the module and create the node from a **Task Scheduler**
+script run at boot (as root):
+
+```shell
+insmod /lib/modules/tun.ko
+mkdir -p /dev/net
+mknod /dev/net/tun c 10 200
+chmod 0666 /dev/net/tun
+```
+
+`10 200` is the fixed major and minor number of the Linux tun device. The module path can differ between DSM versions;
+`find /lib/modules -name 'tun.ko'` locates it. Schedule the Nebula container to start after this task.
+
+**The route to the overlay may be missing on older versions.** Nebula
+[issue #256](https://github.com/slackhq/nebula/issues/256) describes a Synology where Nebula started cleanly, the
+`nebula1` interface came up, but nothing could be reached: DSM never installed the route for the Nebula subnet. What
+worked was adding it by hand (`route add -net 192.168.100.0/24 dev nebula1`) from a boot script that waits for the
+interface. Since Nebula 1.9.0 the daemon installs the route to its own network itself, and the issue was closed in 2026,
+so with the current image this should not be needed. If you still see it, check `ip route` inside DSM and open a new
+issue with logs. A later report in that thread saw the route vanish about a second after start when running in Docker on
+DSM; if your tunnel works for a moment and then stops, that is the symptom to search for.
+
+## TrueNAS
+
+TrueNAS SCALE 24.10 (Electric Eel) and later run apps on Docker, with a custom-app wizard and a raw Compose option.
+Earlier SCALE releases used Kubernetes, and TrueNAS CORE is FreeBSD with jails; the steps here are for the Docker-based
+releases.
+
+From **Apps**, click **Discover Apps**, then **Custom App** to open the **Install Custom App** wizard. In it:
+
+- **Network Configuration**: select **Host Network**. Port mapping is disabled in this mode, which is fine.
+- **Security Context Configuration**: under **Capabilities**, click **Add** and enter `NET_ADMIN` rather than enabling
+  **Privileged**.
+- **Container Configuration**: click **Add** next to **Devices** and set both the **Host Device** and the container
+  device to `/dev/net/tun`.
+- Add a storage mount from a dataset holding your config files to `/config`.
+
+Or skip the wizard: the menu next to **Custom App** has **Install via YAML**, which takes the Compose file above as the
+**Custom Config**. A TrueNAS forum thread on
+[running another VPN client this way](https://forums.truenas.com/t/running-netbird-as-an-app/26226) confirms
+`cap_add: [NET_ADMIN]` plus `network_mode: host` is the working combination on 24.10. The
+[TrueNAS apps documentation](https://apps.truenas.com/managing-apps/installing-custom-apps/) describes both paths.
+
+On TrueNAS CORE, or if you prefer no containers, the FreeBSD release archive runs in a jail, but the jail must expose
+`/dev/tun` through its devfs ruleset and that is beyond this page; see [Install Nebula](/docs/install/#freebsd) for the
+FreeBSD build.
+
+## Unraid
+
+Unraid's **Docker** tab creates containers from templates. Search the **Apps** tab (Community Applications) for a Nebula
+template first; if there isn't one, add the container manually:
+
+1. On the **Docker** tab, add a new container and set the repository to `nebulaoss/nebula:1.12.0`.
+2. Set the network type to **Host**.
+3. Add a path mapping from a share directory (for example `/mnt/user/appdata/nebula`) to `/config`.
+4. Switch the template to **Advanced View** and put the capability and device in **Extra Parameters**:
+
+   ```text
+   --cap-add=NET_ADMIN --device=/dev/net/tun
+   ```
+
+   Leaving the container unprivileged and using these two flags is the pattern Unraid users settle on for VPN containers
+   ([forum example](https://forums.unraid.net/topic/72780-docker-network-type-of-another-container/)); turning on
+   **Privileged** also works but is broader.
+
+5. Enable auto-start so the tunnel comes back after a reboot.
+
+Unraid's
+[Docker documentation](https://docs.unraid.net/unraid-os/using-unraid-to/run-docker-containers/managing-and-customizing-containers/)
+covers the template fields; the Extra Parameters box is where anything the template doesn't expose goes.
+
+## Reaching the NAS
+
+Once the container is up, `docker logs nebula` (or the equivalent log view) should show `Nebula interface is active` and
+handshakes with the lighthouse. From another Nebula host, `ping` the NAS's overlay address, then connect to its services
+on that address: `smb://192.168.100.20/`, `ssh user@192.168.100.20`, or the web UI port. Remember the Nebula firewall
+rules you wrote decide which of those answer.
+
+To reach other devices on the NAS's LAN through it, the NAS would also need IP forwarding and masquerading on the host,
+which is awkward on an appliance; a [Raspberry Pi](/docs/platforms/raspberry-pi/) or
+[OpenWrt router](/docs/platforms/openwrt/) is a better gateway, with the NAS as an ordinary host.
+
+## See also
+
+- [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/)
+- [Media servers over Nebula](/docs/use-cases/media-servers/)
+- [Homelab remote access](/docs/use-cases/homelab-remote-access/)
+- [`firewall` reference](/docs/config/firewall/)
+- [`nebulaoss/nebula` on Docker Hub](https://hub.docker.com/r/nebulaoss/nebula)
+- [Nebula issue #256](https://github.com/slackhq/nebula/issues/256), the Synology routing thread

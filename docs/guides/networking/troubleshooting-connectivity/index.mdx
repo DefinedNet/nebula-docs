@@ -1,0 +1,178 @@
+---
+title: 'Troubleshooting connectivity: direct, relayed, and behind CGNAT'
+sidebar_label: Troubleshooting connectivity
+description:
+  A decision tree for Nebula hosts that can't reach each other, handshakes that time out, tunnels that only work
+  relayed, and hosts behind CGNAT.
+summary:
+  Work through this page when two Nebula hosts can't reach each other, a handshake times out, or a tunnel comes up
+  relayed when it should be direct. It covers the checks to run first, the log lines and SSH debug commands that show
+  what Nebula is doing, a symptom-to-fix table, and what to do when a host has no public IP at all.
+slug: /guides/networking/troubleshooting-connectivity
+sidebar_position: 3
+---
+
+# Troubleshooting connectivity: direct, relayed, and behind CGNAT
+
+This page is for the moment when two hosts should be talking and aren't: `ping` hangs, the logs show
+`Handshake timed out`, or the tunnel works but every handshake says `(relayed)`. It is a decision tree, not an
+explanation of why NATs behave the way they do. For the theory, read
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) first; this page assumes you know what a lighthouse, a hole
+punch, and a relay are.
+
+Work top to bottom. Most problems are caught by the first checklist.
+
+## Start here
+
+Run these on **both** hosts before changing any config. Each one rules out a whole class of problem.
+
+1. **Is Nebula running, and does the config parse?** `nebula -test -config /etc/nebula/config.yml` prints the final
+   config and exits non-zero on a faulty one. On a running host, look for `Nebula interface is active` in the logs (see
+   [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)).
+2. **Can the host reach a lighthouse?** `ping` the lighthouse's overlay IP (the address under
+   [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts)). If this fails, nothing else will work: the host
+   can't report its address or ask where peers are. Jump to the [first row of the table](#symptom-to-fix).
+3. **Does the firewall allow the traffic you are testing with?** Nebula's firewall denies everything inbound by default.
+   `ping` needs an inbound `icmp` rule on the destination host; TCP services need their port. A tunnel can be perfectly
+   healthy while every packet is dropped by a missing rule. See
+   [`firewall.inbound`](/docs/config/firewall/#firewallinbound).
+4. **Is the certificate valid and the CA trusted?** `nebula-cert verify -ca ca.crt -crt host.crt` on each host checks
+   that the cert is signed by a CA in `ca.crt` and is within its validity window. A host whose cert has expired, or was
+   signed by a CA the peer doesn't have in [`pki.ca`](/docs/config/pki/#pkica), fails the handshake on the other side.
+   `nebula-cert print -path host.crt` shows the dates, IP, groups, and subnets.
+5. **Are the overlay addresses what you think?** Both certs must be in the same overlay network (for example
+   `192.168.100.0/24`) and must not collide. Two hosts with the same IP produce confusing, intermittent failures.
+
+If all five pass and the hosts still can't talk, the problem is on the network path. Keep going.
+
+## Read what Nebula is telling you
+
+Nebula logs at `info` by default. For connectivity problems, set [`logging.level`](/docs/config/logging/#logginglevel)
+to `debug` on the host that is trying to connect, restart or send it a `HUP`, and attempt the connection again. The
+lines below are the ones worth looking for. Field names are from the Nebula source and may be followed by others not
+shown here.
+
+### Log lines at info level
+
+| Line                                                             | What it means                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Handshake message sent` with `udpAddrs=[...]`                   | The host is trying to reach the peer at the listed underlay addresses. If the list is empty or only contains private addresses the peer can't be reached at, discovery is the problem.                                                             |
+| `Handshake message received` with `from=...`                     | A handshake packet arrived. A plain address in `from` means direct; a `(relayed)` suffix means the packet came through a relay. The handshake is not complete until both sides log this.                                                           |
+| `Handshake timed out` with `udpAddrs=[...]`                      | No reply from any of the listed addresses within the retry window (about 5.5 seconds with the default [`handshakes.retries`](/docs/config/handshake/#handshakesretries)). Either the peer never got the packets, or its replies couldn't get back. |
+| `Attempt to relay through hosts` with `relays=[...]`             | Direct attempts are being supplemented with relay attempts. Seeing this for a peer on a normal home network means punching failed.                                                                                                                 |
+| `Send handshake via relay` with `relay=...`                      | The handshake is going through the named relay. The existing [NAT traversal guide](/docs/guides/nat-traversal/#telling-direct-from-relayed) shows this line in context.                                                                            |
+| `Tunnel status` whose `tunnelCheck` field says `state` `dead`    | An established tunnel stopped answering and was torn down. If this happens on a timer after idle periods, see the [idle row](#symptom-to-fix).                                                                                                     |
+| `Host roamed to new udp ip/port.`                                | The peer's underlay address changed (it moved networks, or its NAT mapping expired and was recreated). Expected on laptops and phones; unexpected on a server.                                                                                     |
+| `Remote certificate is no longer valid, tearing down the tunnel` | The peer's cert expired or is now blocklisted. Fix the cert; nothing on the network will help.                                                                                                                                                     |
+| `Failed to process handshake packet` with `error=...`            | The incoming handshake was rejected. The `error` usually names the cause: a cert signed by an unknown CA, an expired cert, or a cert whose IP is outside the overlay.                                                                              |
+| `No lighthouse.hosts configured, ...`                            | The host will only ever reach peers in its own `static_host_map`. Usually a config mistake on a non-lighthouse host.                                                                                                                               |
+
+### Log lines at debug level
+
+| Line                                                     | What it means                                                                                                                                                          |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dropping inbound packet` with `fwPacket=... reason=...` | The tunnel is up and a packet arrived, but the Nebula firewall dropped it. `fwPacket` shows the source, destination, protocol, and port; write a rule that matches it. |
+| `lighthouse.remote_allow_list denied incoming handshake` | Your own [`lighthouse.remote_allow_list`](/docs/config/lighthouse/#lighthouseremote_allow_list) is filtering the peer's address. Check the list.                       |
+| `Failed to decrypt packet`                               | Packets are arriving for a tunnel this host doesn't recognise. Common right after one side restarted; it should clear itself as the peers re-handshake.                |
+
+Lines about `recv_error` are normal after a restart and are how peers notice the old tunnel is gone; see
+[`listen.send_recv_error`](/docs/config/listen/#listensend_recv_error).
+
+### Ask the running process
+
+The built-in SSH server exposes the host's live state. Set it up once as described in
+[Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/), then use these three commands:
+
+- `list-hostmap` lists every peer the host has a tunnel to, with the underlay address in use. A peer missing from this
+  list has no tunnel.
+- `print-tunnel <vpn ip>` prints JSON for one tunnel, including the remote addresses Nebula knows for the peer and its
+  relay state. Use it to see whether a tunnel that works is direct or relayed, and which addresses were tried.
+  `print-relays` prints the relay state for every peer at once.
+- `list-lighthouse-addrmap` shows what the host has learned from its lighthouses about each peer: the addresses the
+  lighthouse observed and anything the peer advertised. If the address you expect (the peer's public IP and port) is not
+  here, the lighthouse never saw it, and the problem is between the peer and the lighthouse rather than between the two
+  peers.
+
+`query-lighthouse <vpn ip>` forces a fresh lookup; run it twice, because the first call only triggers the request.
+
+## Symptom to fix
+
+Find the row that matches what you see. Fixes are in order of preference within each row.
+
+| Symptom                                                                         | Likely cause                                                                                                              | Fix                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Can't ping the lighthouse; `Handshake timed out` for the lighthouse's IP        | UDP to the lighthouse is blocked, or the `static_host_map` entry is wrong                                                 | Confirm the lighthouse's public IP and port (default `4242`) in every host's [`static_host_map`](/docs/config/static-host-map/) and that it is also listed in `lighthouse.hosts`. On the lighthouse, pin [`listen.port`](/docs/config/listen/#listenport) and open UDP inbound on that port in the cloud security group or router. Nebula has no TCP fallback, so a network that blocks unknown UDP blocks Nebula.                               |
+| Both hosts ping the lighthouse, but not each other; `Handshake timed out`       | The pair of NATs can't be punched (see the [pair-by-pair table](/docs/guides/nat-traversal/#what-to-expect-pair-by-pair)) | 1. Enable [`punchy.punch`](/docs/config/punchy/#punchypunch) and [`punchy.respond`](/docs/config/punchy/#punchyrespond) on both hosts. 2. Give one host a public address: forward a UDP port to it, pin `listen.port`, and set [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs). 3. Add a [relay](/docs/config/relay/). The lighthouse can be the relay (`am_relay: true` there, `relay.relays` on the hosts). |
+| Hosts talk, but every `Handshake message received` says `(relayed)`             | Same as above, but a relay is configured so the fallback works                                                            | Working as designed. To get a direct tunnel back, apply fix 1 or 2 from the row above. If one host is behind CGNAT, direct may be impossible; see [below](#behind-cgnat-no-public-ip-at-all).                                                                                                                                                                                                                                                    |
+| Tunnel works, then dies after a few minutes idle; `Tunnel status ... dead`      | A NAT or firewall expired the UDP mapping while the tunnel was quiet                                                      | Enable [`punchy.punch`](/docs/config/punchy/#punchypunch) on the host behind the NAT so it sends keepalives. If the lighthouse also loses track of the host, lower [`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) below the NAT's UDP timeout so reports refresh the mapping.                                                                                                                                              |
+| Works on wired, fails on Wi-Fi (or on one VLAN, not another)                    | The two paths pass through different firewall zones or NAT rules                                                          | This is network policy, not Nebula. Compare the rules for the two segments; the wireless side usually has stricter UDP filtering, client isolation, or a different NAT mode. Look for an endpoint-independent or "persistent NAT" setting on the firewall, as described under [hard NAT](/docs/guides/nat-traversal/#hard-nat-symmetric-nat-cgnat).                                                                                              |
+| Tunnel comes up only when host A starts it, never when host B does              | One side is behind a hard NAT; only that side can dial out to a valid address                                             | Enable [`punchy.respond`](/docs/config/punchy/#punchyrespond) on the host behind the difficult NAT. It then retries the handshake in reverse whenever the lighthouse tells it someone is calling.                                                                                                                                                                                                                                                |
+| Tunnel is up, `ping` works, but a TCP service doesn't                           | Firewall rule or MTU                                                                                                      | Check for `dropping inbound packet` at debug level and add the matching [`firewall.inbound`](/docs/config/firewall/#firewallinbound) rule. If small requests work and large transfers stall, lower [`tun.mtu`](/docs/config/tun/#tunmtu) on both sides from the default `1300`.                                                                                                                                                                  |
+| `Failed to process handshake packet` or `Remote certificate is no longer valid` | Certificate problem                                                                                                       | Re-sign the cert with a CA both sides trust, and make sure every host's [`pki.ca`](/docs/config/pki/#pkica) contains that CA. During a CA rotation, follow [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/).                                                                                                                                                                                                     |
+
+## Behind CGNAT (no public IP at all)
+
+Carrier-grade NAT means your ISP puts your router behind a second NAT that it operates, so the "public" address your
+router sees is shared with other customers and no port forward on your router can reach you from the internet. It is the
+norm on mobile networks, Starlink, and many fibre and cable ISPs that have run out of IPv4 addresses.
+
+Two signs you are behind it:
+
+- The WAN address on your router's status page is in `100.64.0.0/10`, the range
+  [RFC 6598](https://www.rfc-editor.org/rfc/rfc6598.html) reserves for exactly this.
+- The WAN address on your router is different from the address a "what is my IP" site reports. If they match, you have a
+  real public IP and can port forward normally.
+
+Ordinary Nebula hosts behind CGNAT are fine most of the time: outbound UDP works, hole punching often works, and the
+lighthouse sees the ISP's address. What you cannot do is run a lighthouse or a relay there, or give a host a public
+address with a port forward. When punching fails behind CGNAT, work through these in order:
+
+1. **Relay on the lighthouse.** The lighthouse already has a public IP, so make it a relay too. On the lighthouse set
+   [`relay.am_relay: true`](/docs/config/relay/#relayam_relay); on the hosts behind CGNAT list the lighthouse's overlay
+   IP under [`relay.relays`](/docs/config/relay/#relayrelays). Traffic now has a guaranteed path. Lighthouses normally
+   carry no traffic, so size the instance accordingly if more than a few hosts will relay through it.
+2. **A dedicated relay.** Same configuration on a separate host with a public IP, which keeps the lighthouse small and
+   lets you place the relay close to the hosts that need it. See the [`relay` reference](/docs/config/relay/). A relay
+   cannot relay to another relay, so hosts behind CGNAT should list relays directly.
+3. **IPv6, if the ISP provides it.** CGNAT is an IPv4 problem. Many ISPs that use CGNAT hand out routable IPv6 to every
+   device, and Nebula can run its underlay over IPv6 by setting [`listen.host`](/docs/config/listen/#listenhost) to
+   `'[::]'` and giving the lighthouse an IPv6 entry in the `static_host_map`. With an IPv6-reachable lighthouse and
+   peers, there is often no NAT to traverse at all. Note that the overlay address inside Nebula is independent of this;
+   if you also want IPv6 overlay addresses, follow
+   [Upgrading a Nebula network to IPv6 overlay addresses](/docs/guides/upgrade-to-cert-v2-and-ipv6/).
+
+Tailscale users will recognise this as the DERP fallback; Nebula's equivalent is a relay you run yourself. Both keep the
+tunnel end-to-end encrypted, and neither can give you a direct tunnel between two hosts that are both behind CGNAT.
+
+## Confirming the fix
+
+After changing config, restart Nebula on both hosts (or send a `HUP` for reloadable settings) and start a new
+connection. Then check:
+
+1. `Handshake message received` on both hosts, with a plain address in `from`, not `(relayed)`.
+2. `print-tunnel <vpn ip>` over the debug SSH server shows the peer at its own public address and port, with no relay in
+   use.
+3. `ping` round-trip time is close to the raw internet latency between the two sites. A relayed tunnel adds the relay's
+   two legs and is visibly slower.
+
+If step 1 still shows `(relayed)`, the tunnel works but one of the NAT pairings above is still in play. That is a fine
+place to stop for hosts behind CGNAT; for everything else, go back to the table.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), generated configs already enable `punchy.punch` and `punchy.respond`,
+and any host can be made a relay from the admin panel without editing config files. See
+[Using dedicated relays](https://docs.defined.net/guides/using-dedicated-relays/).
+
+:::
+
+## See also
+
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [How hosts find each other](/docs/guides/host-discovery/)
+- [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/)
+- [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)
+- [`punchy` reference](/docs/config/punchy/) and [`relay` reference](/docs/config/relay/)
+- [Symmetric NAT](https://www.defined.net/docs/glossary/symmetric-nat/) in the Defined glossary

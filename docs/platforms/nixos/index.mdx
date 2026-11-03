@@ -1,0 +1,179 @@
+---
+title: Nebula on NixOS
+sidebar_label: NixOS
+description: >-
+  Configure Nebula declaratively on NixOS with the services.nebula.networks module: a lighthouse, a host, static host
+  maps, firewall rules, and extra settings.
+summary: >-
+  NixOS ships a Nebula module. This page shows a lighthouse and a host written with services.nebula.networks.<name>,
+  which options exist, how settings merge into the generated config, and where to put certificates and keys.
+sidebar_position: 7
+---
+
+# Nebula on NixOS
+
+NixOS has a first-class Nebula module, `services.nebula`, that turns a few option sets into a generated `config.yml`, a
+systemd unit per network, a dedicated user, and a firewall opening for the listen port. If you already run NixOS, this
+is the cleanest way to run Nebula: the whole host definition, Nebula included, lives in your configuration and rebuilds
+reproducibly.
+
+This page uses only options that exist in the module as of nixpkgs unstable; you can confirm each one on the
+[NixOS option search](https://search.nixos.org/options?query=services.nebula) or in the
+[module source](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/networking/nebula.nix). The
+[NixOS wiki page](https://wiki.nixos.org/wiki/Nebula) has a similar walkthrough and is the source of the pattern below.
+
+## What the module gives you
+
+Every network is an attribute under `services.nebula.networks.<name>`. For each enabled one, the module:
+
+- Generates `config.yml` from the options and starts it as the systemd unit `nebula@<name>`.
+- Creates a `nebula-<name>` user and group and runs the daemon as that user (override with `user` and `group`).
+- Adds the listen port to `networking.firewall.allowedUDPPorts`, unless it resolves to `0`.
+- Picks a listen port if you don't: `4242` for a lighthouse or relay, `0` (random) otherwise.
+- Names the tun device `nebula.<name>` by default (override with `tun.device`; names must be 15 characters or fewer).
+
+The options, from the module:
+
+| Option                                    | Type / default                 | Maps to                                                                                                                      |
+| ----------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `enable`                                  | bool, `true`                   | Whether this network runs                                                                                                    |
+| `package`                                 | package, `pkgs.nebula`         | The Nebula build to use                                                                                                      |
+| `ca`, `cert`                              | path                           | [`pki.ca`](/docs/config/pki/#pkica), [`pki.cert`](/docs/config/pki/#pkicert)                                                 |
+| `key`                                     | path or string                 | [`pki.key`](/docs/config/pki/#pkikey)                                                                                        |
+| `isLighthouse`                            | bool, `false`                  | [`lighthouse.am_lighthouse`](/docs/config/lighthouse/#lighthouseam_lighthouse)                                               |
+| `isRelay`                                 | bool, `false`                  | [`relay.am_relay`](/docs/config/relay/#relayam_relay)                                                                        |
+| `lighthouses`                             | list of strings, `[ ]`         | [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) (leave empty on a lighthouse)                                 |
+| `relays`                                  | list of strings, `[ ]`         | [`relay.relays`](/docs/config/relay/#relayrelays)                                                                            |
+| `staticHostMap`                           | attrs of lists, `{ }`          | [`static_host_map`](/docs/config/static-host-map/)                                                                           |
+| `listen.host`, `listen.port`              | `"0.0.0.0"`, `null`            | [`listen`](/docs/config/listen/)                                                                                             |
+| `tun.disable`, `tun.device`               | `false`, `"nebula.<name>"`     | [`tun.disabled`](/docs/config/tun/#tundisabled), [`tun.dev`](/docs/config/tun/#tundev)                                       |
+| `lighthouse.dns.enable`, `.host`, `.port` | `false`, `"localhost"`, `5353` | [`lighthouse.serve_dns`](/docs/config/lighthouse/#lighthouseserve_dns) and `lighthouse.dns`                                  |
+| `firewall.inbound`, `firewall.outbound`   | lists of attrs, `[ ]`          | [`firewall.inbound`](/docs/config/firewall/#firewallinbound), [`firewall.outbound`](/docs/config/firewall/#firewalloutbound) |
+| `settings`                                | attrs, `{ }`                   | Anything else, merged into the generated config                                                                              |
+| `enableReload`                            | bool, `false`                  | Reload the unit on config change instead of restarting                                                                       |
+| `user`, `group`                           | `"nebula-<name>"`              | The service account                                                                                                          |
+
+`settings` is merged over the generated config with `lib.recursiveUpdate`, so nested keys are combined rather than
+replaced and anything you set there wins. That is how you reach every other key in the
+[config reference](/docs/config/): `settings.punchy.punch`, `settings.cipher`, `settings.tun.unsafe_routes`, and so on.
+
+## Certificates and keys
+
+Create the CA and sign certificates with `nebula-cert` from the same package, on whichever machine holds the CA key:
+
+```shell
+nix shell nixpkgs#nebula --command nebula-cert ca -name "home"
+nix shell nixpkgs#nebula --command nebula-cert sign -name lighthouse -networks 192.168.100.1/24
+nix shell nixpkgs#nebula --command nebula-cert sign -name laptop -networks 192.168.100.5/24 -groups laptop
+```
+
+The unit runs as `nebula-<name>`, so the files `ca`, `cert`, and `key` point at must be readable by that user. The
+simplest arrangement is a directory such as `/etc/nebula/` owned by root with the key readable by the group, which is
+what the NixOS wiki does with `chmod`. A better one is a secrets tool such as
+[sops-nix](https://github.com/Mic92/sops-nix) or [agenix](https://github.com/ryantm/agenix), setting the secret's owner
+to `nebula-<name>` and pointing `key` at the decrypted path. Don't put the host key in the Nix store: everything there
+is world-readable.
+
+## A lighthouse
+
+```nix
+{ config, pkgs, ... }:
+{
+  services.nebula.networks.home = {
+    enable = true;
+    isLighthouse = true;
+    ca = "/etc/nebula/ca.crt";
+    cert = "/etc/nebula/lighthouse.crt";
+    key = "/etc/nebula/lighthouse.key";
+    listen = {
+      host = "0.0.0.0";
+      port = 4242;
+    };
+    firewall = {
+      outbound = [ { port = "any"; proto = "any"; host = "any"; } ];
+      inbound = [ { port = "any"; proto = "icmp"; host = "any"; } ];
+    };
+  };
+
+  environment.systemPackages = [ pkgs.nebula ];
+}
+```
+
+The module opens UDP 4242 in the NixOS firewall for you. The lighthouse still needs a public address, as always: see
+[Deploying a cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/). Adding `isRelay = true;` turns the same host into
+a [relay](/docs/config/relay/) as well.
+
+## A host
+
+```nix
+{ config, pkgs, ... }:
+{
+  services.nebula.networks.home = {
+    enable = true;
+    ca = "/etc/nebula/ca.crt";
+    cert = "/etc/nebula/laptop.crt";
+    key = "/etc/nebula/laptop.key";
+    lighthouses = [ "192.168.100.1" ];
+    staticHostMap = {
+      "192.168.100.1" = [ "lighthouse.example.net:4242" ];
+    };
+    firewall = {
+      outbound = [ { port = "any"; proto = "any"; host = "any"; } ];
+      inbound = [
+        { port = "any"; proto = "icmp"; host = "any"; }
+        { port = 22; proto = "tcp"; groups = [ "admin" ]; }
+      ];
+    };
+    settings = {
+      punchy = {
+        punch = true;
+        respond = true;
+      };
+      relay.use_relays = true;
+    };
+  };
+
+  environment.systemPackages = [ pkgs.nebula ];
+}
+```
+
+`lighthouses` lists the lighthouse's Nebula address; `staticHostMap` tells this host where to find it on the internet.
+The firewall rule attrsets take the same keys as the YAML [`firewall`](/docs/config/firewall/) rules (`port`, `proto`,
+`host`, `groups`, `group`, `cidr`, `local_cidr`). The `settings` block enables [`punchy`](/docs/config/punchy/) and
+[relays](/docs/config/relay/#relayuse_relays) the way the example config does.
+
+Rebuild and check:
+
+```shell
+sudo nixos-rebuild switch
+systemctl status nebula@home
+journalctl -u nebula@home -f
+ping 192.168.100.1
+```
+
+## Extra settings
+
+A gateway that routes for a LAN uses `settings` for the unsafe route on the client side and the firewall rule with
+`local_cidr` on the gateway side, exactly as in [Extending network access](/docs/guides/unsafe_routes/):
+
+```nix
+# On a client:
+services.nebula.networks.home.settings.tun.unsafe_routes = [
+  { route = "192.168.1.0/24"; via = "192.168.100.10"; }
+];
+```
+
+Other common ones: `settings.cipher = "chachapoly";` on a network of hosts without AES hardware (it must match on every
+host), `settings.lighthouse.advertise_addrs = [ "203.0.113.9:4242" ];` behind a port forward, and
+`settings.logging.level = "debug";` while troubleshooting. Set `enableReload = true;` if most of your changes are to
+reloadable keys and you'd rather not restart tunnels on every rebuild; the module leaves it off because it can't tell
+which changes need a restart.
+
+## See also
+
+- [NixOS option search for `services.nebula`](https://search.nixos.org/options?query=services.nebula)
+- [NixOS wiki: Nebula](https://wiki.nixos.org/wiki/Nebula)
+- [Nebula module source in nixpkgs](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/networking/nebula.nix)
+- [Config reference](/docs/config/) for everything reachable through `settings`
+- [Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/), which the module does by default
+- [Deploying a cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/)

@@ -1,0 +1,332 @@
+---
+title: Exit nodes, full-tunnel routing, and site-to-site networks
+sidebar_label: Exit nodes and site-to-site
+description:
+  Route all of a host's traffic through a Nebula gateway with a 0.0.0.0/0 unsafe route, or link two LANs site-to-site
+  with a gateway at each end.
+summary:
+  Nebula has no separate "exit node" feature. A default route through an overlay host is an unsafe route for 0.0.0.0/0,
+  and a site-to-site link is two hosts each advertising their LAN. This guide covers the certificate, forwarding, NAT,
+  firewall, and client settings for both, including the routing-loop problem a default route creates and how Nebula
+  avoids it.
+slug: /guides/networking/exit-nodes-and-site-to-site
+sidebar_position: 5
+---
+
+# Exit nodes, full-tunnel routing, and site-to-site networks
+
+[Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) shows how to reach one subnet, such as a
+home LAN, through a Nebula host. This guide takes the same mechanism two steps further: sending **all** of a host's
+traffic through a gateway (what Tailscale calls an exit node), and joining two LANs so that devices at either site can
+reach the other without running Nebula themselves. It is for people who already have a working overlay with a lighthouse
+and are comfortable editing routing and NAT rules on a Linux gateway.
+
+A note on words. "Exit node" is Tailscale's term and there is no setting by that name in Nebula. What Nebula has is
+[`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes): a route for a destination outside the overlay, sent via an
+overlay host whose certificate says it may carry that destination. An exit node is an unsafe route for `0.0.0.0/0`. A
+site-to-site link is two unsafe routes pointing at each other.
+
+## Subnet route versus default route
+
+Both are entries in `tun.unsafe_routes` on the client and both need the destination in the gateway's certificate. The
+difference is what the client's operating system does with the route:
+
+- A **subnet route** (`192.168.86.0/24 via 192.168.100.10`) is more specific than the client's existing default route,
+  so it only captures traffic for that subnet. Nothing else changes. This is the case the unsafe routes guide covers.
+- A **default route** (`0.0.0.0/0 via 192.168.100.10`) competes with the default route the client already has from its
+  LAN. If it wins, every packet not matched by a more specific route goes into the Nebula interface, including the UDP
+  packets Nebula itself sends to the lighthouse and to peers. Those would be routed back into the tunnel they are trying
+  to build. [The routing loop](#the-routing-loop-and-how-to-avoid-it) below explains how to handle that.
+
+Everything on the gateway side is the same for both. Only the client's route installation differs.
+
+## The gateway
+
+The gateway is a Linux host on the overlay that forwards packets between its Nebula interface and the internet (for a
+full tunnel) or its LAN (for site-to-site). The example uses the overlay `192.168.100.0/24`, a gateway at
+`192.168.100.10` named `gateway`, and `eth0` as its internet-facing interface.
+
+### 1. Sign the gateway's certificate with the routes it may carry
+
+Nebula only forwards an unsafe route if the destination is inside the `via` host's certificate. For a default route that
+is the whole IPv4 internet:
+
+```shell
+nebula-cert sign -name 'gateway' -networks '192.168.100.10/24' -unsafe-networks '0.0.0.0/0'
+```
+
+`-unsafe-networks` is the current name of the flag; older releases and older guides call it `-subnets`, and both are
+accepted. If your CA was created with its own `-unsafe-networks` restriction, the gateway's value must fall inside it;
+`nebula-cert print -path ca.crt` shows the CA's constraints. Install the new cert and key on the gateway and restart
+Nebula there.
+
+A gateway with `0.0.0.0/0` in its certificate can claim to be the route to anything, so treat its key with the same care
+as a lighthouse's and don't hand that cert to a host you wouldn't trust with all of your traffic.
+
+### 2. Enable forwarding
+
+```shell
+sudo sysctl -w net.ipv4.ip_forward=1
+```
+
+Add `net.ipv4.ip_forward = 1` to `/etc/sysctl.conf` (or a file under `/etc/sysctl.d/`) to keep it across reboots.
+
+### 3. NAT the forwarded traffic
+
+Packets arriving from the tunnel carry overlay source addresses (`192.168.100.x`). The internet can't route replies to
+those, so the gateway must masquerade them behind its own address on the way out. With iptables:
+
+```shell
+sudo iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth0 -j MASQUERADE
+sudo iptables -I FORWARD 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -I FORWARD 2 -i nebula1 -o eth0 -s 192.168.100.0/24 -j ACCEPT
+```
+
+The same thing in nftables:
+
+```text
+table ip nebula_gateway {
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    ip saddr 192.168.100.0/24 oifname "eth0" masquerade
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy accept;
+    ct state related,established accept
+    iifname "nebula1" oifname "eth0" ip saddr 192.168.100.0/24 accept
+  }
+}
+```
+
+Replace `nebula1` with your [`tun.dev`](/docs/config/tun/#tundev) and `eth0` with the outbound interface. Neither rule
+set survives a reboot on its own; the unsafe routes guide shows the
+[ufw, nftables, and iptables persistence options](/docs/guides/unsafe_routes/#step-5-configure-packet-routing-on-linux-host-lan).
+
+### 4. Allow the traffic in Nebula's firewall
+
+Nebula's own firewall on the gateway sees forwarded packets as inbound, and by default a rule only matches traffic
+addressed to the gateway itself. Since v1.10, a rule must set `local_cidr` to match destinations reached through unsafe
+routes. For a full tunnel the destination is anything:
+
+```yaml
+firewall:
+  inbound:
+    - port: any
+      proto: any
+      group: full-tunnel
+      local_cidr: 0.0.0.0/0
+```
+
+`local_cidr: 0.0.0.0/0` also matches the gateway's own address, so this rule lets members of `full-tunnel` reach every
+port on the gateway too. Nebula has no deny rules, so if that matters, run the gateway's services behind the host
+firewall or on a separate host. Using a group rather than `host: any` means only certificates you have put in that group
+can send their traffic through the gateway. See the [`local_cidr` field](/docs/config/firewall/) in the firewall
+reference.
+
+## The client
+
+### Route configuration
+
+On each host that should send its traffic through the gateway, add the route to `tun.unsafe_routes`:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: 0.0.0.0/0
+      via: 192.168.100.10
+      mtu: 1300 # defaults to tun.mtu if omitted
+      metric: 100 # defaults to 0 if omitted
+      install: true # defaults to true; set false to manage the route yourself
+```
+
+The four fields are documented under [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes). `install: true` puts the
+route in the operating system's routing table; `install: false` tells Nebula about the route (so it knows which peer
+carries `0.0.0.0/0`) without touching the routing table, which is what the policy-routing setup below relies on.
+`metric` is passed to the operating system when the route is installed. Nebula logs `Adding UNSAFE Route` at `WARN`
+level for each one when it starts.
+
+### The routing loop, and how to avoid it
+
+If the client installs `0.0.0.0/0` into its main routing table and that route wins, the client's own Nebula UDP packets
+(to the lighthouse at `203.0.113.10:4242`, and to every peer) are also matched by it. They would be handed to the Nebula
+interface, encrypted, and sent to the gateway through a tunnel that itself needs to leave through the default route.
+Nothing gets out.
+
+**On Linux, use `listen.so_mark` and policy routing.** Since v1.10,
+[`listen.so_mark`](/docs/config/listen/#listenso_mark) marks every packet Nebula sends from its UDP socket with a
+firewall mark. Policy routing can then send marked packets (Nebula's underlay traffic) out the normal default route and
+everything else into the tunnel. The listen reference documents this exact setup:
+
+```yaml
+listen:
+  so_mark: 4242
+
+tun:
+  unsafe_routes:
+    - route: 0.0.0.0/0
+      via: 192.168.100.10
+      install: false
+```
+
+```shell
+# From the listen reference: unmarked traffic uses table 4242, which defaults into the tunnel.
+ip rule add not from all fwmark 4242 lookup 4242
+ip rule add from all lookup main suppress_prefixlength 0
+ip route add default dev nebula1 via 192.168.100.10 table 4242
+```
+
+Read it as: packets without the mark (ordinary traffic) consult table `4242`, whose only entry is a default route into
+the tunnel; the second rule lets any route in the main table more specific than a default (your LAN, the lighthouse's
+host route if you add one) win first; Nebula's own packets carry the mark, skip table `4242`, and leave by the normal
+default route. The route is installed by hand because `install: false` keeps Nebula from adding its own copy to the main
+table. These `ip rule` and `ip route` commands are not persistent; put them in your network manager's hook or a systemd
+unit that runs after Nebula starts.
+
+**On macOS and Windows** there is no `so_mark`. The usual alternative is to avoid a literal default route: install two
+half-routes, `0.0.0.0/1` and `128.0.0.0/1`, which together cover everything yet are more specific than the existing
+default, and add a host route for each lighthouse and relay (`203.0.113.10/32`) via your physical gateway so Nebula's
+own packets never enter the tunnel. The gateway's certificate already covers both halves because `0.0.0.0/0` contains
+them:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: 0.0.0.0/1
+      via: 192.168.100.10
+    - route: 128.0.0.0/1
+      via: 192.168.100.10
+```
+
+The host route is added with your platform's `route add` command; check its documentation for the exact syntax. This
+approach also works on Linux without policy routing, at the cost of needing a host route per lighthouse and relay.
+
+### Platform caveats
+
+- The example config notes that outside Linux you will only see a single gateway in the routing table, so the
+  [ECMP form](/docs/config/tun/#ecmp-support-for-unsafe_routes) of `unsafe_routes` with several `via` gateways balances
+  traffic only on Linux.
+- On macOS, the example config says a route whose destination another interface already routes (such as your local
+  network) is installed only once that route goes away, and a route you delete by hand stays deleted until Nebula
+  reloads or restarts.
+- [`tun.use_system_route_table`](/docs/config/tun/#tunuse_system_route_table) (Linux only) lets you manage unsafe routes
+  with ordinary `ip route` commands instead of the config file, which some people prefer for a default route.
+- Mobile Nebula accepts unsafe routes in a site's advanced configuration, as shown in the
+  [unsafe routes guide](/docs/guides/unsafe_routes/#works-with-mobile-nebula). Whether a `0.0.0.0/0` route behaves as a
+  full tunnel there depends on the mobile operating system, and the app's documentation does not describe it; test on
+  your device before relying on it.
+
+### DNS leaks
+
+A full tunnel moves your packets but not your DNS configuration. If the client's resolver is the router on its LAN
+(`192.168.1.1`), that address is on a directly connected subnet, which is more specific than any default route, so name
+lookups keep going to the local network in the clear. Point the client's resolver at something reachable over the
+overlay: a resolver on the gateway bound to its overlay IP, or a Pi-hole or AdGuard Home host on the overlay.
+[DNS on a Nebula network](/docs/guides/networking/dns/) covers both and the per-platform commands.
+
+## Site-to-site: joining two LANs
+
+A site-to-site link is the subnet-route case from the unsafe routes guide, done at both ends. Each site has a Nebula
+gateway on its LAN; each gateway's certificate carries its own LAN; each gateway has an unsafe route to the other LAN;
+and each LAN knows to send traffic for the far side to its local gateway. Devices on either LAN never run Nebula.
+
+### Worked example
+
+| Item                      | Site A           | Site B           |
+| ------------------------- | ---------------- | ---------------- |
+| LAN                       | `10.10.0.0/24`   | `10.20.0.0/24`   |
+| LAN router                | `10.10.0.1`      | `10.20.0.1`      |
+| Nebula gateway, LAN IP    | `10.10.0.5`      | `10.20.0.5`      |
+| Nebula gateway, overlay   | `192.168.100.10` | `192.168.100.20` |
+| Nebula gateway, cert name | `site-a-gw`      | `site-b-gw`      |
+
+The lighthouse is `192.168.100.1` at `203.0.113.10:4242` and is already in both gateways' `static_host_map`. The
+gateways don't need public IPs; they find each other through the lighthouse like any other pair of hosts, and if hole
+punching between the two sites fails, a [relay](/docs/config/relay/) carries the link.
+
+**Certificates.** Each gateway's cert carries its own LAN:
+
+```shell
+nebula-cert sign -name 'site-a-gw' -networks '192.168.100.10/24' -unsafe-networks '10.10.0.0/24'
+nebula-cert sign -name 'site-b-gw' -networks '192.168.100.20/24' -unsafe-networks '10.20.0.0/24'
+```
+
+**Routes and firewall on `site-a-gw`.** Traffic for site B's LAN goes via site B's gateway, and traffic arriving from
+site B's gateway may reach site A's LAN:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: 10.20.0.0/24
+      via: 192.168.100.20
+
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+    - port: any
+      proto: any
+      host: site-b-gw
+      local_cidr: 10.10.0.0/24
+```
+
+`site-b-gw` gets the mirror image: route `10.10.0.0/24 via 192.168.100.10`, and an inbound rule from `site-a-gw` with
+`local_cidr: 10.20.0.0/24`. Narrow `port` and `proto` once the link works if the two sites shouldn't trust each other
+fully. Both gateways need [IP forwarding](#2-enable-forwarding) and a `FORWARD` rule that accepts traffic between
+`nebula1` and the LAN interface in both directions.
+
+**Return routes.** When a device at site A (`10.10.0.50`) sends to `10.20.0.80`, the packet reaches `site-a-gw`, crosses
+the tunnel, and `site-b-gw` forwards it onto the site B LAN with its source still `10.10.0.50`. The device at
+`10.20.0.80` replies to `10.10.0.50`, and its LAN needs to know that address lives behind `site-b-gw`. Two ways to
+arrange that:
+
+- **A static route on each site's router** (preferred). On site A's router: `10.20.0.0/24 via 10.10.0.5`. On site B's
+  router: `10.10.0.0/24 via 10.20.0.5`. Devices keep using their router as their default gateway, the router passes
+  cross-site traffic to the Nebula gateway, and every device sees real source addresses at the other site. Most home and
+  small-office routers have a static routes page; check your router's documentation.
+- **MASQUERADE on each gateway's LAN interface** instead. If you can't add routes to a router, have each gateway rewrite
+  the source of forwarded packets to its own LAN address (`site-b-gw`:
+  `iptables -t nat -A POSTROUTING -s 10.10.0.0/24 -o eth0 -j MASQUERADE`, where `eth0` is its LAN interface). Replies
+  then go to `10.20.0.5`, which is on the local LAN, and the gateway un-NATs them. The cost is that site B's devices see
+  every site A connection as coming from `10.20.0.5`, which breaks per-host access control and logging on that side.
+
+The gateway's own LAN interface needs the first-hop route too: with a static route on the router, devices send to the
+router, which forwards to the gateway on the same LAN. The router may send an ICMP redirect so devices then talk to the
+gateway directly; that is harmless.
+
+**Everything else on the overlay.** A laptop elsewhere on the overlay can reach both LANs by adding both unsafe routes
+to its own config, one `via` each gateway, as long as each gateway's inbound rule also admits that laptop's host or
+group for its `local_cidr`.
+
+### MTU across sites
+
+Devices on the LANs don't know the path crosses a tunnel with a `1300` byte MTU. Large TCP transfers between sites can
+stall if the gateway can't tell the sender to use smaller segments. If that happens, clamp the TCP MSS on the gateway's
+forwarded traffic (iptables has `--clamp-mss-to-pmtu` in the `mangle` table; your firewall's documentation will have the
+equivalent) or lower the per-route `mtu` field on the unsafe route. The overlay's MTU itself is set by
+[`tun.mtu`](/docs/config/tun/#tunmtu).
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), unsafe routes are created as **routes** in the admin panel and assigned
+to a gateway host; the subnet is added to that host's certificate and the matching `unsafe_routes` entries are pushed to
+the hosts that should use it. Forwarding and NAT on the gateway are still your job. See the
+[Managed Nebula documentation](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [`tun` reference](/docs/config/tun/), especially [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes)
+- [`listen.so_mark`](/docs/config/listen/#listenso_mark)
+- [`firewall` reference](/docs/config/firewall/)
+- [DNS on a Nebula network](/docs/guides/networking/dns/)
+- [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/)

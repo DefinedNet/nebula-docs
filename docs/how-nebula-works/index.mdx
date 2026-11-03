@@ -1,0 +1,154 @@
+---
+title: How Nebula works
+sidebar_label: How Nebula works
+description: >-
+  How a Nebula mesh VPN works: certificates for identity, lighthouses for discovery, Noise handshakes over UDP, direct
+  tunnels with relays as a fallback, and a certificate-based firewall.
+summary: >-
+  The four pieces of a Nebula network and what happens, step by step, when one host sends a packet to another. Read this
+  before the quick start if you want to know what you are building.
+sidebar_position: 4
+---
+
+# How Nebula works
+
+Nebula is a mesh VPN: every host gets an address on a private overlay network, and traffic between two hosts travels in
+an encrypted tunnel that runs directly between them wherever possible. This page explains the four pieces a Nebula
+network is made of and follows one packet from a host to its peer. It is for newcomers who want the mental model before
+running the [quick start](/docs/guides/quick-start/), and for anyone comparing Nebula's architecture with other mesh
+VPNs. Each section links to the page that covers its topic in depth.
+
+## The four pieces
+
+A Nebula network has exactly four kinds of thing in it.
+
+**A certificate authority (CA).** You create one with `nebula-cert ca`. Its private key signs every host certificate,
+and its public certificate is the root of trust that every host carries. The CA is an offline file, not a server:
+nothing in the network talks to it at runtime.
+[Certificates, groups, and the firewall](/docs/concepts/certificates-and-groups/) covers what it signs and how to handle
+its key.
+
+**Host certificates.** Every host has a certificate signed by the CA and a private key that never leaves the host. The
+certificate pins the host's name, its overlay IP address (or addresses, in the v2 format), its group memberships, and
+any subnets it may route for. Because the overlay address is in the certificate, a host cannot claim a different one,
+and because the groups are in the certificate, every other host can make firewall decisions from them without a central
+policy server.
+
+**Lighthouses.** A lighthouse is an ordinary Nebula host with a public IP and a fixed UDP port whose job is to keep
+track of where every other host was last seen. Hosts report their addresses to it on a timer and ask it where a peer can
+be reached. It carries no traffic between hosts. See [Lighthouses](/docs/concepts/lighthouses/).
+
+**Hosts.** Everything else: laptops, servers, containers, phones. Each runs the single `nebula` binary with a config
+file, its certificate, its key, and the CA certificate. A host can also volunteer to be a
+[relay](/docs/concepts/relays/) for peers that cannot reach each other directly.
+
+The CA and the host certificates are files. Lighthouses and hosts are running processes. That is the whole system.
+
+## One packet's journey
+
+Suppose host A has overlay address `192.168.100.2` and wants to open an SSH session to host B at `192.168.100.9`. Here
+is what happens.
+
+### 1. The packet enters the tun device
+
+Nebula creates a virtual network interface (a tun device) on each host with that host's overlay address from its
+certificate. A's operating system routes the packet for `192.168.100.9` into that interface, and the `nebula` process
+picks it up. The overlay address only exists inside the tunnel; it is not routable on the internet. The
+[`tun`](/docs/config/tun/) section of the config controls the device.
+
+### 2. A asks a lighthouse where B is
+
+A needs B's _underlay_ address: a real IP and UDP port it can send packets to. If B is listed in A's
+[`static_host_map`](/docs/config/static-host-map/), A uses that. Otherwise A asks its lighthouses. The lighthouse
+answers with the addresses B reported about itself plus the public address and port the lighthouse observed on B's
+reports, which is what B looks like from outside its NAT. A reaches the lighthouse in the first place because every
+host's config carries a static entry for each lighthouse. [How hosts find each other](/docs/guides/host-discovery/)
+walks through both paths.
+
+### 3. A and B handshake
+
+A sends a handshake packet over UDP to every address it was given, and the lighthouse tells B to send a packet back
+toward A, which opens B's NAT from the inside. The handshake uses the
+[Noise Protocol Framework](https://noiseprotocol.org/) with the IX pattern: both sides send their static public key in
+the first exchange, so each side learns who the other is immediately. Nebula's handshake payload also carries the
+sender's certificate, and each side verifies that the certificate is signed by a trusted CA, is within its validity
+period, is not on the local [blocklist](/docs/config/pki/#pkiblocklist), and that its public key matches the key used in
+the handshake. If either check fails, no tunnel is created. The key agreement is elliptic-curve Diffie-Hellman
+(Curve25519 by default, P256 if the CA was created with that curve), and the tunnel is encrypted with AES-256-GCM or
+ChaCha20-Poly1305 depending on the [`cipher`](/docs/config/cipher/) setting. By default a handshake retries for about
+five seconds before giving up ([`handshakes`](/docs/config/handshake/)).
+
+### 4. Direct tunnel, or relay
+
+If the handshake succeeds on any address, A and B now have a direct tunnel and traffic flows between them with no other
+host in the path. Both NATs saw outbound packets first, so neither needs an inbound rule. That is UDP hole punching, and
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) explains which NAT behaviors it works through.
+
+If no direct path exists, which happens when both hosts sit behind NATs that assign a new port per destination, A tries
+the relays that B advertised. A relay is a host both sides can reach; it forwards the still-encrypted packets between
+them and cannot read their contents. See [Relays](/docs/concepts/relays/).
+
+### 5. The firewall decides
+
+Every packet that arrives through a tunnel is checked against the receiving host's [firewall](/docs/config/firewall/)
+rules before it is written to the tun device, and every outbound packet is checked before it is sent. Rules match on
+port and protocol plus properties of the _peer's certificate_: its name, its groups, its overlay address, or the CA that
+issued it. B's rule for SSH might be:
+
+```yml
+firewall:
+  inbound:
+    - port: 22
+      proto: tcp
+      group: ssh
+```
+
+B accepts A's SSH connection only if A's certificate carries the `ssh` group. A cannot add that group itself; only the
+CA can, by signing a new certificate. The firewall default is deny for both directions, and there are no deny rules,
+only allows.
+
+After step 5 the SSH packet reaches B's sshd like any other packet. Return traffic takes the same tunnel in reverse.
+
+## Mesh versus hub-and-spoke
+
+A hub-and-spoke VPN has every client connect to a concentrator. Traffic between two clients goes client to hub to
+client, even when the two clients are on the same LAN, so the hub's bandwidth, location, and uptime bound the whole
+network, and the hub decrypts every packet.
+
+In a mesh, tunnels run between the hosts that are talking. Each pair negotiates its own keys, and the path is as short
+as the underlay allows. The cost is discovery: hosts need a way to find each other through NATs, which is why Nebula has
+lighthouses and, for the cases where punching fails, relays. Defined Networking's
+[Traditional VPN vs mesh networks](https://www.defined.net/blog/traditional-vpn-vs-mesh-networks/) post goes into the
+trade-offs.
+
+## What the lighthouse is not
+
+Because the lighthouse is the one thing in a Nebula network that needs a public IP, it is easy to assume it is more
+central than it is.
+
+- **It is not a traffic hub.** Packets between hosts never pass through it unless you also configure it as a relay, and
+  relayed packets are still encrypted end to end.
+- **It is not a control plane.** It does not distribute keys, certificates, or firewall policy. Identity is in the
+  certificates and policy is in each host's config, so there is nothing for it to hand out beyond addresses.
+- **It is not a single point of failure for existing tunnels.** If every lighthouse goes down, tunnels that are already
+  up keep working, and hosts with [`static_host_map`](/docs/config/static-host-map/) entries can still build new ones.
+  Only dynamic discovery of new peers stops. Running [more than one](/docs/guides/deploy/multiple-lighthouses/) removes
+  that gap too.
+
+## Read next
+
+- [What is an overlay network?](/docs/concepts/overlay-networks/) for the underlay and overlay vocabulary this page
+  uses.
+- [Lighthouses](/docs/concepts/lighthouses/) and [Relays](/docs/concepts/relays/) for the two infrastructure roles.
+- [NAT types and why they matter](/docs/concepts/nat-types/) if hole punching is new to you.
+- [Certificates, groups, and the firewall](/docs/concepts/certificates-and-groups/) for identity and policy.
+- [Nebula's security model](/docs/concepts/security-model/) for what each component can and cannot do if compromised.
+- [Quick start](/docs/guides/quick-start/) to build a three-host network in about 20 minutes.
+
+## See also
+
+- [How hosts find each other](/docs/guides/host-discovery/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Config reference](/docs/config/)
+- [Nebula on GitHub](https://github.com/slackhq/nebula)
+- [Mesh VPN](https://www.defined.net/docs/glossary/mesh-vpn/) in the Defined Networking glossary

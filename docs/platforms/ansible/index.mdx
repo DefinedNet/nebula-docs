@@ -1,0 +1,251 @@
+---
+title: Deploying Nebula with Ansible
+sidebar_label: Ansible
+description: >-
+  Deploy Nebula to a fleet with Ansible: sign certificates on the controller, template config.yml per host, install the
+  binary and systemd unit, and reload on change, with community roles listed.
+summary: >-
+  The pattern for managing Nebula hosts with Ansible using only core modules, a playbook sketch you can adapt, and the
+  community roles that package the same idea.
+sidebar_position: 8
+---
+
+# Deploying Nebula with Ansible
+
+Once a Nebula network grows past a handful of hosts, the work is no longer running `nebula`, it is keeping the binary,
+the configuration, and the certificates consistent across machines and rolling out changes without breaking tunnels.
+That is configuration management, and Ansible is a common choice because it needs nothing on the hosts beyond SSH and
+Python. This page lays out the pattern, gives a playbook sketch built from core modules only, and lists the community
+roles that implement the same thing with more options.
+
+The pattern is the same whichever tool you use:
+
+1. **Sign certificates on the controller.** The CA key stays on the machine running Ansible (or in its vault), never on
+   the hosts. Each host gets a certificate signed from inventory data: name, overlay address, groups.
+2. **Template `config.yml` per host.** One Jinja template, with per-host variables for the address, groups-driven
+   firewall rules, and role flags such as `am_lighthouse`.
+3. **Install the binary and the service unit** from the release archive, pinned to a version.
+4. **Reload or restart on change** through a handler, so a config edit applied to fifty hosts takes effect everywhere in
+   one run.
+
+## Inventory and variables
+
+Put the overlay address and groups in inventory so they drive both the certificate and the config:
+
+```ini
+[lighthouses]
+lh1.example.net   nebula_ip=192.168.100.1/24  nebula_groups=lighthouse  nebula_public=203.0.113.9:4242
+
+[servers]
+web1.example.net  nebula_ip=192.168.100.10/24 nebula_groups=servers,web
+db1.example.net   nebula_ip=192.168.100.11/24 nebula_groups=servers,db
+```
+
+Group variables hold what is shared:
+
+```yaml
+# group_vars/all.yml
+nebula_version: '1.12.0'
+nebula_arch: amd64
+nebula_ca_dir: '{{ playbook_dir }}/pki' # ca.crt and ca.key live here, on the controller
+nebula_lighthouses:
+  - ip: 192.168.100.1
+    public: 203.0.113.9:4242
+```
+
+## Playbook sketch
+
+This uses only `get_url`, `unarchive`, `command`, `template`, `copy`, and `systemd`. It assumes `nebula-cert` is on the
+controller's path and the CA files are in `nebula_ca_dir`.
+
+```yaml
+- name: Deploy Nebula
+  hosts: all
+  become: true
+  vars:
+    nebula_url:
+      'https://github.com/slackhq/nebula/releases/download/v{{ nebula_version }}/nebula-linux-{{ nebula_arch }}.tar.gz'
+
+  tasks:
+    - name: Sign a certificate for this host on the controller
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        cmd: >-
+          nebula-cert sign -ca-crt {{ nebula_ca_dir }}/ca.crt -ca-key {{ nebula_ca_dir }}/ca.key -name {{
+          inventory_hostname }} -networks {{ nebula_ip }} -groups {{ nebula_groups }} -out-crt {{ nebula_ca_dir
+          }}/hosts/{{ inventory_hostname }}.crt -out-key {{ nebula_ca_dir }}/hosts/{{ inventory_hostname }}.key
+        creates: '{{ nebula_ca_dir }}/hosts/{{ inventory_hostname }}.crt'
+
+    - name: Download the release archive
+      ansible.builtin.get_url:
+        url: '{{ nebula_url }}'
+        dest: '/tmp/nebula-{{ nebula_version }}.tar.gz'
+        mode: '0644'
+
+    - name: Install the binaries
+      ansible.builtin.unarchive:
+        src: '/tmp/nebula-{{ nebula_version }}.tar.gz'
+        dest: /usr/local/bin
+        remote_src: true
+        include: [nebula, nebula-cert]
+        mode: '0755'
+      notify: Restart nebula
+
+    - name: Create the config directory
+      ansible.builtin.file:
+        path: /etc/nebula
+        state: directory
+        mode: '0700'
+
+    - name: Copy the CA certificate and the host certificate and key
+      ansible.builtin.copy:
+        src: '{{ item.src }}'
+        dest: '/etc/nebula/{{ item.dest }}'
+        mode: '{{ item.mode }}'
+      loop:
+        - { src: '{{ nebula_ca_dir }}/ca.crt', dest: ca.crt, mode: '0644' }
+        - { src: '{{ nebula_ca_dir }}/hosts/{{ inventory_hostname }}.crt', dest: host.crt, mode: '0644' }
+        - { src: '{{ nebula_ca_dir }}/hosts/{{ inventory_hostname }}.key', dest: host.key, mode: '0600' }
+      notify: Reload nebula
+
+    - name: Render config.yml
+      ansible.builtin.template:
+        src: templates/config.yml.j2
+        dest: /etc/nebula/config.yml
+        mode: '0600'
+        validate: /usr/local/bin/nebula -test -config %s
+      notify: Reload nebula
+
+    - name: Install the systemd unit
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/slackhq/nebula/master/examples/service_scripts/nebula.service
+        dest: /etc/systemd/system/nebula.service
+        mode: '0644'
+      notify: Restart nebula
+
+    - name: Enable and start the service
+      ansible.builtin.systemd:
+        name: nebula
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Reload nebula
+      ansible.builtin.systemd:
+        name: nebula
+        state: reloaded
+
+    - name: Restart nebula
+      ansible.builtin.systemd:
+        name: nebula
+        state: restarted
+```
+
+A few points worth copying even if you restructure the rest:
+
+- `validate:` on the template task runs `nebula -test` against the rendered file before it replaces the live one, so a
+  typo in the template fails the task on that host instead of taking its tunnels down.
+- The reload handler sends `SIGHUP` through the unit's `ExecReload`, which applies changes to reloadable keys
+  (certificates, firewall rules, static host map, and most others; the [config reference](/docs/config/) marks each)
+  without dropping tunnels. Changes to `listen`, `tun`, or the binary need the restart handler.
+- `creates:` makes certificate signing idempotent. Re-signing is a deliberate act: delete the host's files on the
+  controller, or add a task that compares `nebula-cert print` output against the expiry you want. See
+  [Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) for a renewal policy.
+- Keep `ca.key` in Ansible Vault or an external secrets store, or create the CA with `nebula-cert ca -encrypt` and
+  supply the passphrase from the vault; the quick start explains
+  [encrypted CA keys](/docs/guides/quick-start/#creating-your-first-certificate-authority).
+
+## The config template
+
+The template only needs to vary where hosts differ. A minimal `templates/config.yml.j2`:
+
+```yaml
+pki:
+  ca: /etc/nebula/ca.crt
+  cert: /etc/nebula/host.crt
+  key: /etc/nebula/host.key
+
+static_host_map:
+{% for lh in nebula_lighthouses %}
+  "{{ lh.ip }}": ["{{ lh.public }}"]
+{% endfor %}
+
+lighthouse:
+  am_lighthouse: {{ 'true' if 'lighthouses' in group_names else 'false' }}
+  interval: 60
+{% if 'lighthouses' not in group_names %}
+  hosts:
+{% for lh in nebula_lighthouses %}
+    - "{{ lh.ip }}"
+{% endfor %}
+{% endif %}
+
+listen:
+  host: 0.0.0.0
+  port: {{ 4242 if 'lighthouses' in group_names else 0 }}
+
+punchy:
+  punch: true
+  respond: true
+
+tun:
+  dev: nebula1
+  mtu: 1300
+
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+    - port: 22
+      proto: tcp
+      groups:
+        - admin
+```
+
+Build the inbound rules from inventory groups rather than per-host lists, so joining a host to the `web` group both puts
+`web` in its certificate and opens the right ports in its peers' rules on the next run.
+
+## Community roles
+
+These roles implement the pattern above with more options. They are community projects, not maintained by the Nebula
+team; check their activity and tested versions before adopting one.
+
+- [`utkuozdemir.nebula`](https://github.com/utkuozdemir/ansible-role-nebula) (published on Ansible Galaxy under that
+  name): installs Nebula on systemd-based Linux, with one inventory host acting as the CA that signs the others'
+  certificates. Variables map to Nebula settings (listen port, punchy, tun device, firewall rules), and it can issue
+  extra certificates for devices it doesn't manage, such as phones.
+- [`Trozz/ansible-nebula`](https://github.com/Trozz/ansible-nebula): installs the binary and deploys a config; you
+  generate and deploy certificates yourself first. The README says it was tested against Nebula 1.5.0, so review it
+  against the current config format.
+- [`AndrewPaglusch/Nebula-Ansible-Role`](https://github.com/AndrewPaglusch/Nebula-Ansible-Role): a role that signs
+  certificates on the lighthouse host, with inventory-driven overlay addresses and firewall rule variables, and Windows
+  nodes installed as the `Nebula` service.
+
+Whichever you pick, the three things to look at first are where the CA key ends up, whether the role validates the
+config before restarting, and how it decides when to re-sign a certificate.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) replaces the certificate and config steps: hosts enrol with a code and
+receive their certificates and configuration from the control plane, so an Ansible run only needs to install the client
+and enrol. Enrollment codes can be created through the API. See the [Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [Install Nebula](/docs/install/)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)
+- [Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)
+- [Monitoring and upgrades](/docs/guides/operations/monitoring-and-upgrades/)
+- [Example systemd unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service)
+- [Nebula on NixOS](/docs/platforms/nixos/), the declarative alternative

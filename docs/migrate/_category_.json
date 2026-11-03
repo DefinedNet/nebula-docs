@@ -1,0 +1,9 @@
+{
+  "label": "Migrate",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Moving an existing mesh VPN to Nebula.",
+    "slug": "/migrate"
+  }
+}

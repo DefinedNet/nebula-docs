@@ -1,0 +1,212 @@
+---
+title: Moving from Tailscale or Headscale to Nebula
+sidebar_label: From Tailscale or Headscale
+description: >-
+  A practical guide to migrating from Tailscale or Headscale to Nebula: map tailnet concepts to Nebula, plan addressing,
+  translate ACLs to firewall rules, and cut over without downtime.
+summary: >-
+  Tailscale terms mapped to their Nebula equivalents, followed by a step-by-step cutover that runs both overlays side by
+  side until every service has moved.
+sidebar_position: 1
+---
+
+# Moving from Tailscale or Headscale to Nebula
+
+This guide is for people who already run a tailnet, either on Tailscale's hosted control plane or on a self-hosted
+[Headscale](https://headscale.net/) server, and want to move it to Nebula. It is a migration guide, not a comparison. If
+you are still deciding, read [Nebula vs. Tailscale](https://www.defined.net/compare/nebula-vs-tailscale/) first and come
+back when you have a tailnet to move.
+
+You should know how to create a CA, sign a certificate, and start a lighthouse. The
+[quick start](/docs/guides/quick-start/) covers all three in about twenty minutes, and
+[How Nebula works](/docs/how-nebula-works/) explains the pieces.
+
+## Why people move
+
+Nebula has no hosted control plane at all: the only infrastructure you run is one or more lighthouses, and they never
+see your traffic. Identity comes from a certificate you sign rather than from a login at an identity provider, so a host
+is on the network because you put it there, not because someone's SSO session is valid. Headscale users already
+self-host their coordination server and often want fewer moving parts than a control server, a database, a DERP map, and
+an OIDC integration.
+
+The trade-offs are real. Open source Nebula has no SSO and no device management UI. You run the CA, you sign every
+device, and you distribute the configs. [Managed Nebula](https://docs.defined.net/) from Defined Networking is the same
+protocol with SSO, an admin panel, and automatic certificate handling, if you want that part done for you.
+
+## Concept map
+
+| Tailscale or Headscale                       | Nebula                                                                                                                                                                                                                                                |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tailnet                                      | A Nebula network: one CA, one overlay range, one or more lighthouses                                                                                                                                                                                  |
+| Coordination server, or the Headscale server | A [lighthouse](/docs/concepts/lighthouses/). It does much less: it tells hosts where their peers are and helps with hole punching. It does not hold policy, does not distribute keys, and does not know which hosts are allowed to talk to each other |
+| Node key plus identity provider login        | A host certificate signed by your CA, carrying the host's overlay IP, name, and groups ([certificates and groups](/docs/concepts/certificates-and-groups/))                                                                                           |
+| Tailnet policy file (`acls`, tags, groups)   | Certificate groups plus per-host [firewall rules](/docs/config/firewall/). Nebula's firewall lives in each host's own config file; nothing pushes it centrally                                                                                        |
+| MagicDNS                                     | [Lighthouse DNS](/docs/guides/using-lighthouse-dns/) or your own resolver ([DNS for Nebula hosts](/docs/guides/networking/dns/))                                                                                                                      |
+| Subnet router                                | [`unsafe_routes`](/docs/guides/unsafe_routes/) through a host whose certificate lists the subnet                                                                                                                                                      |
+| Exit node                                    | A default-route unsafe route ([Exit nodes and site-to-site](/docs/guides/networking/exit-nodes-and-site-to-site/))                                                                                                                                    |
+| DERP relays                                  | [Nebula relays](/docs/concepts/relays/): hosts you choose, with `am_relay: true`                                                                                                                                                                      |
+| Tailscale SSH                                | Ordinary `sshd` reached over the overlay, gated by a firewall rule on tcp/22 ([SSH access](/docs/use-cases/ssh-access/)). Not the same thing: Nebula does not do SSH user authentication for you                                                      |
+| Taildrop, Funnel, Serve                      | No equivalent                                                                                                                                                                                                                                         |
+
+Two differences matter more than the rest. First, Tailscale distributes one policy file to every device and each device
+enforces it; in Nebula each host enforces only the rules in its own config, so you need a way to ship config to hosts (a
+package, Ansible, a script, or by hand). Second, Tailscale ACLs reference users, groups, and tags; Nebula rules
+reference what is in the peer's certificate, so the groups you sign into certificates are your policy vocabulary. Decide
+them before you sign anything.
+
+## Step 1: Inventory what you have
+
+Start from the tailnet itself rather than from memory.
+
+```shell
+tailscale status
+tailscale status --json
+```
+
+`tailscale status` lists every device with its 100.x address, machine name, and whether its current connection is direct
+or relayed. The JSON form includes advertised subnet routes and exit node status. On Headscale, list nodes and their
+routes from the server with the `headscale nodes` subcommands (`headscale nodes --help`).
+
+Write down, for each device: its machine name, its tags or owner, which subnets it advertises, whether it is an exit
+node, and which services other devices reach on it. Then open your policy file and note every `acls` rule, every group,
+and every tag. That list is the whole migration.
+
+## Step 2: Plan overlay addressing
+
+Tailscale assigns addresses from `100.64.0.0/10`, the CGNAT range. Nebula assigns nothing; the address is in the
+certificate, and you pick it. Choose a fresh range that does not overlap `100.64.0.0/10`, any LAN you will route to with
+`unsafe_routes`, or any cloud VPC you connect. A `/24` such as `192.168.100.0/24` is plenty for a homelab; a larger
+block leaves room to grow and to carve out ranges for groups. The overlay and the tailnet will coexist for a while, so
+the ranges must not collide.
+
+Decide whether you want IPv6 on the overlay now. Certificates in the v2 format can carry IPv6 overlay addresses (Nebula
+v1.10.0 and later); see [Upgrading to cert v2 and IPv6](/docs/guides/upgrade-to-cert-v2-and-ipv6/). If every host runs a
+current release, start with v2 certificates and avoid a second migration.
+
+## Step 3: Create the CA
+
+```shell
+nebula-cert ca -name "homelab" -encrypt
+```
+
+`-encrypt` prompts for a passphrase and stores the CA key encrypted on disk. The default CA lifetime is one year and
+every host certificate expires with it, so either pass `-duration` for a longer CA or set a reminder; the
+[certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) guide covers renewal and
+[Rotating a CA](/docs/guides/rotating-certificate-authority/) covers replacing it later. Keep `ca.key` on one machine
+that is not part of the network.
+
+## Step 4: Sign certificates with groups that mirror your tags
+
+Each Tailscale tag or group that appears in an `acls` rule becomes a Nebula group. Sign each device with the groups that
+correspond to the tags it had:
+
+```shell
+nebula-cert sign -name "nas" -networks "192.168.100.10/24" -groups "server,nas"
+nebula-cert sign -name "laptop" -networks "192.168.100.20/24" -groups "client,admin"
+nebula-cert sign -name "office-gw" -networks "192.168.100.30/24" -groups "server" -unsafe-networks "10.20.0.0/16"
+```
+
+A subnet router needs its routed subnet in `-unsafe-networks`; a certificate without it cannot act as a gateway. If a
+device generates its own key, sign from the public key instead of handling the private key
+([Signing without a key](/docs/guides/sign-certificates-with-public-keys/)); that is the right flow for laptops and
+phones.
+
+## Step 5: Stand up a lighthouse
+
+A lighthouse needs a stable public IP and UDP 4242 open inbound. A small cloud VM is the usual choice
+([Cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/)); if you ran Headscale on a VPS, the same VPS works. Run two
+if you can ([Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/)). Point every other host at it in
+`static_host_map` and `lighthouse.hosts` as the quick start shows.
+
+## Step 6: Run both overlays side by side
+
+Nebula and Tailscale do not interfere with each other. They use different interfaces (`tailscale0` versus `nebula1` or
+whatever you set in [`tun.dev`](/docs/config/tun/#tundev)), different address ranges, and different UDP ports. Install
+Nebula on every host as a service ([Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)) while
+Tailscale is still up, and verify with `ping` over the new addresses.
+
+Then move services one at a time: change the address a client uses from the 100.x address to the Nebula address, confirm
+it works, and move on. Subnet routes come last, because clients need the matching `unsafe_routes` entry before the
+Tailscale route goes away. Once nothing references a 100.x address, run `tailscale down`, remove the devices from the
+admin console or Headscale, and uninstall.
+
+## Translating an ACL to firewall rules
+
+Tailscale rules are written once, from the point of view of the whole tailnet. Nebula rules are written on the host that
+receives the traffic. Take this policy:
+
+```json
+{
+  "acls": [
+    { "action": "accept", "src": ["tag:client"], "dst": ["tag:server:443"] },
+    { "action": "accept", "src": ["group:admins"], "dst": ["tag:server:22"] },
+    { "action": "accept", "src": ["*"], "dst": ["*:*"] }
+  ]
+}
+```
+
+The third rule is the common "allow everything" fallback; drop it unless you really want it. The first two become
+inbound rules on every host signed with the `server` group:
+
+```yaml
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+
+    - port: 443
+      proto: tcp
+      group: client
+
+    - port: 22
+      proto: tcp
+      group: admin
+```
+
+Notes on the translation:
+
+- Nebula's firewall is default deny and has no deny rule, so you only write accepts. Anything not listed is dropped.
+- `group` matches a peer whose certificate contains that group. `groups` (plural) requires all of the listed groups.
+  `host` matches a certificate name, and `cidr` matches the peer's overlay address.
+- Rules apply to traffic arriving at this host. For a subnet router, add `local_cidr` with the routed subnet so the rule
+  covers destinations behind it; without it the rule covers only the host itself
+  ([firewall reference](/docs/config/firewall/)).
+- There is no `src` port concept and no user identity. If an ACL referenced a user rather than a tag, give that person's
+  devices a group.
+
+Everything in the firewall section is reloadable, so you can adjust rules on a running host by editing the config and
+sending `SIGHUP` without dropping tunnels.
+
+## What to do about MagicDNS names
+
+MagicDNS gave every device a name like `nas.tailnet-name.ts.net`. Nebula has no built-in equivalent, but you have two
+good options. Enable [`lighthouse.serve_dns`](/docs/config/lighthouse/#lighthouseserve_dns) and the lighthouse answers
+`A` queries for certificate names, which gets you `nas` resolving to `192.168.100.10`; see
+[Using lighthouse DNS](/docs/guides/using-lighthouse-dns/). Or put the overlay addresses in a resolver you already run
+(Pi-hole, Unbound, a cloud zone) under a domain you control. [DNS for Nebula hosts](/docs/guides/networking/dns/)
+compares the two and covers mobile clients. Either way, update anything that hard-coded a `.ts.net` name.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) replaces the manual steps here with SSO, an admin panel, hosted lighthouses,
+and automatic certificate rotation, while keeping the same protocol and firewall model. If what you miss from Tailscale
+is the console rather than the control plane, it is the closer fit.
+
+:::
+
+## See also
+
+- [Nebula vs. Tailscale](https://www.defined.net/compare/nebula-vs-tailscale/)
+- [Certificates and groups](/docs/concepts/certificates-and-groups/)
+- [`firewall` reference](/docs/config/firewall/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Nebula FAQ](/docs/faq/)
+- [Tailscale CLI reference](https://tailscale.com/kb/1080/cli)

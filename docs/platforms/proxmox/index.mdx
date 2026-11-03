@@ -1,0 +1,168 @@
+---
+title: Nebula on Proxmox VE
+sidebar_label: Proxmox VE
+description:
+  Run Nebula on a Proxmox VE host, inside VMs, and inside LXC containers with /dev/net/tun passed through, and use the
+  host as a gateway for its guests.
+summary:
+  A Proxmox host is Debian, so Nebula installs like any Linux server; VMs need nothing special; LXC containers need the
+  tun device passed through. This page covers all three, plus using the host as a gateway for its VMs and the limits of
+  running cluster traffic over the overlay.
+sidebar_position: 5
+---
+
+# Nebula on Proxmox VE
+
+Proxmox VE shows up in most homelabs and in plenty of small production setups, and Nebula fits it in three places: on
+the host itself, inside virtual machines, and inside LXC containers. Each has one or two specifics worth knowing. This
+page covers them, then the most useful arrangement for a single node, which is the host acting as a Nebula gateway for
+every guest on its bridge.
+
+## On the host
+
+A Proxmox host is a Debian system (Proxmox VE 8 is Debian 12, Proxmox VE 9 is Debian 13), so everything in
+[Install Nebula](/docs/install/) for Debian applies. The packaged version is whatever Debian ships
+([1.6.1 in bookworm, 1.9.3 in trixie](https://tracker.debian.org/pkg/nebula)), so for a current release use the
+[release archive](/docs/install/#linux-release-archives) and the systemd unit:
+
+```shell
+curl -LO https://github.com/slackhq/nebula/releases/latest/download/nebula-linux-amd64.tar.gz
+tar -xzf nebula-linux-amd64.tar.gz
+install -m 0755 nebula nebula-cert /usr/local/bin/
+mkdir -p /etc/nebula
+curl -o /etc/systemd/system/nebula.service \
+  https://raw.githubusercontent.com/slackhq/nebula/master/examples/service_scripts/nebula.service
+systemctl daemon-reload && systemctl enable --now nebula
+```
+
+Nebula on the host makes the Proxmox web UI (port 8006) and SSH reachable at the host's overlay address from anywhere,
+which is the main reason to install it there. Lock it down in the Nebula [firewall](/docs/config/firewall/) with a
+group:
+
+```yaml
+firewall:
+  inbound:
+    - port: 8006
+      proto: tcp
+      groups:
+        - admin
+    - port: 22
+      proto: tcp
+      groups:
+        - admin
+```
+
+If you have enabled the Proxmox firewall at the datacenter or node level, it filters the host's own traffic too. Nebula
+only needs outbound UDP, which the default policy allows; a host that is also a lighthouse or relay needs an inbound
+rule for its UDP [`listen.port`](/docs/config/listen/#listenport).
+
+### Cluster traffic over Nebula
+
+It is tempting to join nodes in different locations into one cluster with corosync running over the overlay. Nebula can
+carry it (corosync's Kronosnet transport is plain UDP unicast, which Nebula tunnels fine), but read the
+[cluster requirements](https://pve.proxmox.com/pve-docs/chapter-pvecm.html) first. Proxmox requires a reliable network
+with latencies under 5 milliseconds between all nodes, says higher latency may work with few nodes but is not
+guaranteed, and that it becomes unlikely with more than three nodes above roughly 10 ms. An encrypted tunnel over the
+internet rarely meets that, and corosync's reaction to missed heartbeats is to fence or reboot nodes. Keep corosync on a
+dedicated local network. Nebula is a good fit for everything else between sites: management access, backups to a remote
+Proxmox Backup Server, and migrations you kick off deliberately.
+
+## In a virtual machine
+
+Nothing Proxmox-specific. The guest is an ordinary Linux, Windows, or FreeBSD machine; install Nebula the way you would
+on bare metal. Use VirtIO network devices as usual. If the VM is going to be a [relay](/docs/config/relay/) or route for
+others, give it a stable address on the bridge.
+
+## In an LXC container
+
+Containers share the host kernel and, by default, don't get a `/dev/net/tun`, so Nebula inside one fails with an error
+about the tun device until the device is passed through. There are two ways to do it in the container's config file,
+`/etc/pve/lxc/<vmid>.conf`. Stop the container, edit, start it again.
+
+**Proxmox VE 8.1 and later: device passthrough.** The `dev0` option (and `dev1`, ...) passes a host device node into the
+container; Proxmox VE 8.2 added it to the GUI as well. One line is enough:
+
+```text
+dev0: /dev/net/tun
+```
+
+The syntax, including optional `uid`, `gid`, and `mode` for the node inside the container, is in the
+[container configuration reference](https://pve.proxmox.com/pve-docs/chapter-pct.html) under `dev[n]`.
+
+**Any version: raw LXC options.** The older and widely documented way is two low-level LXC settings, which Proxmox
+passes straight through to LXC:
+
+```text
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+```
+
+The first allows the container's cgroup to use character device 10:200 (the tun device), the second bind-mounts the
+host's node into the container, creating the mount point as a file. Both lines are documented in the
+[`lxc.container.conf` manual](https://linuxcontainers.org/lxc/manpages/man5/lxc.container.conf.5.html) and are the same
+ones [Tailscale's Proxmox guide](https://tailscale.com/kb/1130/lxc-unprivileged) uses for its own tun device. They work
+for unprivileged containers too; a privileged container is not required.
+
+Then inside the container, install Nebula as on any Debian or Ubuntu host. One log line is specific to containers:
+`Failed to set tun tx queue length: operation not permitted` is harmless and the interface still comes up, as noted in
+[Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/#troubleshooting). If you want the container
+to route for other networks (an [exit node](/docs/guides/networking/exit-nodes-and-site-to-site/), say), it also needs
+`net.ipv4.ip_forward=1`, which in an unprivileged container may require setting the sysctl on the host or making the
+container privileged; check what your container can write.
+
+## The host as a gateway for its guests
+
+On a single node, the most practical setup is often Nebula on the host only, with the host routing for the VMs and
+containers on its bridge. Guests then need no Nebula at all, and remote hosts reach them through
+[`unsafe_routes`](/docs/guides/unsafe_routes/). This works because the host already has an address on `vmbr0` (or
+whichever bridge the guests use) and can forward between `nebula1` and the bridge.
+
+1. Sign the host's certificate with the guest subnet:
+
+   ```shell
+   nebula-cert sign -name pve1 -networks 192.168.100.5/24 -unsafe-networks 10.10.0.0/24
+   ```
+
+2. In the host's `config.yml`, allow routed traffic in with `local_cidr`:
+
+   ```yaml
+   firewall:
+     inbound:
+       - port: any
+         proto: any
+         host: any
+         local_cidr: 10.10.0.0/24
+   ```
+
+3. Enable forwarding and NAT on the host, exactly as in
+   [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/#step-4-enable-ip-forwarding-on-linux-host-lan):
+   `net.ipv4.ip_forward=1`, and a masquerade rule from the Nebula subnet to the guest subnet on the bridge interface so
+   guests reply to the host. If the guests' default gateway is the Proxmox host itself (a private bridge with NAT), you
+   can skip masquerading because return traffic already goes through the host.
+
+4. On each remote host, add the route:
+
+   ```yaml
+   tun:
+     unsafe_routes:
+       - route: 10.10.0.0/24
+         via: 192.168.100.5
+   ```
+
+Guests on a bridge that is also the physical LAN (`vmbr0` bridged to the NIC, the default) are reachable the same way,
+with the LAN subnet in place of `10.10.0.0/24`; that makes the Proxmox host the gateway for the whole LAN, as a
+[Raspberry Pi](/docs/platforms/raspberry-pi/#a-gateway-into-the-home-lan) would be.
+
+If you would rather each guest be its own Nebula host with its own certificate and firewall rules, install it in the
+guests and leave the host out of it. The two approaches combine: a host install for management access, and per-guest
+installs for services that need their own identity and groups.
+
+## See also
+
+- [Install Nebula](/docs/install/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Exit nodes and site-to-site](/docs/guides/networking/exit-nodes-and-site-to-site/)
+- [Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/)
+- [Proxmox VE container documentation](https://pve.proxmox.com/pve-docs/chapter-pct.html) and
+  [cluster manager requirements](https://pve.proxmox.com/pve-docs/chapter-pvecm.html)
+- [Homelab remote access](/docs/use-cases/homelab-remote-access/)

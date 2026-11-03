@@ -1,0 +1,407 @@
+---
+title: Running Nebula as a service
+sidebar_label: Running as a service
+description:
+  How to run Nebula as a system service that starts on boot with systemd, OpenRC, init.d, launchd on macOS, the built-in
+  Windows service, and OpenWrt.
+summary:
+  Nebula is a single binary that reads one config file, so turning it into a service is mostly a matter of telling your
+  init system where both live. This guide covers the service scripts that ship with Nebula for systemd, OpenRC, init.d,
+  and launchd, the built-in Windows service installer, and the mistakes that stop Nebula from connecting on boot.
+sidebar_position: 1
+---
+
+# Running Nebula as a service
+
+Once you've confirmed a host works by running `nebula -config /path/to/config.yml` in a terminal, the next step is to
+have the operating system start it at boot and restart it if it exits. This guide is for anyone doing that by hand on
+Linux, macOS, or Windows. If you installed Nebula from a distribution package, the package usually includes a service
+already; see the notes under each platform.
+
+Every option below boils down to the same three decisions: where the binary lives, where the config lives, and which
+user runs it. Nebula needs root (or `CAP_NET_ADMIN` on Linux) to create its tun device, so services run as root unless
+you follow [Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/). The example scripts in the
+Nebula repository live in
+[`examples/service_scripts`](https://github.com/slackhq/nebula/tree/master/examples/service_scripts); they are quoted
+here as of v1.12.0.
+
+## Linux with systemd
+
+Place the binary and config where the shipped unit expects them, or edit the `ExecStart` line to match where you put
+them:
+
+```shell
+sudo install -m 0755 nebula /usr/local/bin/nebula
+sudo mkdir -p /etc/nebula
+sudo cp config.yml ca.crt host.crt host.key /etc/nebula/
+sudo chmod 0600 /etc/nebula/host.key
+```
+
+This is the unit that ships with Nebula. Save it as `/etc/systemd/system/nebula.service`:
+
+```ini
+[Unit]
+Description=Nebula overlay networking tool
+Wants=basic.target network-online.target nss-lookup.target time-sync.target
+After=basic.target network.target network-online.target
+Before=sshd.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+SyslogIdentifier=nebula
+
+# Uncomment to run as an unprivileged user with only CAP_NET_ADMIN. Requires a
+# nebula user that owns the config directory. Add CAP_NET_BIND_SERVICE to both
+# lines if any listener (lighthouse DNS, listen.port, stats, sshd) binds <1024.
+#User=nebula
+#Group=nebula
+#CapabilityBoundingSet=CAP_NET_ADMIN
+#AmbientCapabilities=CAP_NET_ADMIN
+
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/nebula -config /etc/nebula/config.yml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+A few lines are worth knowing about:
+
+- `Type=notify` means systemd waits for Nebula to report that it has started, so units ordered `After=nebula.service`
+  don't race it.
+- `After=network-online.target` and `Before=sshd.service` order Nebula after the network is up and before SSH, which
+  matters if you SSH to hosts over their Nebula address.
+- `Restart=always` restarts Nebula if it crashes or is killed.
+- The commented `User`, `Group`, and capability lines are the non-root option. Uncommenting them is the whole change;
+  the details and the `setcap` alternative are in
+  [Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/).
+
+Enable and start it:
+
+```shell
+sudo systemctl daemon-reload
+sudo systemctl enable --now nebula
+sudo systemctl status nebula
+```
+
+### Reloading after a config change
+
+Nebula reloads its config when it receives `SIGHUP`, and the unit wires that to `systemctl reload`:
+
+```shell
+sudo systemctl reload nebula
+```
+
+Not every key is reloadable. The [config reference](/docs/config/) marks the ones that are; settings such as
+[`listen.port`](/docs/config/listen/#listenport), [`tun`](/docs/config/tun/) options, and
+[`lighthouse.am_lighthouse`](/docs/config/lighthouse/#lighthouseam_lighthouse) need a full `systemctl restart nebula`.
+[Firewall rules](/docs/config/firewall/), [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts),
+[`relay.relays`](/docs/config/relay/#relayrelays), and the certificate paths under [`pki`](/docs/config/pki/) reload in
+place, which is what makes certificate rotation and adding a lighthouse possible without dropping tunnels.
+
+Check a config before you reload it. A config that fails to parse is logged and ignored on reload, so the running
+process keeps its old settings, but it's still better to find out first:
+
+```shell
+sudo nebula -test -config /etc/nebula/config.yml
+```
+
+### Distribution packages ship their own unit
+
+If you installed Nebula from a distribution repository, don't install the unit above on top of the packaged one. Two
+examples, verified against the current packages:
+
+- **Debian and Ubuntu** ship a templated unit, `nebula@.service`. The instance name selects the config: `nebula@home`
+  runs `/etc/nebula/home.yml` (or `home.yaml`), so you start it with `systemctl enable --now nebula@home`. The package
+  also installs the binary at `/usr/bin/nebula`. Debian versions lag upstream; see the
+  [package page](https://tracker.debian.org/pkg/nebula) for what your release carries.
+- **Arch Linux** ships a plain `nebula.service` and installs the binary at `/usr/bin/nebula`. See the
+  [ArchWiki](https://wiki.archlinux.org/title/Nebula) for the config path it expects.
+
+Other distributions may do either. Run `systemctl cat nebula` or `systemctl cat 'nebula@*'` to see what you have before
+writing your own.
+
+## Linux with OpenRC
+
+Alpine, Gentoo, and other OpenRC systems can use the shipped `nebula.open-rc` script. Save it as `/etc/init.d/nebula`
+and make it executable:
+
+```shell
+#!/sbin/openrc-run
+#
+# nebula service for open-rc systems
+
+extra_commands="checkconfig"
+
+: ${NEBULA_CONFDIR:=${RC_PREFIX%/}/etc/nebula}
+: ${NEBULA_CONFIG:=${NEBULA_CONFDIR}/config.yml}
+: ${NEBULA_BINARY:=${NEBULA_BINARY}${RC_PREFIX%/}/usr/local/sbin/nebula}
+
+command="${NEBULA_BINARY}"
+command_args="${NEBULA_OPTS} -config ${NEBULA_CONFIG}"
+
+supervisor="supervise-daemon"
+
+description="A scalable overlay networking tool with a focus on performance, simplicity and security"
+
+required_dirs="${NEBULA_CONFDIR}"
+required_files="${NEBULA_CONFIG}"
+
+checkconfig() {
+        "${command}" -test ${command_args} || return 1
+}
+
+start_pre() {
+        if [ "${RC_CMD}" != "restart" ] ; then
+                checkconfig || return $?
+        fi
+}
+
+stop_pre() {
+        if [ "${RC_CMD}" = "restart" ] ; then
+                checkconfig || return $?
+        fi
+}
+```
+
+Note the binary path: this script defaults to `/usr/local/sbin/nebula`, not `/usr/local/bin`. Override it, the config
+directory, or extra flags by setting `NEBULA_BINARY`, `NEBULA_CONFDIR`, `NEBULA_CONFIG`, or `NEBULA_OPTS` in
+`/etc/conf.d/nebula`. The script runs `nebula -test` before every start, so a broken config fails fast instead of
+crash-looping under `supervise-daemon`.
+
+```shell
+sudo rc-update add nebula default
+sudo rc-service nebula start
+```
+
+## Linux with init.d
+
+For systems without systemd or OpenRC, Nebula ships a minimal SysV-style script, `nebula.init.d.sh`. Save it as
+`/etc/init.d/nebula`, make it executable, and register it with your distribution's tool (`update-rc.d nebula defaults`
+on Debian-derived systems, `chkconfig nebula on` on older Red Hat-derived ones):
+
+```shell
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          nebula
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       nebula mesh vpn client
+### END INIT INFO
+
+SCRIPT="/usr/local/bin/nebula -config /etc/nebula/config.yml"
+RUNAS=root
+
+PIDFILE=/var/run/nebula.pid
+LOGFILE=/var/log/nebula.log
+
+start() {
+  if [ -f $PIDFILE ] && kill -0 $(cat $PIDFILE); then
+    echo 'Service already running' >&2
+    return 1
+  fi
+  echo 'Starting nebula service…' >&2
+  local CMD="$SCRIPT &> \"$LOGFILE\" & echo \$!"
+  su -c "$CMD" $RUNAS  > "$PIDFILE"
+  echo 'Service started' >&2
+}
+
+stop() {
+  if [ ! -f "$PIDFILE" ] || ! kill -0 $(cat "$PIDFILE"); then
+    echo 'Service not running' >&2
+    return 1
+  fi
+  echo 'Stopping nebula service…' >&2
+  kill -15 $(cat "$PIDFILE") && rm -f "$PIDFILE"
+  echo 'Service stopped' >&2
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+esac
+```
+
+This script doesn't restart Nebula if it exits and writes logs to `/var/log/nebula.log` without rotation, so prefer
+systemd or OpenRC where you have them.
+
+## macOS with launchd
+
+### Homebrew
+
+If you installed with `brew install nebula`, the formula includes a launchd service. Put your config at
+`$(brew --prefix)/etc/nebula/config.yml` (that's `/opt/homebrew/etc/nebula/config.yml` on Apple Silicon and
+`/usr/local/etc/nebula/config.yml` on Intel) and start it as root, because Nebula needs root to create the tun device:
+
+```shell
+sudo brew services start nebula
+```
+
+The [formula page](https://formulae.brew.sh/formula/nebula) documents the command and config directory. Logs go to
+`$(brew --prefix)/var/log/nebula.log`; see [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/#macos) for how to
+read them and check the service's status.
+
+### Manual launchd daemon
+
+If you downloaded the release binary instead, Nebula ships a launchd property list, `nebula.plist`. It assumes the
+binary and config sit together in a working directory and logs to a file in that same directory:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>KeepAlive</key>
+        <true/>
+        <key>Label</key>
+        <string>net.defined.nebula</string>
+        <key>WorkingDirectory</key>
+        <string>/Users/{username}/.local/bin/nebula</string>
+        <key>LimitLoadToSessionType</key>
+        <array>
+            <string>Aqua</string>
+            <string>Background</string>
+            <string>LoginWindow</string>
+            <string>StandardIO</string>
+            <string>System</string>
+        </array>
+        <key>ProgramArguments</key>
+        <array>
+            <string>./nebula</string>
+            <string>-config</string>
+            <string>./config.yml</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true/>
+        <key>StandardErrorPath</key>
+        <string>./nebula.log</string>
+        <key>StandardOutPath</key>
+        <string>./nebula.log</string>
+        <key>UserName</key>
+        <string>root</string>
+    </dict>
+</plist>
+```
+
+Replace `{username}` in `WorkingDirectory` with your account name, or point it at a system location such as
+`/usr/local/etc/nebula` with the binary and config copied there. Then install it as a system daemon, which is what makes
+it start at boot rather than at login:
+
+```shell
+sudo cp nebula.plist /Library/LaunchDaemons/net.defined.nebula.plist
+sudo chown root:wheel /Library/LaunchDaemons/net.defined.nebula.plist
+sudo chmod 0644 /Library/LaunchDaemons/net.defined.nebula.plist
+sudo launchctl load -w /Library/LaunchDaemons/net.defined.nebula.plist
+```
+
+`KeepAlive` restarts Nebula if it exits. To stop it, `sudo launchctl unload -w` the same path. There's no reload command
+in launchd; after editing the config, send `SIGHUP` to the process (`sudo pkill -HUP nebula`) or unload and load the
+daemon.
+
+## Windows service
+
+The Windows release zip (`nebula-windows-amd64.zip` or `nebula-windows-arm64.zip` from
+[the latest release](https://github.com/slackhq/nebula/releases/latest)) contains `nebula.exe`, `nebula-cert.exe`, and a
+`dist\windows\wintun` directory. The Windows `nebula.exe` is built with the service-aware entry point, so it understands
+a `-service` flag that the Linux and macOS binaries don't have.
+
+**Keep the zip's layout.** Nebula loads the [Wintun](https://www.wintun.net/) driver from
+`dist\windows\wintun\bin\<arch>\wintun.dll` relative to `nebula.exe`. If you copy only the executable somewhere else,
+the service installs fine and then fails at start with `can not load the wintun driver`. Extract the whole zip to a
+permanent location such as `C:\Program Files\Nebula\` and put `config.yml` and the certificates alongside it.
+
+From an Administrator PowerShell or Command Prompt:
+
+```shell
+cd "C:\Program Files\Nebula"
+.\nebula.exe -service install -config "C:\Program Files\Nebula\config.yml"
+.\nebula.exe -service start
+```
+
+Use an absolute path with `-config`. The path is stored verbatim in the service definition, and the service starts with
+a different working directory than your shell, so a relative path such as `config.yml` will not be found at boot. If you
+omit `-config` entirely, Nebula looks for `config.yaml` and then `config.yml` next to the executable, which also works
+as long as the file is there.
+
+The service is registered as `Nebula` (display name "Nebula Network Service"). Check its startup type in the Services
+app after installing; it should be Automatic so it starts at boot. The valid `-service` actions are `install`,
+`uninstall`, `start`, `stop`, and `restart`:
+
+```shell
+.\nebula.exe -service stop
+.\nebula.exe -service restart
+.\nebula.exe -service uninstall
+```
+
+`-service` and `-test` can't be combined, so test a config change with a plain `.\nebula.exe -test -config ...` before
+restarting the service. The service logs to the Windows Event Log under the source `nebula`; see
+[Viewing Nebula logs](/docs/guides/viewing-nebula-logs/#windows) for how to filter the Event Viewer and check the
+service in the Services app.
+
+## OpenWrt
+
+OpenWrt packages Nebula with a procd init script and UCI-style configuration rather than the scripts above. The
+[OpenWrt page](/docs/platforms/openwrt/) covers installing the package, where its config lives, and the router firewall
+rule for UDP 4242 if the router is a lighthouse or relay.
+
+## Troubleshooting: Nebula doesn't connect on boot
+
+**It starts before the network is up.** The symptom is a service that runs but only builds tunnels after a manual
+restart, often with `dial` or `no route to host` errors in the log from the first seconds after boot. The shipped
+systemd unit already orders after `network-online.target`; on distributions where that target is satisfied too early,
+enabling `systemd-networkd-wait-online` or `NetworkManager-wait-online` makes it meaningful. Nebula keeps retrying
+lighthouses on its own, so a short delay fixes itself, but a lighthouse listed by DNS name in
+[`static_host_map`](/docs/config/static-host-map/) can't be resolved until the resolver works. `Wants=nss-lookup.target`
+in the unit covers that. On other init systems, order Nebula after networking however that system expresses it.
+
+**The config path is relative.** Services don't run from the directory you tested in. `-config config.yml` works in a
+shell and fails under systemd, launchd, or the Windows service manager. Always use an absolute path (the shipped scripts
+do), or on macOS set `WorkingDirectory` as the plist does.
+
+**Key file permissions.** If you tightened `host.key` to `0600` while logged in as yourself and the service runs as
+root, that's fine. If the service runs as a `nebula` user, every file under [`pki`](/docs/config/pki/) must be readable
+by that user, and the config directory should be owned by it. A `permission denied` on `host.key` at start, or an
+`open /etc/nebula/ca.crt` error, is this. The reverse problem also exists: a world-readable `host.key` is a credential
+leak, so keep it `0600` and owned by whichever user runs the service.
+
+**The binary can't create the tun device.** Running as a non-root user without `CAP_NET_ADMIN` fails with a tun creation
+error on Linux. Either run as root or follow
+[Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/). Lighthouses and relays that don't need an
+overlay interface can set [`tun.disabled: true`](/docs/config/tun/#tundisabled) and run unprivileged on any platform.
+
+**The config is invalid.** `nebula -test -config /etc/nebula/config.yml` prints the parsed result or the error. Under
+systemd, `journalctl -u nebula -b` shows why the last start failed.
+[Viewing Nebula logs](/docs/guides/viewing-nebula-logs/) covers each platform.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), the `dnclient` installer registers its own system service on each
+platform and keeps config and certificates up to date from the admin panel, so none of the steps above are needed. See
+the [Managed Nebula docs](https://docs.defined.net/) for the per-platform installers.
+
+:::
+
+## See also
+
+- [Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/)
+- [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)
+- [Installing Nebula](/docs/install/)
+- [Running Nebula in Docker, Kubernetes, and LXC](/docs/guides/deploy/docker-and-kubernetes/)
+- [Service scripts in the Nebula repository](https://github.com/slackhq/nebula/tree/master/examples/service_scripts)
+- [Nebula on the ArchWiki](https://wiki.archlinux.org/title/Nebula)

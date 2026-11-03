@@ -1,0 +1,213 @@
+---
+title: Mobile Nebula on iOS and Android
+sidebar_label: Mobile (iOS, Android)
+description:
+  Install Mobile Nebula on iOS and Android, sign the phone's certificate from its public key or a QR code, and configure
+  lighthouses, DNS, and logs.
+summary:
+  Mobile Nebula is the official Nebula client for iOS and Android. This page walks through creating a site, signing the
+  phone's certificate from its public key or a QR code, what the app lets you configure, and how enrollment in Managed
+  Nebula works as the alternative.
+sidebar_position: 9
+---
+
+# Mobile Nebula on iOS and Android
+
+Mobile Nebula is the Nebula client for phones and tablets, published by Defined Networking and
+[open source](https://github.com/DefinedNet/mobile_nebula). It runs the same Nebula code as the desktop and server
+binaries inside the platform's VPN framework, so a phone is a full peer on your overlay: it gets its own certificate,
+talks directly to other hosts where NAT allows, and obeys the same firewall rules. This page is for anyone adding a
+phone or tablet to a self-managed Nebula network. It covers installing the app, signing a certificate for the device
+without ever moving its private key, what the app's site editor exposes, DNS, always-on, logs, and the Managed Nebula
+enrollment path.
+
+## Installing the app
+
+- **iOS and iPadOS:** [Mobile Nebula on the App Store](https://apps.apple.com/us/app/mobile-nebula/id1509587936). The
+  current release requires iOS 15 or later and also installs on Apple Vision.
+- **Android:** [Mobile Nebula on Google Play](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula).
+
+Both builds come from the same [source repository](https://github.com/DefinedNet/mobile_nebula), and release notes there
+and on the store listings say which Nebula version each app release embeds.
+
+In the app, a **site** is one Nebula network configuration: a certificate, a CA bundle, lighthouses, firewall rules, and
+advanced settings, which together correspond to one `config.yml` on a desktop host. You can have several sites and
+switch between them, but only one can be connected at a time because the OS allows one active VPN.
+
+## Creating a site
+
+Tap the plus button on the main screen. The **Add Site** sheet offers three ways in:
+
+- **From scratch** ("Manually configure new network") opens an empty site editor. This is the path the rest of this page
+  follows.
+- **From file** ("Import YAML configuration") reads a Nebula `config.yml` and pre-fills the editor from it. Useful if
+  you already generate configs with a tool; the certificate and key sections are the parts you'll still handle in the
+  app, as described below.
+- **Enroll with defined.net** ("Join a Managed Nebula network") takes an enrollment code instead of a config; see
+  [Managed Nebula](#managed-nebula) at the end.
+
+The site editor has a **Name** field and four sections: **Identity** (certificate and CA), **Lighthouses / static
+hosts**, **Firewall** (inbound and outbound rules), and **Advanced**.
+
+## Signing a certificate for the phone
+
+The app generates the device's keypair the first time you open a new site, and the private key never leaves the phone.
+What you sign on your CA machine is the public key, exactly as in
+[Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/).
+
+1. In the site editor, tap **Certificate** under Identity. The **Certificate** screen shows the device's public key with
+   the note "Share your public key with a nebula CA so they can sign and return a certificate". Tap **Share Public Key**
+   to send it as a file named `device.pub` through the share sheet (AirDrop, email, a chat app), or select the text and
+   copy it.
+
+2. On the machine that holds `ca.key`, sign it. Pick the phone's overlay address and groups as you would for any host:
+
+   ```shell
+   nebula-cert sign -in-pub device.pub -name "alice-phone" -networks "192.168.100.25/24" -groups "users,mobile" \
+     -out-crt alice-phone.crt -out-qr alice-phone.png
+   ```
+
+   `-in-pub` signs the existing public key instead of generating a new keypair. `-out-qr` is optional and writes the
+   same certificate as a PNG QR code, which is the fastest way to get it back onto the phone. (`-networks` is called
+   `-ip` on Nebula versions before 1.10.)
+
+3. Back on the phone, scroll to the **Load certificate** section of the Certificate screen and pick an input method:
+   **Copy/Paste** (paste the PEM contents and tap **Load Certificate**), **File** (**Choose a file**), or **QR Code**
+   (**Scan a QR code**, shown on devices with a camera). The app checks that the certificate matches the device's
+   private key and rejects CA certificates ("A certificate authority is not appropriate for a client certificate"), so a
+   mix-up fails loudly rather than silently.
+
+4. Tap **CA** under Identity and load your `ca.crt` the same way: paste, file, or QR code. To produce a QR code for the
+   CA, run `nebula-cert print -path ca.crt -out-qr ca.png`. If your network is mid-rotation, load every CA that hosts
+   might present, just as you'd concatenate them in `pki.ca` on a server. The app ignores anything in the bundle that
+   isn't a CA and tells you so.
+
+The Certificate screen also has a **Show/Import Private Key** option for pasting a private key generated elsewhere. It
+exists for migrating a site between devices; for a new phone, let the app generate the key and sign the public half.
+
+:::tip
+
+Give phones their own group (`mobile` above) and write firewall rules on your servers against it. Phones roam between
+networks and are lost more often than servers, so you'll want to be able to reason about them as a class, and to revoke
+one quickly with [`pki.blocklist`](/docs/config/pki/#pkiblocklist) by fingerprint.
+
+:::
+
+## Lighthouses and static hosts
+
+Under **Lighthouses / static hosts**, tap **Hosts** and add an entry per lighthouse. Each entry is the mobile equivalent
+of a [`static_host_map`](/docs/config/static-host-map/) line plus the
+[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) flag:
+
+- **Nebula IP**: the lighthouse's overlay address.
+- **Lighthouse** toggle: on for lighthouses. Leave it off for a non-lighthouse host you want reachable at a fixed
+  address, which is the plain static host map case.
+- A list of public IPs or DNS names with ports (for example `lighthouse.example.com:4242`), with **Add another** for
+  extra addresses.
+
+A phone needs at least one lighthouse to find anything, so the editor flags an empty host list as "Needs attention". The
+app handles NAT traversal the same way a desktop host does; if the phone can only reach some peers through a
+[relay](/docs/config/relay/), the tunnel list marks those tunnels with a relay icon whose tooltip reads "Relayed
+through" followed by the relay's name.
+
+## Firewall
+
+The **Firewall** section edits [`firewall.inbound`](/docs/config/firewall/) and `firewall.outbound` rules with the same
+fields as the config file: port, protocol, and host, group, or CIDR. A new site starts with one outbound rule that
+allows everything ("Allow all outbound"). Add inbound rules only for what should be able to reach the phone, which for
+most phones is nothing beyond ICMP.
+
+## Advanced settings
+
+**Advanced Settings** exposes a deliberately short list. Each maps to a config key, and the default matches the desktop
+default unless noted:
+
+| Setting             | Config key                                                           | Notes                                                                                                 |
+| ------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Lighthouse interval | [`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) | Seconds between reports to lighthouses.                                                               |
+| Listen port         | [`listen.port`](/docs/config/listen/#listenport)                     | A random port (`0`) is right for a phone; it roams and never needs a fixed one.                       |
+| MTU                 | [`tun.mtu`](/docs/config/tun/#tunmtu)                                | The OS VPN framework owns the device MTU; this is the value the app asks for.                         |
+| Cipher              | [`cipher`](/docs/config/cipher/)                                     | `aes` or `chachapoly`. Must match every other host in the network.                                    |
+| Log verbosity       | [`logging.level`](/docs/config/logging/#logginglevel)                | Raise it only while debugging; logs are cleared each time the site starts.                            |
+| Unsafe routes       | [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes)            | Route and Via, as in the [unsafe routes guide](/docs/guides/unsafe_routes/#works-with-mobile-nebula). |
+| DNS resolvers       | see [DNS](#dns)                                                      | Resolvers to use while connected; match domains on iOS.                                               |
+| DNS lookup mode     | see [DNS](#dns)                                                      | A picker; each option is described in the app.                                                        |
+| Excluded apps       | Android only                                                         | Apps whose traffic bypasses the VPN entirely.                                                         |
+
+**View rendered config** at the bottom of the screen shows the exact `config.yml` the app will hand to Nebula. When
+something behaves differently from a desktop host, read it; it's the ground truth for what the app set.
+
+What the app does not expose, by design: `sshd` and `stats` (there's no way to attach to a phone's Nebula process),
+`routines` and socket buffers (Linux-only), `relay.am_relay` (a phone can use relays but shouldn't be one),
+`lighthouse.am_lighthouse`, and `tun.dev`. If you import a YAML config that sets these, don't count on them being
+honored. `punchy` isn't a visible setting either; check the rendered config to see what the app generates.
+
+### Unsafe routes
+
+Phones are a common reason to set up [unsafe routes](/docs/guides/unsafe_routes/): once a Linux host on your LAN
+advertises the LAN's subnet, the phone can reach printers, cameras, and NAS boxes that will never run Nebula themselves.
+In the app, go to **Configuration** → **Advanced** → **Unsafe routes**, tap **Add a new route**, and enter the same
+**Route** and **Via** you configured on your other hosts. Disconnect and reconnect the site, and look for
+`Adding UNSAFE Route` in the site's logs. The gateway host's certificate must include the subnet, or it will silently
+refuse to forward; that's covered step by step in the guide.
+
+## DNS
+
+Name resolution on a phone depends on the OS, and the app configures it through the VPN framework rather than the `dns`
+section of a desktop config.
+
+- **DNS resolvers** is a list of resolver IP addresses to use while the site is connected. Point it at your
+  [lighthouse DNS](/docs/guides/using-lighthouse-dns/) overlay address, or any resolver reachable over the overlay. The
+  screen carries a warning worth repeating: any resolver that isn't inside your overlay networks or unsafe routes will
+  be queried in plaintext over the phone's normal connection.
+- **Match domains** (iOS only) limits which domains go to those resolvers, for split-horizon setups. The screen says it
+  plainly: "When empty, all DNS queries are routed through the VPN." Android has no match-domain control.
+- **DNS lookup mode** is a separate picker under Advanced whose options are described in the app. If names in your
+  static host map don't resolve on the phone, it's the setting to look at.
+
+See [DNS on a Nebula network](/docs/guides/networking/dns/) for the server side of this.
+
+## Always-on
+
+The site detail screen has an **Always-on** switch on both platforms.
+
+- On **iOS**, enabling it asks the system to keep the VPN connected rather than leaving it to the user.
+- On **Android**, the switch is paired with **Verify system always-on is enabled**, which opens the system VPN settings,
+  because Android requires you to confirm always-on (and optionally "block connections without VPN") in its own settings
+  UI rather than from inside an app.
+
+The app doesn't currently offer on-demand rules (connect only on certain Wi-Fi networks, for example). Always-on arrived
+in app version 0.10.0, so update if you don't see the switch.
+
+## Viewing logs on the phone
+
+Open the site and tap **Logs** on its detail page. You can read, share, or delete the log from there. Logs are cleared
+each time the site is started, so capture them before reconnecting. The
+[Viewing Nebula logs](/docs/guides/viewing-nebula-logs/#android--ios) guide has a screenshot, and the log lines
+themselves are identical to a desktop host's, so the
+[NAT traversal guide's](/docs/guides/nat-traversal/#telling-direct-from-relayed) notes on reading handshake lines apply.
+The site detail page also shows **Active** and **Pending** tunnel counts while connected, and tapping through lists each
+peer by certificate name.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), choose **Enroll with defined.net** on the Add Site sheet instead of
+configuring a site by hand. The admin panel issues an enrollment code or link, which you paste into the **Code or link**
+field or open on the phone; the service then delivers the certificate, CA, lighthouses, and firewall rules, and keeps
+them updated. Managed sites show these sections read-only in the editor. See the
+[Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) (unsafe routes, with a Mobile Nebula
+  section)
+- [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)
+- [Using lighthouse DNS](/docs/guides/using-lighthouse-dns/)
+- [Mobile Nebula source on GitHub](https://github.com/DefinedNet/mobile_nebula)
+- [App Store](https://apps.apple.com/us/app/mobile-nebula/id1509587936) and
+  [Google Play](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) listings
