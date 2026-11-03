@@ -1,0 +1,258 @@
+---
+title: Performance tuning and what to expect
+sidebar_label: Performance tuning
+description:
+  Where Nebula spends CPU, which config keys (routines, buffers, MTU, cipher) move throughput, how to measure with
+  iperf3, and what to expect.
+summary:
+  Nebula runs in userspace and is CPU-bound on packet processing. This guide explains the knobs that matter, in order of
+  impact, how to measure the overlay against the underlay, and why relayed paths and some platforms are slower.
+sidebar_position: 5
+---
+
+# Performance tuning and what to expect
+
+Nebula is a userspace program: every packet is read from a tun device, encrypted, and written to a UDP socket, and the
+reverse on the way in. That design is what makes it portable, and it's also why throughput is bounded by how many
+packets per second a CPU core can push through that loop rather than by link speed. This guide is for anyone who has
+measured Nebula and found it slower than the wire. It explains where the time goes, which settings actually move the
+number, how to measure fairly, and what results are realistic.
+
+## Where the time goes
+
+For every packet Nebula does three things: a read or write syscall on the tun device, an AES-GCM (or ChaCha20-Poly1305)
+operation, and a read or write syscall on the UDP socket. The crypto is cheap on any CPU with AES instructions. The
+syscalls are not, and Nebula pays them per packet unless batching or offloads are in play. The practical effect is that
+Nebula's throughput is a packets-per-second budget: large packets fill a link with few syscalls, small packets exhaust
+the budget long before the link is full. A single busy TCP stream over the overlay typically pins one core.
+
+Defined Networking's own benchmark write-up,
+[Nebula is not the fastest mesh VPN](https://www.defined.net/blog/nebula-is-not-the-fastest-mesh-vpn/), measures this
+directly across several mesh VPNs with a published methodology, and reports that Nebula's throughput scales roughly
+linearly with the CPU cores it's given. The methodology discussion that led to it is in
+[GitHub discussion #911](https://github.com/slackhq/nebula/discussions/911).
+
+## The knobs, in order of impact
+
+All defaults below are from the [config reference](/docs/config/) and the
+[example config](https://github.com/slackhq/nebula/blob/master/examples/config.yml). Several are Linux-only, because
+Linux is where the kernel APIs that make them possible exist. Most require a restart; the ones that don't are noted.
+
+### `routines` (Linux)
+
+```yaml
+routines: 2
+```
+
+[`routines`](/docs/config/routines/) is the number of reader pairs Nebula runs against the tun device and the UDP
+socket. The default is `1`, which means one core does all the work. Setting it above 1 enables `IFF_MULTI_QUEUE` on the
+tun device and `SO_REUSEPORT` on the socket so several threads can read in parallel. This is the single biggest knob on
+a multi-core host that moves a lot of traffic. The reference page recommends at most half the available cores, and less
+than that if the host has other work to do. Not reloadable.
+
+With more than one routine, `tun.pin_threads: true` pins each reader thread to a CPU so a flow's packets leave through
+one NIC transmit ring and stay in order; `tun.cpu_affinity` picks the CPUs. Both are Linux-only, both are in the example
+config, and both are worth trying only after `routines` alone has been measured.
+
+### `listen.read_buffer` and `listen.write_buffer` (Linux)
+
+```yaml
+listen:
+  read_buffer: 10485760
+  write_buffer: 10485760
+```
+
+These set the UDP socket's receive and send buffers in bytes. Unset, Nebula uses the system defaults from
+`net.core.rmem_default` and `net.core.wmem_default`, which on many distributions are a few hundred kilobytes, small
+enough to overflow during a burst and drop packets. The kernel doubles whatever you ask for. Nebula sets the buffers
+with `SO_RCVBUFFORCE` and `SO_SNDBUFFORCE`, which ignore the `net.core.rmem_max` and `net.core.wmem_max` ceilings but
+require `CAP_NET_ADMIN`. If Nebula lacks that capability (see
+[Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/)), it falls back to the plain socket
+options and the kernel clamps the value to the sysctl maximum. Nebula notices and logs a warning:
+
+```text
+level=WARN msg="listen.read_buffer was limited by the system" hint="raise net.core.rmem_max or grant CAP_NET_ADMIN"
+```
+
+The fix is in the hint: either raise the limits, for example `sysctl -w net.core.rmem_max=26214400` and the matching
+`wmem_max` (make it permanent in `/etc/sysctl.d/`), or grant the capability. A growing `udp.tx.dropped` counter in the
+[metrics](/docs/guides/operations/monitoring-and-upgrades/) is the other symptom of a send buffer that's too small. See
+[`listen.read_buffer, listen.write_buffer`](/docs/config/listen/#listenread_buffer-listenwrite_buffer). These two keys
+are reloadable on Linux.
+
+### `listen.batch`
+
+```yaml
+listen:
+  batch: 64
+```
+
+[`listen.batch`](/docs/config/listen/#listenbatch) is how many packets Nebula pulls from the kernel per `recvmmsg`
+syscall on systems that support it. The default of `64` is a good balance. The example config notes a memory cost on
+Linux kernels with UDP GRO (5.10+): each receive slot is sized for a 64 KiB coalesced packet, so the receive scratch
+space is `batch` times 64 KiB per socket, about 4 MiB per routine at the default. Lower it on memory-constrained hosts;
+raising it rarely helps. Not reloadable.
+
+### `tun.mtu` and `tun.routes`
+
+```yaml
+tun:
+  mtu: 1300
+  routes:
+    - mtu: 8800
+      route: 10.0.0.0/16
+```
+
+[`tun.mtu`](/docs/config/tun/#tunmtu) defaults to `1300`. Nebula wraps each overlay packet in its own header, then the
+kernel adds UDP and IP headers before the packet hits a path that is itself usually limited to 1500 bytes, and often
+less once PPPoE, cloud encapsulation, or an underlay VPN take their cut. 1300 leaves room for all of that without
+fragmentation on nearly any internet path, which is why it's the default and why the reference calls it the safe
+setting. Fragmented UDP is slow and is dropped outright by some networks, so a too-large MTU looks like "works for small
+transfers, stalls on big ones".
+
+A bigger MTU raises throughput directly, because each syscall and each encryption carries more payload. Where you
+control the underlay end to end (a LAN, or a cloud VPC that allows jumbo frames), raise it.
+[`tun.routes`](/docs/config/tun/#tunroutes) lets you do that per overlay prefix, so hosts on the same fast segment can
+use a large MTU between themselves while keeping 1300 for everything else. Since v1.12, any value above 8937 is capped
+to 8937 with a warning so relayed packets always fit. `tun.mtu` is reloadable on Linux only; on iOS, Android, and macOS
+network extensions, the host app owns the MTU.
+
+### `tun.tx_queue`
+
+```yaml
+tun:
+  tx_queue: 5000
+```
+
+[`tun.tx_queue`](/docs/config/tun/#tuntx_queue) is the tun device's transmit queue length. Raise it if the interface
+counters show transmit drops. The default was `500` through v1.11 and is `5000` from v1.12. Not reloadable.
+
+### `cipher`
+
+```yaml
+cipher: aes
+```
+
+[`cipher`](/docs/config/cipher/) selects AES-256-GCM (`aes`, the default and recommended choice) or ChaCha20-Poly1305
+(`chachapoly`). On any CPU with AES instructions, which includes nearly every x86 server and desktop from the last
+decade and most 64-bit ARM server and phone chips, `aes` is faster. On CPUs without them, `chachapoly` is usually faster
+because it's designed to run well in software. Raspberry Pi boards before the Pi 5 are the common example of an ARM CPU
+without the crypto extensions, so the [Raspberry Pi guide](/docs/platforms/raspberry-pi/) is where this matters most.
+Measure both on your hardware rather than assuming. The cipher must be identical on every host and lighthouse in the
+network; Nebula does not negotiate it. Not reloadable.
+
+### Offloads (Linux, v1.12+)
+
+```yaml
+tun:
+  use_offloads: true
+listen:
+  udp_offloads: true
+```
+
+v1.12 adds generic segmentation and receive offload (GSO/GRO) for both the tun device and the UDP socket, which lets the
+kernel hand Nebula batches of coalesced packets and cuts syscalls per byte. Both are off by default, both need a
+restart, and the release notes say they'll become the default in a future release. Try them on a Linux host with a
+recent kernel; they're the first thing to reach for once `routines` is set.
+
+### `tunnels.drop_inactive`
+
+```yaml
+tunnels:
+  drop_inactive: true
+  inactivity_timeout: 10m
+```
+
+[`tunnels.drop_inactive`](/docs/config/tunnels/#tunnelsdrop_inactive) doesn't make a single tunnel faster. It prevents a
+host with many peers from maintaining tunnels, and the keepalive and lighthouse traffic that goes with them, for peers
+it hasn't talked to in [`inactivity_timeout`](/docs/config/tunnels/#tunnelsinactivity_timeout). On lighthouses and busy
+hosts it trims idle CPU and memory. The reference recommends enabling it. Reloadable.
+
+### Things that make it slower
+
+`logging.level: debug` or `trace` is CPU intensive, as the example config warns, and logs per-packet detail. Leave it at
+`info` outside of an investigation. Running any other VPN or packet filter in the same path adds its own cost; Defined's
+benchmark notes that a single conntrack rule costs on the order of ten percent.
+
+## Platform notes
+
+- **Linux** is the fastest platform and the only one with `routines`, socket buffer forcing, offloads, and reloadable
+  MTU. If a host's job is to move traffic (a relay, an [`unsafe_routes`](/docs/guides/unsafe_routes/) gateway, a busy
+  lighthouse), run it on Linux.
+- **Windows** uses the [Wintun](https://www.wintun.net/) driver, which Nebula ships in its Windows distribution. Recent
+  releases have made large improvements to the Windows data path, but it still trails Linux on the same hardware.
+- **macOS** uses the system `utun` device, which has no multi-queue support and a higher per-packet cost than Linux.
+  Expect lower throughput than a comparable Linux machine.
+- **iOS and Android** run Nebula inside the OS VPN framework. The host app controls the MTU and the device is usually
+  the bottleneck, so there's little to tune. See [Mobile Nebula](/docs/platforms/mobile/).
+- **Small boards and routers** such as a Raspberry Pi or an OpenWrt device are CPU-limited and will sit well below their
+  link speed. The cipher choice above is the main lever, and measuring is the only way to know what a given board does.
+  See the [Raspberry Pi](/docs/platforms/raspberry-pi/) and [OpenWrt](/docs/platforms/openwrt/) pages.
+
+## Measuring
+
+Measure the underlay first, then the overlay, on the same pair of hosts, with the same tool. The difference is Nebula's
+cost; anything else is the network's.
+
+```shell
+# on host B
+iperf3 -s
+
+# on host A: underlay, then overlay
+iperf3 -c 203.0.113.9 -t 30
+iperf3 -c 192.168.100.9 -t 30
+```
+
+A few things make the comparison honest:
+
+- Run for 30 seconds or more; the first seconds are TCP ramp-up.
+- Watch CPU on both ends (`top` or `htop`) during the overlay run. If one core sits at 100%, you've found the ceiling,
+  and `routines` or offloads are the next step.
+- Test both directions (`-R`) and with parallel streams (`-P 4`), since a single stream maps to one routine.
+- To compare packet-processing rates rather than MTU luck, clamp the MSS so both runs use the same packet size, for
+  example `iperf3 -c ... -M 1200`. This is how Defined's benchmarks equalize tools with different default MTUs.
+- UDP tests (`-u -b 0`) show packet-per-second limits more clearly than TCP, and the receiver's reported loss tells you
+  whether a buffer is overflowing.
+
+### Direct versus relayed
+
+A [relayed](/docs/config/relay/) tunnel pays for an extra hop: traffic goes to the relay, is decrypted only as far as
+the relay layer (the payload stays end-to-end encrypted), and is re-sent to the destination. Latency rises by the
+detour, and throughput is capped by the slower of the relay's two links and by the relay's own CPU budget, which it's
+sharing with every other relayed pair. A tunnel that benchmarks far below what both endpoints can do is often relayed
+without anyone noticing. Check the handshake log lines for a `(relayed)` suffix, as described in
+[NAT traversal and firewalls](/docs/guides/nat-traversal/#telling-direct-from-relayed), before you tune anything else.
+
+## What to expect
+
+This page deliberately quotes no throughput numbers, because they depend on CPU, kernel, NIC, MTU, and packet size, and
+a figure measured on a desktop CPU with 10 GbE says nothing about a VPS or a Pi. For a documented data set with the
+hardware, kernel, and `iperf3` invocations spelled out, read
+[Nebula is not the fastest mesh VPN](https://www.defined.net/blog/nebula-is-not-the-fastest-mesh-vpn/). Its broad
+conclusions are the ones to carry around: throughput is set by packets per second, Nebula scales with cores, a larger
+MTU helps everyone, and no mesh VPN wins across the board.
+[Discussion #911](https://github.com/slackhq/nebula/discussions/911) has community measurements on other platforms,
+including FreeBSD, and is the place to share your own.
+
+The honest summary: on a modern Linux server with `routines` set and a sane MTU, Nebula is fast enough for any workload
+that isn't purely about moving bulk data at line rate. On laptops, phones, and small boards, the CPU is the limit and no
+setting changes that by more than a factor of two or so.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) generates host configs for you, so the keys above are set from the admin
+panel rather than in a file. Nebula's data path is the same, and so are the platform limits; see the
+[Managed Nebula docs](https://docs.defined.net/) for which settings the panel exposes.
+
+:::
+
+## See also
+
+- [`routines`](/docs/config/routines/), [`listen`](/docs/config/listen/), [`tun`](/docs/config/tun/),
+  [`cipher`](/docs/config/cipher/), and [`tunnels`](/docs/config/tunnels/) references
+- [Monitoring Nebula and upgrading safely](/docs/guides/operations/monitoring-and-upgrades/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Nebula is not the fastest mesh VPN](https://www.defined.net/blog/nebula-is-not-the-fastest-mesh-vpn/) (Defined blog)
+- [Nebula benchmarks discussion #911](https://github.com/slackhq/nebula/discussions/911)

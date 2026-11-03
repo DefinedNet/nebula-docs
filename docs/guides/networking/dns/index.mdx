@@ -1,0 +1,222 @@
+---
+title: DNS on a Nebula network
+sidebar_label: DNS
+description:
+  Ways to give Nebula hosts names, from /etc/hosts and lighthouse DNS to split DNS with systemd-resolved, dnsmasq, and
+  Windows NRPT, plus Pi-hole on the overlay.
+summary:
+  Nebula moves packets between IP addresses and has no opinion about names. This guide lists the options for naming
+  overlay hosts in order of effort, shows how to send only your overlay domain to a resolver on the overlay, covers
+  running Pi-hole or AdGuard Home as an overlay resolver, and explains why mDNS and other multicast discovery do not
+  cross the overlay.
+slug: /guides/networking/dns
+sidebar_position: 6
+---
+
+# DNS on a Nebula network
+
+Nebula gives every host an overlay IP and nothing else. Typing `ssh 192.168.100.23` works on day one; `ssh nas` does
+not, because nothing on the network answers for the name. This guide is for anyone who wants names on their overlay. It
+lists the options from least to most effort, so stop at the first one that fits.
+
+Throughout, the overlay is `192.168.100.0/24`, the lighthouse is `192.168.100.1`, and the Nebula interface is `nebula1`.
+The examples use `nebula` as a private domain suffix; pick anything that isn't a real public domain.
+
+## Option 1: a hosts file
+
+For a handful of hosts that rarely change, a hosts file is the whole solution. Add a line per host on every machine that
+needs the names:
+
+```text
+192.168.100.1   lighthouse.nebula lighthouse
+192.168.100.10  nas.nebula nas
+192.168.100.23  laptop.nebula laptop
+```
+
+The file is `/etc/hosts` on Linux and macOS and `C:\Windows\System32\drivers\etc\hosts` on Windows (edit it as an
+administrator). The overlay IP for each host is in its certificate, so `nebula-cert print -path host.crt` is the source
+of truth. Configuration management tools can template the file from the same list you sign certificates from. It stops
+being fun around ten hosts, or as soon as hosts come and go.
+
+## Option 2: lighthouse DNS
+
+Lighthouses already know every host that has reported in, so Nebula can serve that list over DNS. Enable it on the
+lighthouse only:
+
+```yaml
+lighthouse:
+  serve_dns: true
+  dns:
+    host: 192.168.100.1 # the lighthouse's overlay IP; '[::]' binds every interface
+    port: 53
+
+firewall:
+  inbound:
+    - port: 53
+      proto: udp
+      group: any
+```
+
+Then any host can resolve another by its certificate name: `dig @192.168.100.1 +short nas A`. Binding `dns.host` to the
+overlay IP keeps the server reachable only over Nebula.
+
+Lighthouse DNS is **experimental**. It answers only for the exact name in each certificate, can't add extra records,
+can't forward anything it doesn't know to another server, and only knows hosts that have talked to that lighthouse since
+it started. [Using Lighthouse DNS](/docs/guides/using-lighthouse-dns/) has the full list of limitations and a hostname
+validity checker. Because it can't forward, you should never make it your only resolver; send it just your overlay
+domain, as described next.
+
+If you plan to use a domain suffix, sign certificates with the full name (`-name nas.nebula`) so that the query your
+resolver forwards (`nas.nebula`) is the name the lighthouse knows.
+
+## Option 3: split DNS for your overlay domain
+
+Split DNS (also called conditional forwarding) sends queries for one domain to one resolver and everything else to the
+usual one. Point the overlay domain at a resolver on the overlay (the lighthouse from option 2, or a Pi-hole from
+option 4) and leave public DNS alone. The commands below are from each tool's own documentation.
+
+### systemd-resolved (most modern Linux distributions)
+
+```shell
+sudo resolvectl dns nebula1 192.168.100.1
+sudo resolvectl domain nebula1 '~nebula'
+```
+
+`resolvectl dns` sets the DNS servers for a link and `resolvectl domain` sets its domains. The `~` prefix makes `nebula`
+a _routing-only_ domain: queries under it go to the servers on `nebula1`, but `nebula` is not appended to bare names as
+a search suffix. Drop the `~` if you also want `ssh nas` to try `nas.nebula`. Both commands apply until the link goes
+away or the host reboots. To make them permanent, put the equivalent in a systemd-networkd `.network` file for the
+interface (`DNS=` and `Domains=` in `[Network]`), or in NetworkManager's settings for the connection. Reference:
+[resolvectl(1)](https://www.freedesktop.org/software/systemd/man/latest/resolvectl.html) and the `Domains=` entry in
+[systemd.network(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html).
+
+Check it with `resolvectl status nebula1` and `resolvectl query nas.nebula`.
+
+### dnsmasq (routers, OpenWrt, Pi-hole's engine)
+
+One line in `dnsmasq.conf` (or a file in `/etc/dnsmasq.d/`):
+
+```text
+server=/nebula/192.168.100.1
+```
+
+The `--server=/domain/address` form sends queries for that domain, and only that domain, to the named server; more
+specific domains take precedence over less specific ones. Config file keys are the long option names without the leading
+`--`. Reference: [dnsmasq man page](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html), option `--server`.
+
+### macOS
+
+macOS reads per-domain resolver files from `/etc/resolver/`. Create `/etc/resolver/nebula` containing:
+
+```text
+nameserver 192.168.100.1
+```
+
+Queries for `*.nebula` then go to that server; the file name is the domain and the file uses the `resolv.conf` format.
+See [resolver(5)](https://keith.github.io/xcode-man-pages/resolver.5.html) or `man 5 resolver` on your Mac. Note that
+`dig` and `nslookup` read `/etc/resolv.conf` directly and bypass this mechanism; test with
+`dscacheutil -q host -a name nas.nebula` or simply `ping nas.nebula`.
+
+### Windows (NRPT)
+
+Windows has a Name Resolution Policy Table for exactly this. In an elevated PowerShell:
+
+```powershell
+Add-DnsClientNrptRule -Namespace ".nebula" -NameServers "192.168.100.1"
+```
+
+The leading dot makes it a suffix rule covering every name under `nebula`. `Get-DnsClientNrptRule` lists rules and
+`Remove-DnsClientNrptRule` deletes them. Reference:
+[Add-DnsClientNrptRule](https://learn.microsoft.com/en-us/powershell/module/dnsclient/add-dnsclientnrptrule).
+
+## Option 4: Pi-hole or AdGuard Home on an overlay host
+
+If you want names for things that aren't Nebula hosts, records that lighthouse DNS can't express, ad blocking, or one
+resolver for every device wherever it is, run a real resolver on the overlay. Pi-hole and AdGuard Home both work;
+install either on any Linux host that runs Nebula, following [Pi-hole's documentation](https://docs.pi-hole.net/) or
+[AdGuard Home's getting started guide](https://github.com/AdguardTeam/AdGuardHome/wiki/Getting-Started).
+
+Three things are specific to running it over Nebula:
+
+1. **Nebula's firewall on the resolver host** must allow DNS from the clients. DNS uses UDP and falls back to TCP for
+   large answers, so allow both:
+
+   ```yaml
+   firewall:
+     inbound:
+       - port: 53
+         proto: udp
+         group: clients
+       - port: 53
+         proto: tcp
+         group: clients
+   ```
+
+   Use `group: any` if every host on the overlay should be able to query it.
+
+2. **The resolver must accept queries arriving on `nebula1`.** Pi-hole's default interface setting, "Allow only local
+   requests", answers hosts on any subnet the server has an interface on, which includes the overlay because `nebula1`
+   has an address in it. If your clients reach the resolver through an [unsafe route](/docs/guides/unsafe_routes/) from
+   another subnet, switch to "Respond only on interface" for `nebula1` or "Permit all origins"; see
+   [Pi-hole's interface settings](https://docs.pi-hole.net/ftldns/interfaces/). AdGuard Home listens on all interfaces
+   by default; restrict it in its DNS settings if you want.
+
+3. **Clients point at the overlay IP**, say `192.168.100.5`, not at the resolver host's LAN address. Do that either for
+   everything (set it as the only DNS server on each client, which is what you want for a
+   [full tunnel](/docs/guides/networking/exit-nodes-and-site-to-site/#dns-leaks)) or only for your overlay domain using
+   the split DNS commands above with `192.168.100.5` in place of the lighthouse.
+
+Add overlay hosts as local records in the resolver (Pi-hole calls these local DNS records; AdGuard Home calls them DNS
+rewrites). Or keep lighthouse DNS as the source of truth and have the resolver forward the overlay domain to it: Pi-hole
+can do that with the dnsmasq `server=/nebula/192.168.100.1` line in a file under `/etc/dnsmasq.d/`, and AdGuard Home
+with a per-domain upstream in its upstream DNS settings. Then dynamic hosts resolve through the lighthouse and
+everything else through the resolver.
+
+Remember that a resolver on the overlay is reachable only while Nebula is up. If Nebula stops on a laptop that uses the
+overlay resolver for everything, so does name resolution; split DNS avoids that.
+
+## Mobile Nebula
+
+Mobile operating systems control DNS for VPN interfaces tightly. The
+[Mobile Nebula](https://github.com/DefinedNet/mobile_nebula) project's documentation does not describe DNS behaviour,
+and its changelog only notes that on Android the system DNS keeps working when moving between IPv4-only and IPv6
+networks. The app's source includes a DNS resolvers setting in a site's advanced configuration, with an optional list of
+domains to route through those resolvers; check the version installed on your device to see whether it is available to
+you. If it isn't, the phone keeps using its normal resolver, and overlay hosts are reachable by IP or by whatever names
+your public DNS or the hosts file approach in [Using Lighthouse DNS](/docs/guides/using-lighthouse-dns/#alternatives)
+provides.
+
+## mDNS and other multicast discovery do not cross the overlay
+
+Bonjour, Avahi, SSDP, and similar discovery protocols work by sending to a multicast address (mDNS uses `224.0.0.251`)
+on the local link and expecting every device on that link to hear it. Nebula is a layer 3 overlay between individual
+hosts: a packet addressed to a multicast group has no overlay host as its destination, so there is nowhere to deliver
+it. Whether such packets are read from the tun at all is controlled by
+[`tun.drop_multicast`](/docs/config/tun/#tundrop_multicast) and
+[`tun.drop_local_broadcast`](/docs/config/tun/#tundrop_local_broadcast), but turning those off does not create a
+broadcast domain. Expect `printer.local`, "Devices on your network" lists, and casting to find nothing across the
+overlay.
+
+The workaround is the same as on any routed network: give things names in DNS (options 1 to 4 above) and connect to them
+by name, or run an mDNS reflector such as Avahi's reflector mode on a host that has both the LAN and the overlay, with
+the understanding that it is reflecting unicast copies and that not every protocol survives that.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), lighthouses are hosted for you, and the DNS settings available for a
+network and for Mobile Nebula sites are described in the [Managed Nebula documentation](https://docs.defined.net/). The
+split DNS and overlay resolver options above work the same way on managed hosts.
+
+:::
+
+## See also
+
+- [Using Lighthouse DNS with Nebula](/docs/guides/using-lighthouse-dns/)
+- [`lighthouse.serve_dns`](/docs/config/lighthouse/#lighthouseserve_dns) and
+  [`lighthouse.dns`](/docs/config/lighthouse/#lighthousedns)
+- [`firewall` reference](/docs/config/firewall/)
+- [Exit nodes, full-tunnel routing, and site-to-site networks](/docs/guides/networking/exit-nodes-and-site-to-site/)
+- [resolvectl(1)](https://www.freedesktop.org/software/systemd/man/latest/resolvectl.html)
+- [Pi-hole documentation](https://docs.pi-hole.net/)

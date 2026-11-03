@@ -1,0 +1,9 @@
+{
+  "label": "Use cases",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "description": "Worked examples of common things people build on a Nebula network.",
+    "slug": "/use-cases"
+  }
+}

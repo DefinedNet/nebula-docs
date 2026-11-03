@@ -1,0 +1,209 @@
+---
+title: Monitoring Nebula and upgrading safely
+sidebar_label: Monitoring and upgrades
+description:
+  Export Nebula metrics to Prometheus or Graphite, see which hosts are connected, reload config without a restart, and
+  upgrade the binary safely.
+summary:
+  Nebula exposes metrics, a debug console, and structured logs, and it reloads most of its config on a HUP. This guide
+  covers turning those on, which metrics are worth alerting on, how to tell which hosts are online, and how to upgrade a
+  running network.
+sidebar_position: 4
+---
+
+# Monitoring Nebula and upgrading safely
+
+Nebula has no central server to watch, so the operational picture is assembled from the hosts themselves: a metrics
+endpoint on each one, the lighthouses' view of who has checked in, and the logs. This guide is for operators of a
+self-managed network who want to know a host is healthy before someone reports that it isn't, and who need to change
+config or upgrade the binary without taking the network down.
+
+## Enabling stats
+
+The [`stats`](/docs/config/stats/) section turns on metrics reporting. Nebula collects metrics internally either way;
+`stats.type` decides where they go. Two backends are supported.
+
+**Prometheus** (pull). Nebula serves a scrape endpoint over HTTP:
+
+```yaml
+stats:
+  type: prometheus
+  listen: 127.0.0.1:8080
+  path: /metrics
+  namespace: prometheusns
+  subsystem: nebula
+  interval: 60s
+```
+
+**Graphite** (push). Nebula sends metrics to a Carbon receiver on a timer:
+
+```yaml
+stats:
+  type: graphite
+  prefix: nebula
+  protocol: tcp
+  host: 127.0.0.1:2003
+  interval: 60s
+```
+
+[`stats.interval`](/docs/config/stats/#statsinterval) is required for both. It sets how often Nebula samples its
+internal counters and, for Graphite, how often it pushes. `60s` is the recommended value. Bind `stats.listen` to a
+loopback or overlay address rather than `0.0.0.0` unless you want the endpoint reachable from the underlay; it has no
+authentication. The example config notes that the `stats` section is reloadable, so you can turn it on with a config
+reload rather than a restart, with two exceptions: [`stats.message_metrics`](/docs/config/stats/#statsmessage_metrics)
+and [`stats.lighthouse_metrics`](/docs/config/stats/#statslighthouse_metrics) need a restart.
+
+### How metric names appear
+
+Internally, Nebula names metrics with dots, like `hostmap.main.hosts`. The Prometheus exporter prefixes
+`stats.namespace` and `stats.subsystem` and replaces the dots with underscores, so with the values above that metric is
+scraped as `prometheusns_nebula_hostmap_main_hosts`. Graphite receives the dotted names under `stats.prefix`. The names
+below are the internal ones.
+
+## Metrics worth watching
+
+These are registered in the Nebula source as of v1.12 and are available on every host once stats are enabled.
+
+| Metric                                                            | Type      | What it tells you                                                                                                                                                                         |
+| ----------------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostmap.main.hosts`                                              | gauge     | Number of overlay addresses this host has a tunnel to. On a lighthouse, roughly the number of hosts currently checked in, since every host keeps a tunnel to its lighthouses for reports. |
+| `hostmap.main.indexes`, `hostmap.main.remoteIndexes`              | gauge     | Live tunnel entries by local and remote index. Normally track `hosts`; a growing gap suggests duplicate tunnels.                                                                          |
+| `hostmap.main.relayIndexes`                                       | gauge     | Relay sessions this host is forwarding for other peers. Only non-zero on hosts with `relay.am_relay: true`.                                                                               |
+| `hostmap.pending.hosts`, `hostmap.pending.indexes`                | gauge     | Handshakes in progress. A persistently high value means hosts can't complete handshakes.                                                                                                  |
+| `handshake_manager.initiated`                                     | counter   | Handshakes this host started.                                                                                                                                                             |
+| `handshake_manager.timed_out`                                     | counter   | Handshakes that never completed. Rising together with `initiated` points at unreachable peers or NAT problems; see [NAT traversal](/docs/guides/nat-traversal/).                          |
+| `handshake_manager.rejected.blocklisted`                          | counter   | Handshakes refused because the peer's certificate is on `pki.blocklist`.                                                                                                                  |
+| `handshakes`                                                      | histogram | Handshake durations.                                                                                                                                                                      |
+| `lighthouse.query.dropped`                                        | counter   | Lighthouse queries dropped because the query buffer was full. Raise `handshakes.query_buffer` if this climbs.                                                                             |
+| `udp.tx.dropped`                                                  | counter   | Outbound UDP packets the kernel refused to send. Often a full socket buffer; see [Performance tuning](/docs/guides/operations/performance-tuning/).                                       |
+| `hostinfo.cached_packets.sent`, `hostinfo.cached_packets.dropped` | counter   | Packets queued while a handshake was pending, and how many were discarded before the tunnel came up.                                                                                      |
+| `messages.rx.recv_error`, `messages.tx.recv_error`                | counter   | `recv_error` packets received and sent. These are always emitted; a burst after a restart is normal, a steady stream is not.                                                              |
+| `certificate.ttl_seconds`                                         | gauge     | Seconds until this host's own certificate expires. Alert on it; see the [certificate lifecycle guide](/docs/guides/certificates/certificate-lifecycle/).                                  |
+| `certificate.initiating_version`, `certificate.max_version`       | gauge     | Which certificate version this host initiates with and the highest it holds. Useful during a [cert v2 migration](/docs/guides/upgrade-to-cert-v2-and-ipv6/).                              |
+| `routines`                                                        | gauge     | The configured [`routines`](/docs/config/routines/) count.                                                                                                                                |
+| `info`                                                            | gauge     | Always `1`, with a `version` label carrying the running Nebula version. Query it to find hosts that missed an upgrade.                                                                    |
+
+With `stats.message_metrics: true`, Nebula also counts every control message type (`messages.tx.handshake_ixpsk0`,
+`messages.rx.close_tunnel`, `messages.rx.invalid`, `messages.tx.exhausted`, and so on). With
+`stats.lighthouse_metrics: true`, lighthouse traffic is broken down by type (`lighthouse.rx.HostQuery`,
+`lighthouse.tx.HostUpdateNotification`, and so on). Both add cardinality you probably don't need until you're chasing a
+specific problem. Go runtime and garbage collector statistics are exported alongside everything else.
+
+A reasonable minimum alert set is: `certificate.ttl_seconds` below 30 days, `hostmap.main.hosts` on each lighthouse
+dropping below the number of hosts you expect, and `handshake_manager.timed_out` increasing on hosts that should be
+quiet.
+
+### Grafana
+
+A community-maintained dashboard, [Nebula stats](https://grafana.com/grafana/dashboards/20965-nebula-stats/), charts the
+hostmap size, `recv_error` counts, and Go runtime memory and GC panels from a Prometheus data source. Its queries assume
+the `prometheusns` namespace and `nebula` subsystem from the reference config, so either use those values or edit the
+queries after importing. It isn't maintained by the Nebula project.
+
+## Seeing which hosts are connected
+
+Metrics give you counts. For names and addresses, use the [SSH debug console](/docs/guides/debug-ssh-commands/), which
+you enable per host with the [`sshd`](/docs/config/sshd/) section. Once connected:
+
+- `list-hostmap` lists every peer this host has a tunnel to, with the underlay address in use. Add `-json -pretty` for
+  the full detail of each entry.
+- `list-pending-hostmap` lists handshakes that haven't completed.
+- `list-lighthouse-addrmap`, run on a lighthouse, lists every host that has reported to it and the addresses it
+  reported. This is the closest thing Nebula has to an "online hosts" view: a host that stops reporting ages out of the
+  map.
+- `print-tunnel <vpn ip>` and `print-relays` show the details of one tunnel and of relay state.
+- `version` prints the running version.
+
+On v1.12 and later, the same commands are also available over a local control socket without configuring `sshd`:
+`nebula ctl list-hostmap` and friends talk to the running process as the user Nebula runs as or root. See the
+`local_api` section of the [example config](https://github.com/slackhq/nebula/blob/master/examples/config.yml).
+
+## Logs
+
+Nebula logs every handshake, every tunnel close, and every config reload, so the log is often the fastest answer to
+"what happened at 03:12". [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/) covers where to find them on each
+platform. Set [`logging.format: json`](/docs/config/logging/#loggingformat) if you ship logs to a collector. Leave
+[`logging.level`](/docs/config/logging/#logginglevel) at `info` in normal operation; `debug` and `trace` are CPU
+intensive and can log untrusted data at volume, so turn them on only while investigating. The level is reloadable, and
+the SSH console's `log-level` command changes it live without touching the config file.
+
+Since v1.11.0, Nebula logs through Go's structured `slog` package rather than logrus. If you parse logs, check your
+patterns when upgrading across that version.
+
+## Reloading config without a restart
+
+Nebula reloads its configuration when it receives a `SIGHUP`, logging `Caught HUP, reloading config`. Existing tunnels
+are not affected. On Linux, the shipped systemd unit defines `ExecReload=/bin/kill -HUP $MAINPID`, so
+`systemctl reload nebula` works; otherwise `kill -HUP <pid>`. On Windows there is no HUP signal, so use the SSH
+console's `reload` command (described as "same as sending HUP to the process") or `nebula ctl reload` on v1.12+, or
+restart the service.
+
+Not every key is reloadable. Each key in the [config reference](/docs/config/) carries a **Reloadable** pill when it is,
+and the example config marks the rest "Not reloadable". The important non-reloadable ones are `listen.host`,
+`listen.port`, `routines`, `cipher`, `lighthouse.am_lighthouse`, the `tun` device settings (`tun.dev`, `tun.mtu` except
+on Linux, `tun.tx_queue`), and the two `stats` metric toggles. Reloadable ones include the whole `pki` section,
+`firewall`, `static_host_map`, `lighthouse.hosts`, `tun.routes` and `tun.unsafe_routes`, `punchy`, `tunnels`,
+`logging.level`, and `stats`.
+
+Validate before you reload. `nebula -test -config /etc/nebula/config.yml` parses the config, prints the result, and
+exits non-zero if it's faulty, which is a cheap check to put in front of every deploy. A failed reload is logged as
+`Error occurred while reloading config` and the running process keeps its previous configuration. Nebula also logs when
+a change needs a restart to take effect, for example a new certificate whose overlay address differs from the old one.
+
+## Upgrading the binary
+
+Nebula is a single static binary, so an upgrade is: stop the service, replace the binary, start the service. On start,
+the host rebuilds its tunnels by handshaking again, and peers that were talking to it reconnect on their next packet. A
+handshake normally completes in a round trip or two, so plan for a few seconds of interruption per host.
+
+1. Check what's running: `nebula -version`.
+2. Read the [release notes](https://github.com/slackhq/nebula/releases) for every version between yours and the target.
+   Each release lists config changes and breaking changes at the top.
+3. Test the new binary against your config before swapping it in: `/path/to/new/nebula -test -config config.yml`.
+4. Replace the binary and restart the service. On Linux with systemd, `systemctl restart nebula`; on Windows, restart
+   the service from the Services app; on macOS with Homebrew, `brew services restart nebula`.
+5. Confirm with `nebula -version`, the SSH console's `version` command, or the `version` label on the `info` metric, and
+   watch `hostmap.main.hosts` recover.
+
+**Order.** The Nebula release notes don't prescribe an order for upgrading lighthouses relative to other hosts, and
+hosts running different versions interoperate within the documented compatibility rules. A sensible default is to
+upgrade one non-critical host first, then the lighthouses, then the rest in batches, checking connectivity at each step.
+That's the order the [cert v2 and IPv6 upgrade guide](/docs/guides/upgrade-to-cert-v2-and-ipv6/) recommends for its
+migration, and it applies equally well to a plain binary upgrade. Lighthouses are the exception to "any order": since
+every host depends on them, upgrade them one at a time if you have more than one.
+
+**Version-specific notes** from the release notes, for upgrades that cross these versions:
+
+- **v1.10.0** introduced the v2 certificate format and IPv6 overlay addresses. v2 certificates can only be validated by
+  v1.10+ hosts, so every host must be on v1.10 or later before any v2 certificate is issued. The
+  [upgrade guide](/docs/guides/upgrade-to-cert-v2-and-ipv6/) covers the dual-CA migration. The same release changed
+  `firewall.default_local_cidr_any` to default to `false`, so rules that should match `unsafe_routes` destinations must
+  name a `local_cidr`.
+- **v1.11.0** switched logging to `slog` and corrected the meaning of `firewall.outbound_action` and
+  `firewall.inbound_action`, which were previously swapped. If you set either, swap them before upgrading. On Windows,
+  Nebula now installs Windows Filtering Platform permits for its adapter and listener by default; see
+  `tun.windows_bypass_wdf` and `listen.windows_bypass_wdf` in the example config to disable that.
+- **v1.12.0** refuses to start on Linux if the `tun.dev` interface already exists (remove it and let Nebula create it),
+  caps `tun.mtu` at 8937, rejects `pki.blocklist` entries that aren't hex SHA-256 fingerprints, raises the default
+  `tun.tx_queue` to `5000`, and skips certificates in `pki.ca` and `pki.cert` from a newer Nebula with a warning instead
+  of failing. Building from source now needs Go 1.27.3.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) shows each enrolled host and its client version in the admin panel, and
+pushes config changes to hosts without a manual reload. Metrics and logs from the Nebula process work exactly as
+described here. See the [Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [`stats` reference](/docs/config/stats/)
+- [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/)
+- [Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)
+- [Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)
+- [Performance tuning and what to expect](/docs/guides/operations/performance-tuning/)
+- [Nebula releases](https://github.com/slackhq/nebula/releases) and the
+  [Nebula stats dashboard](https://grafana.com/grafana/dashboards/20965-nebula-stats/)

@@ -1,0 +1,238 @@
+---
+title: Running multiple lighthouses
+sidebar_label: Multiple lighthouses
+description:
+  How to run two or more Nebula lighthouses for high availability, how hosts use them, what happens when one fails, and
+  a worked two-lighthouse config.
+summary:
+  A single lighthouse is a single point of failure for host discovery, though not for traffic. This guide explains how
+  Nebula hosts use several lighthouses at once, how many to run and where, what a lighthouse outage does and does not
+  affect, and gives a complete two-lighthouse configuration.
+sidebar_position: 3
+---
+
+# Running multiple lighthouses
+
+A Nebula network works with one [lighthouse](/docs/config/lighthouse/), and many small networks never need more. But a
+lighthouse is how hosts find each other, and if the only one is down, a host that reboots or changes networks has nobody
+to ask. Running a second lighthouse removes that dependency with almost no extra configuration. This guide is for anyone
+who has a working single-lighthouse network and wants to know what changes when there are two or more.
+
+## What a lighthouse outage does and doesn't affect
+
+[Lighthouses don't carry traffic](/docs/guides/host-discovery/). They answer "where is host X?" and tell host X that
+someone is looking for it. So when a lighthouse goes down:
+
+- **Existing tunnels keep working.** Two hosts with an established tunnel talk to each other directly (or through a
+  [relay](/docs/config/relay/)). The lighthouse is not in the path.
+- **New tunnels between hosts that still have each other's addresses usually work.** Hosts cache the addresses they
+  learned, and entries in [`static_host_map`](/docs/config/static-host-map/) never needed a lighthouse at all.
+- **Discovery of anything new fails.** A host that just started, a laptop that moved to a different network, or a peer
+  whose NAT mapping expired has no way to publish or look up a fresh address. That's the outage you notice, and it gets
+  worse the longer it lasts.
+- **Hole punching stops.** The lighthouse is what tells the far side to punch back, so even a cached address can be
+  useless behind a NAT without it. [NAT traversal and firewalls](/docs/guides/nat-traversal/) explains why.
+
+With a second lighthouse, every one of those operations continues through the one that's still up. Hosts report to and
+query all of their lighthouses, not one at a time, so there is no failover to wait for and nothing to detect.
+
+## How hosts use several lighthouses
+
+A host lists each lighthouse in two places, and both are required:
+
+1. **[`static_host_map`](/docs/config/static-host-map/)**, mapping the lighthouse's overlay IP to its public address and
+   port. This is how the host reaches the lighthouse in the first place; you can't discover the discovery service.
+2. **[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts)**, listing the lighthouse's overlay IP. This marks
+   it as a lighthouse, so the host reports its addresses to it every
+   [`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) seconds and sends it queries.
+
+Every lighthouse in `lighthouse.hosts` gets every report and every query. When a host asks where a peer is, it asks all
+of its lighthouses and uses whatever answers come back. That is why there is no primary and no fallback order: all
+lighthouses are equal, and a host only needs one of them reachable to work normally.
+
+The flip side is that a lighthouse only knows about hosts that report to it. If some hosts list lighthouse A and others
+only list B, A can't help the second group find anything. List every lighthouse on every host unless you have a
+deliberate reason to partition them.
+
+## Lighthouses don't need to know each other
+
+Lighthouses don't synchronize or talk to one another. Each one builds its own table from the reports it receives, and
+since every host reports to all of them, each table is complete on its own. A lighthouse's config therefore has:
+
+- `lighthouse.am_lighthouse: true`
+- an empty `lighthouse.hosts` (the [config reference](/docs/config/lighthouse/#lighthousehosts) warns about this; a
+  lighthouse that lists another lighthouse will try to report to it, which is wrong)
+- usually an empty `static_host_map`, since nobody needs to be dialed from the lighthouse side
+
+Two lighthouses can still have a tunnel between them, for example so you can SSH from one to the other over the overlay,
+but they can't discover each other: lighthouses don't report, so neither appears in the other's table. If you want
+lighthouse-to-lighthouse tunnels, add each lighthouse to the other's `static_host_map` (but still not to
+`lighthouse.hosts`). Most deployments don't bother.
+
+## Each lighthouse is its own host
+
+A lighthouse is a normal Nebula host with `am_lighthouse: true`, and like any host it needs its own certificate with its
+own overlay IP. Never copy one lighthouse's certificate and key to another. Two hosts presenting the same certificate
+have the same overlay IP, and peers will keep overwriting each other's address for it, so neither lighthouse works
+reliably. Sign a second certificate with the same CA:
+
+```shell
+nebula-cert sign -name lighthouse2 -networks 192.168.100.2/24 -groups lighthouse
+```
+
+The `lighthouse` group isn't special to Nebula; it's just a convenient handle for
+[firewall rules](/docs/config/firewall/) on other hosts.
+
+## How many, and where
+
+Two is enough for nearly everyone. The failure you're guarding against is a VM going away, a provider having a bad day,
+or you rebooting a lighthouse for an upgrade. A third adds little unless you have a large network or want a lighthouse
+close to each region for faster discovery.
+
+Put them somewhere that doesn't share a failure mode: two VMs at the same provider in the same region both disappear
+when that region does. Different providers, or at least different regions, is the point. The lighthouses themselves are
+tiny; the [cloud lighthouse guide](/docs/guides/deploy/cloud-lighthouse/) covers choosing and configuring the VM. For a
+home network, one lighthouse on a small cloud VM and one on a [Raspberry Pi](/docs/platforms/raspberry-pi/) behind a
+port forward is a reasonable pair, as long as the port forward is stable.
+
+Each lighthouse needs a public IP that doesn't change and inbound UDP on its
+[`listen.port`](/docs/config/listen/#listenport). Use different public addresses, obviously, but the same port on both
+keeps firewall rules simple.
+
+## Lighthouses as relays
+
+A lighthouse can also be a [relay](/docs/config/relay/) by setting
+[`relay.am_relay: true`](/docs/config/relay/#relayam_relay) in its config, and because it already has a public address,
+it's the natural candidate. Hosts that want to be reachable through it list its overlay IP in
+[`relay.relays`](/docs/config/relay/#relayrelays).
+
+Keep in mind that this changes what the box does. A pure lighthouse handles a few small packets per host per minute. A
+relay forwards every byte of traffic for tunnels that couldn't be established directly, so its CPU and bandwidth now
+matter, and the provider's egress billing applies to relayed traffic. With two lighthouses that are both relays, hosts
+can list both in `relay.relays`, so a peer still has a relay to try when one is down.
+
+## Lighthouse DNS
+
+If you use [Lighthouse DNS](/docs/guides/using-lighthouse-dns/), each lighthouse that has
+[`lighthouse.serve_dns: true`](/docs/config/lighthouse/#lighthouseserve_dns) answers from its own table. Since every
+host reports to every lighthouse, both tables contain the same names, so you can enable it on both and configure clients
+with both as resolvers. A client's resolver library will fall through to the second server when the first doesn't
+answer, which gives DNS the same redundancy as discovery.
+
+Two caveats. Lighthouse DNS only knows about hosts that have reported to that lighthouse, so a lighthouse that has been
+up for a few seconds has an incomplete table until the next round of reports arrives (up to `lighthouse.interval`
+seconds). And if your `static_host_map` refers to lighthouses by DNS name, don't let that name depend on Lighthouse DNS;
+it has to resolve before Nebula is up.
+
+## A worked two-lighthouse configuration
+
+Overlay network `192.168.100.0/24`. Lighthouse 1 is `192.168.100.1` at public address `203.0.113.10`, lighthouse 2 is
+`192.168.100.2` at `198.51.100.20`, both on UDP 4242. Both are also relays.
+
+Lighthouse 1 (`/etc/nebula/config.yml` on that VM):
+
+```yaml
+pki:
+  ca: /etc/nebula/ca.crt
+  cert: /etc/nebula/lighthouse1.crt
+  key: /etc/nebula/lighthouse1.key
+
+static_host_map: {}
+
+lighthouse:
+  am_lighthouse: true
+  hosts: []
+
+listen:
+  host: '::'
+  port: 4242
+
+relay:
+  am_relay: true
+  use_relays: false
+
+punchy:
+  punch: true
+
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+```
+
+Lighthouse 2 is identical apart from its certificate and key paths. It does not mention lighthouse 1 anywhere.
+
+Every other host:
+
+```yaml
+pki:
+  ca: /etc/nebula/ca.crt
+  cert: /etc/nebula/host.crt
+  key: /etc/nebula/host.key
+
+static_host_map:
+  '192.168.100.1': ['203.0.113.10:4242']
+  '192.168.100.2': ['198.51.100.20:4242']
+
+lighthouse:
+  am_lighthouse: false
+  interval: 60
+  hosts:
+    - '192.168.100.1'
+    - '192.168.100.2'
+
+listen:
+  host: '::'
+  port: 0
+
+relay:
+  relays:
+    - 192.168.100.1
+    - 192.168.100.2
+  am_relay: false
+  use_relays: true
+
+punchy:
+  punch: true
+  respond: true
+
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+```
+
+To add a lighthouse to a running network, bring up the new lighthouse first, then add its two entries to each host's
+config and reload (`SIGHUP`, or `systemctl reload nebula`).
+[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) is reloadable, and since v1.11.0 changed
+[`static_host_map`](/docs/config/static-host-map/) addresses are applied on reload too, so hosts start reporting to the
+new lighthouse without a restart. Removing one is the reverse: take it out of host configs first, then shut it down.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), any host can be given the lighthouse role from the admin panel, and
+every other host's config is regenerated to include all lighthouses automatically. See the
+[Managed Nebula docs](https://docs.defined.net/) for details.
+
+:::
+
+## See also
+
+- [How hosts find each other](/docs/guides/host-discovery/)
+- [Running a lighthouse on a cloud VM](/docs/guides/deploy/cloud-lighthouse/)
+- [`lighthouse` reference](/docs/config/lighthouse/)
+- [`static_host_map` reference](/docs/config/static-host-map/)
+- [`relay` reference](/docs/config/relay/)
+- [Using Lighthouse DNS with Nebula](/docs/guides/using-lighthouse-dns/)

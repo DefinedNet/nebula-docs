@@ -1,0 +1,303 @@
+---
+title: Running a lighthouse on a cloud VM
+sidebar_label: Cloud lighthouse
+description:
+  How to run a Nebula lighthouse on a small VPS, with the firewall step for DigitalOcean, Hetzner, Oracle Cloud free
+  tier, AWS, Google Cloud, Azure, and Fly.io.
+summary:
+  A Nebula lighthouse needs a public IP, inbound UDP on one port, and almost no CPU or memory, so the cheapest VM any
+  provider sells is enough. This guide gives a provider-independent recipe and then the one provider-specific step,
+  opening UDP 4242, for each of the common clouds.
+sidebar_position: 4
+---
+
+# Running a lighthouse on a cloud VM
+
+Most Nebula networks have at least one host that is not behind a NAT: the [lighthouse](/docs/config/lighthouse/) that
+everyone else reports to. A cloud VM is the usual place for it, because the one thing a lighthouse needs, a public IP
+with inbound UDP, is what cloud VMs come with by default. This guide is for anyone setting that up. The recipe is the
+same everywhere; the only part that differs by provider is where the firewall rule lives, and that is what the
+per-provider sections cover.
+
+If you'd rather not pay for a VM at all, a [Raspberry Pi](/docs/platforms/raspberry-pi/) at home with a UDP port forward
+works too; see [the last section](#a-raspberry-pi-at-home-instead).
+
+## What a lighthouse needs
+
+- **A tiny VM.** A lighthouse handles a few small packets per host per minute. The smallest instance any provider offers
+  is more than enough, including shared-CPU and free-tier sizes. If the lighthouse is also a
+  [relay](/docs/config/relay/), traffic passes through it and bandwidth starts to matter; see
+  [Running multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/#lighthouses-as-relays).
+- **A public IPv4 address that doesn't change.** Hosts reach the lighthouse by the address in their
+  [`static_host_map`](/docs/config/static-host-map/). Most providers give a VM a stable public IPv4 for its lifetime; a
+  few hand out an address that changes when the VM is stopped and started, and those need a reserved or static address.
+  Several providers now charge a small monthly fee for IPv4, so check. IPv6 works too if every host has it, but IPv4 is
+  the safe default.
+- **Inbound UDP on one port**, `4242` by default ([`listen.port`](/docs/config/listen/#listenport)). Nothing else
+  inbound. Nebula uses UDP only, so a TCP rule does nothing.
+- **Outbound UDP** to anywhere, which every provider allows by default.
+
+Nothing about a lighthouse is sensitive beyond its own certificate and key: it sees which overlay IPs are at which
+public addresses, and it never sees traffic. Still, it's a machine on the internet, so treat SSH and updates the way you
+would for any server.
+
+## The generic recipe
+
+1. **Create the VM.** Pick the smallest size, a current Linux image (Debian, Ubuntu, or the provider's default), and the
+   region closest to most of your hosts. Latency to the lighthouse only affects how fast hosts discover each other, not
+   the tunnels themselves, so this matters less than it seems.
+2. **Open UDP 4242 in the provider's firewall.** Every provider puts a firewall in front of the VM (a security group,
+   network security group, cloud firewall, or security list). It almost always allows only SSH by default. The
+   per-provider sections below say where the rule goes.
+3. **Open UDP 4242 in the OS firewall**, if the image ships one enabled. Debian and Ubuntu images from most providers
+   don't; Oracle's and some others do.
+
+   ```shell
+   # ufw (Ubuntu and Debian, if enabled)
+   sudo ufw allow 4242/udp
+
+   # firewalld (Oracle Linux, Rocky, Alma, Fedora)
+   sudo firewall-cmd --permanent --add-port=4242/udp
+   sudo firewall-cmd --reload
+   ```
+
+4. **Install Nebula** on the VM following [Installing Nebula](/docs/install/). You need `nebula`; `nebula-cert` only
+   needs to be wherever you keep the CA, which should not be the lighthouse.
+5. **Issue the lighthouse a certificate** on the machine that holds the CA and copy it, its key, and `ca.crt` to
+   `/etc/nebula/` on the VM. Never copy `ca.key` there.
+
+   ```shell
+   nebula-cert sign -name lighthouse1 -networks 192.168.100.1/24
+   ```
+
+6. **Write the config.** The lighthouse-specific parts are `am_lighthouse: true`, an empty `lighthouse.hosts`, and a
+   fixed listen port. A lighthouse that doesn't need to be on the overlay itself can set `tun.disabled: true`, which
+   means it never needs root; leave the tun enabled if you want to SSH to it over Nebula or use it as a relay.
+
+   ```yaml
+   pki:
+     ca: /etc/nebula/ca.crt
+     cert: /etc/nebula/lighthouse1.crt
+     key: /etc/nebula/lighthouse1.key
+
+   static_host_map: {}
+
+   lighthouse:
+     am_lighthouse: true
+     hosts: []
+
+   listen:
+     host: '::'
+     port: 4242
+
+   punchy:
+     punch: true
+
+   firewall:
+     outbound:
+       - port: any
+         proto: any
+         host: any
+     inbound:
+       - port: any
+         proto: icmp
+         host: any
+   ```
+
+   Check it before going further:
+
+   ```shell
+   sudo nebula -test -config /etc/nebula/config.yml
+   ```
+
+7. **Run it as a service** so it survives reboots:
+   [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) has the systemd unit and the commands.
+8. **Point hosts at it.** On every other host, add the lighthouse to `static_host_map` using the VM's public IP, and to
+   `lighthouse.hosts` using its overlay IP:
+
+   ```yaml
+   static_host_map:
+     '192.168.100.1': ['203.0.113.10:4242']
+   lighthouse:
+     hosts:
+       - '192.168.100.1'
+   ```
+
+9. **Verify.** On the lighthouse, `sudo ss -lunp | grep 4242` should show Nebula listening. Start Nebula on another host
+   and watch the lighthouse's log (`journalctl -u nebula -f`); a `Handshake message received` line from the host's
+   public address means the firewall path is open. Then `ping 192.168.100.1` from the host. If the handshake never
+   appears, the provider firewall is the first suspect, the OS firewall the second;
+   [NAT traversal and firewalls](/docs/guides/nat-traversal/) covers what else can be in the way.
+
+## DigitalOcean
+
+The smallest **Basic** Droplet (1 vCPU, 1 GB) is plenty, and a Droplet keeps its public IPv4 for as long as it exists.
+
+DigitalOcean's optional Cloud Firewall sits in front of the Droplet; if you haven't attached one, nothing is filtered
+and only the OS firewall matters. To add the rule to a Cloud Firewall, from the
+[control panel](https://docs.digitalocean.com/products/networking/firewalls/how-to/configure-rules/): **Networking**,
+then **Firewalls**, open the firewall's **Rules** tab, and under **Inbound rules** click **Add inbound rule**. Set
+**Type** to **Custom**, **Protocol** to **UDP**, **Port** to `4242`, leave **Sources** at **All IPv4** and **All IPv6**,
+and save with **Add inbound rule**.
+
+## Hetzner Cloud
+
+The smallest shared-vCPU server type is enough. Make sure the server is created with a primary IPv4 address, since
+Hetzner lets you create IPv6-only servers at a lower price.
+
+Hetzner's firewall is also optional, and a server with no firewall attached accepts everything. Once a firewall _is_
+attached, it drops any inbound traffic no rule allows, so add the Nebula rule before you apply it to a server that
+already runs a lighthouse. In the
+[Hetzner Console](https://docs.hetzner.com/cloud/firewalls/getting-started/creating-a-firewall): open **Firewalls** from
+the project menu, select **Create Firewall**, add an inbound rule allowing UDP on port `4242` from any source, and under
+**Apply to** choose the server (or a label selector). Hetzner's docs for the exact rule fields are in the
+[firewall overview](https://docs.hetzner.com/cloud/firewalls/overview).
+
+## Oracle Cloud free tier
+
+Oracle's [Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
+tier includes up to two `VM.Standard.E2.1.Micro` instances (1 GB each) and an Ampere A1 allowance of 2 OCPUs and 12 GB
+that can be one or two instances; any of them is more than a lighthouse needs. Free-tier instances must be in your home
+region, and Oracle may reclaim idle ones, which a lighthouse with a handful of hosts could look like. The Micro shape
+includes one public IP.
+
+Oracle has two layers to open, and the second is the one people miss:
+
+1. **The VCN security list or network security group.** The default security list allows only SSH in. Add a stateful
+   ingress rule with source `0.0.0.0/0`, IP protocol UDP, and destination port `4242`, either to the security list of
+   the instance's subnet or to a network security group the instance is in. Oracle's
+   [security lists](https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/securitylists.htm) and
+   [security rules](https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/securityrules.htm) pages describe the
+   rule fields.
+2. **The instance's own firewall.** Oracle's platform images ship OS firewall rules that
+   [allow only SSH](https://docs.oracle.com/en-us/iaas/Content/Compute/References/images.htm), independent of the
+   security list. On Oracle Linux, open the port with firewalld:
+
+   ```shell
+   sudo firewall-cmd --permanent --add-port=4242/udp
+   sudo firewall-cmd --reload
+   ```
+
+   Oracle notes that `--reload` can hang instances with an iSCSI boot volume; their
+   [security rules page](https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/securityrules.htm) links the
+   workaround. On Oracle's Ubuntu images the equivalent rules are plain iptables rules, and Oracle warns not to use UFW
+   to edit them because it can leave the instance unbootable. Insert an
+   `iptables -I INPUT -p udp --dport 4242 -j ACCEPT` rule ahead of the image's final reject rule and persist it the same
+   way the image persists its existing rules; check how your image does that before relying on it across a reboot.
+
+## AWS
+
+Any current-generation `nano` or `micro` instance, such as a `t4g.nano`, is enough. An instance's auto-assigned public
+IPv4 changes when it is stopped and started, so allocate an **Elastic IP** and associate it with the instance if you
+ever intend to stop it. AWS bills public IPv4 addresses separately, Elastic or not, so expect a small monthly charge.
+
+The rule goes in the instance's security group. From the
+[VPC console](https://docs.aws.amazon.com/vpc/latest/userguide/working-with-security-group-rules.html): choose
+**Security groups**, select the group, and choose **Edit inbound rules**. Choose **Add rule**, set **Type** to **Custom
+UDP**, **Port range** to `4242`, and **Source** to **Anywhere-IPv4** (`0.0.0.0/0`), then **Save rules**. With the CLI:
+
+```shell
+aws ec2 authorize-security-group-ingress --group-id sg-0123456789abcdef0 \
+  --protocol udp --port 4242 --cidr 0.0.0.0/0
+```
+
+Default Amazon Linux, Debian, and Ubuntu AMIs have no OS firewall enabled.
+
+## Google Cloud
+
+An `e2-micro` is enough, and one `e2-micro` per month in `us-west1`, `us-central1`, or `us-east1` is covered by the
+[Free Tier](https://docs.cloud.google.com/free/docs/free-cloud-features) (external IP and egress are billed on their own
+terms; check the page). A VM's ephemeral external IP changes if the VM is stopped, so promote it to a static external IP
+address if you'll stop the VM.
+
+Firewall rules are per VPC network, not per VM, and apply to instances by target tag. In the
+[console](https://docs.cloud.google.com/firewall/docs/using-firewalls): go to **Firewall policies** and click **Create
+firewall rule**. Set **Direction of traffic** to ingress, **Action on match** to allow, **Targets** to **Specified
+target tags** with a tag you've given the lighthouse VM (or all instances in the network), **Source filter** to **IPv4
+ranges** with `0.0.0.0/0` in **Source IPv4 ranges**, and under **Protocols and ports** choose **Specified protocols and
+ports**, tick **UDP**, and enter `4242`. With `gcloud`:
+
+```shell
+gcloud compute firewall-rules create nebula-lighthouse \
+  --network=default --direction=INGRESS --action=allow \
+  --rules=udp:4242 --source-ranges=0.0.0.0/0 --target-tags=nebula-lighthouse
+```
+
+Google's Debian and Ubuntu images have no OS firewall enabled.
+
+## Azure
+
+The smallest B-series size is enough. When creating the VM, give it a public IP with a static assignment so it survives
+deallocation.
+
+The rule goes in the network security group attached to the VM's network interface or subnet. In the
+[portal](https://learn.microsoft.com/en-us/azure/virtual-network/manage-network-security-group): search for **Network
+security groups**, open the NSG, select **Inbound security rules**, and select **+ Add**. Set **Source** to **Any**,
+**Destination port ranges** to `4242`, **Protocol** to **UDP**, **Action** to **Allow**, give it a **Priority** lower
+than any deny rule (for example `310`) and a **Name**, then select **Add**. With the CLI:
+
+```shell
+az network nsg rule create --resource-group myResourceGroup --nsg-name myNSG \
+  --name nebula-lighthouse --priority 310 --protocol Udp \
+  --destination-port-ranges 4242 --access Allow --direction Inbound
+```
+
+Azure's Debian and Ubuntu images have no OS firewall enabled.
+
+## Fly.io
+
+Fly.io runs containers rather than VMs, and UDP works differently there, so the shape of the deployment changes. The
+Defined blog post [Deploy your lighthouse to Fly.io](https://www.defined.net/blog/deploy-your-lighthouse-to-fly-dot-io/)
+walks through it for a Managed Nebula lighthouse; the Fly-specific parts apply to open-source Nebula too:
+
+- **UDP needs a dedicated IPv4.** Fly's shared IPv4 and public IPv6 carry TCP only, so run `fly ips allocate-v4` and use
+  that address in `static_host_map`. The blog notes it costs about $2 a month at the time of writing.
+- **Bind to `fly-global-services`.** Fly requires UDP services to listen on that hostname rather than a wildcard, so set
+  [`listen.host: fly-global-services`](/docs/config/listen/#listenhost) in the lighthouse config.
+- **Same port inside and out.** Fly rewrites only the IP of UDP packets, so declare the service in `fly.toml` with
+  `protocol = "udp"` and `internal_port = 4242`, and keep `listen.port: 4242`.
+- **Packet size.** Fly's own [UDP docs](https://docs.fly.io/networking/udp-and-tcp) say to plan for roughly 1300 bytes
+  of usable UDP payload rather than 1500. A lighthouse's own packets are small, so this mostly matters if the lighthouse
+  is also a relay carrying full-size tunnel packets; lowering [`tun.mtu`](/docs/config/tun/#tunmtu) on the hosts
+  involved is the fix if relayed traffic through Fly fragments.
+
+For open-source Nebula you build a small image from [`nebulaoss/nebula`](/docs/guides/deploy/docker-and-kubernetes/)
+with the config, CA certificate, host certificate, and key, keeping the key in a Fly secret or a volume rather than in
+the image, and deploy it with `fly launch` and `fly deploy`. The blog post's `fly.toml` is the reference for the service
+block and the 256 MB shared-CPU machine size it uses.
+
+## A Raspberry Pi at home instead
+
+A lighthouse doesn't have to be in a cloud. A [Raspberry Pi](/docs/platforms/raspberry-pi/) or any always-on box at home
+works if your router forwards UDP 4242 to it and your ISP gives you a real public IPv4 address. The things that break
+it:
+
+- **CGNAT.** If your router's WAN address is in `100.64.0.0/10` or otherwise not what the internet sees, the port
+  forward goes nowhere. Some ISPs will move you to a public address on request.
+- **A changing public IP.** Use a dynamic DNS name in every host's `static_host_map`; Nebula re-resolves names on the
+  [`static_map.cadence`](/docs/config/static-map/#static_mapcadence) schedule.
+- **A random listen port.** Pin [`listen.port`](/docs/config/listen/#listenport) to the forwarded port, and if the
+  external port differs from the internal one, advertise the external one with
+  [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs).
+
+Pairing a home lighthouse with a cloud one is a cheap way to get
+[two lighthouses](/docs/guides/deploy/multiple-lighthouses/).
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) runs lighthouses as ordinary enrolled hosts: create the VM, open UDP 4242 as
+above, install `dnclient`, and set the host's role to lighthouse with its public IP in the admin panel. The
+[Fly.io post](https://www.defined.net/blog/deploy-your-lighthouse-to-fly-dot-io/) shows the full flow for one provider.
+
+:::
+
+## See also
+
+- [Running multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)
+- [Running Nebula in Docker, Kubernetes, and LXC](/docs/guides/deploy/docker-and-kubernetes/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [`lighthouse` reference](/docs/config/lighthouse/)
+- [Nebula on a Raspberry Pi](/docs/platforms/raspberry-pi/)

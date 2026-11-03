@@ -9,10 +9,22 @@ sidebar_position: 1
 
 # Nebula: Open source overlay networking
 
-Nebula is a self-hosted overlay networking tool designed to be fast, secure, and scalable. Connect any number of hosts
-with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
+Nebula is a self-hosted overlay network and mesh VPN designed to be fast, secure, and scalable. Connect any number of
+hosts with on-demand, encrypted tunnels that work across any IP networks and without opening firewall ports.
 
 [Download Nebula on GitHub](https://github.com/slackhq/nebula)
+
+## Start here
+
+- [Install Nebula](/docs/install/) on Linux, macOS, Windows, FreeBSD, Docker, or a phone.
+- [Quick start](/docs/guides/quick-start/): a certificate authority, a lighthouse, and two hosts in about 20 minutes.
+- [How Nebula works](/docs/how-nebula-works/) if you'd rather understand the pieces first.
+- [FAQ](/docs/faq/) for ports, coexistence with other VPNs, and what a lighthouse can and can't see.
+- Coming from another mesh VPN? See [Moving from Tailscale or Headscale](/docs/migrate/from-tailscale-or-headscale/), or
+  the comparisons with [Tailscale](https://www.defined.net/compare/nebula-vs-tailscale/),
+  [ZeroTier](https://www.defined.net/compare/nebula-vs-zerotier/),
+  [NetBird](https://www.defined.net/compare/nebula-vs-netbird/), and
+  [WireGuard](https://www.defined.net/compare/nebula-vs-wireguard/).
 
 :::tip[Looking for a hosted solution?]
 
@@ -95,6 +107,8 @@ network offered by cloud infrastructure providers.
 
 Inspired by a number of existing tools and projects, Nebula was created to make it much easier to design, deploy, and
 manage overlay networks that were highly performant, portable, and secure.
+[What is an overlay network?](/docs/concepts/overlay-networks/) goes deeper, and
+[How Nebula works](/docs/how-nebula-works/) shows how Nebula builds one.
 
 ## Technical details
 
@@ -106,7 +120,8 @@ Discovery nodes allow individual peers to find each other and optionally use UDP
 from behind most firewalls or NATs. Users can move data between nodes in any number of cloud service providers,
 datacenters, and endpoints, without needing to maintain a particular addressing scheme.
 
-Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration.
+Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration. See
+[Nebula's security model](/docs/concepts/security-model/) for the threat model and cryptography in detail.
 
 Nebula was created to provide a mechanism for groups hosts to communicate securely, even across the internet, while
 enabling expressive firewall definitions similar in style to cloud security groups.

@@ -1,11 +1,23 @@
 ---
 sidebar_position: 4
-description: Lighthouse configuration reference for Nebula mesh networking.
+description: >-
+  Lighthouse configuration reference for Nebula: am_lighthouse, hosts, serve_dns, allow lists, advertise_addrs, and
+  calculated_remotes.
+title: >-
+  lighthouse: Nebula config reference
+sidebar_label: lighthouse
 ---
 
 import { Pill } from '@components/Pill/Pill';
 
 # lighthouse
+
+A lighthouse is a Nebula host with a stable public address that every other host reports to. It keeps track of where
+each host can currently be reached and hands that information to peers that want to connect, which is what makes
+[NAT traversal](/docs/guides/nat-traversal/) work. It never carries your traffic. Every network needs at least one;
+[Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/) covers running more, and
+[Lighthouses](/docs/concepts/lighthouses/) explains the role in depth. The `lighthouse` section of the config controls
+both whether this host _is_ a lighthouse and which lighthouses it reports to.
 
 ```yml
 lighthouse:

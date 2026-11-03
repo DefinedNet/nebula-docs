@@ -1,0 +1,110 @@
+---
+title: What is an overlay network?
+sidebar_label: Overlay networks
+description:
+  What an overlay network is, how it differs from the underlay, familiar examples like VPNs and VXLAN, and how Nebula
+  builds one with a tun device and encrypted UDP.
+summary:
+  Overlay and underlay defined plainly, with examples you already use, followed by how Nebula builds an overlay, what
+  that buys you, and what it costs.
+sidebar_position: 1
+---
+
+# What is an overlay network?
+
+An overlay network is a virtual network built on top of another network. The hosts on it have their own addresses and
+talk to each other as if they were on one private LAN, while their packets actually travel, wrapped in other packets,
+across whatever physical networks and internet links sit in between. This page defines the terms, points at overlays you
+have probably used already, and explains how Nebula builds one and what that costs. It is background for
+[How Nebula works](/docs/how-nebula-works/).
+
+## Overlay and underlay
+
+The **underlay** is the network that really moves the bits: your LAN, your ISP, a cloud provider's VPC, the public
+internet. Underlay addresses are the ones routers understand, like `203.0.113.42`, and they are assigned by whoever runs
+that network.
+
+The **overlay** is the virtual network layered on top. Each host gets an overlay address, like `192.168.100.9`, that
+only means something to other members of the overlay. When a host sends a packet to an overlay address, overlay software
+on that host encapsulates it (wraps it inside an underlay packet addressed to the peer's underlay address), sends it
+across the underlay, and the peer's overlay software unwraps it and delivers it as if it had arrived on a local
+interface.
+
+The point is separation. Overlay addresses stay the same when the underlay changes, and overlay membership is defined by
+the overlay software, not by which physical network a host is plugged into.
+
+## Overlays you already use
+
+- **VPNs.** A VPN client gets a private address from the VPN and tunnels packets to a gateway over the internet. The VPN
+  is the overlay; the internet is the underlay.
+- **VXLAN in data centers.** Switches and hypervisors wrap layer 2 frames in UDP so that virtual machines on different
+  racks appear to share one Ethernet segment.
+- **Docker overlay networks.** Containers on different Docker hosts get addresses on one network, and Docker tunnels
+  their traffic between hosts (also with VXLAN).
+- **SSH tunnels.** A port forward over SSH is a tiny single-purpose overlay: a local port that is really a service on
+  the far end.
+- **Cloud VPCs.** The private addresses in a VPC are an overlay the cloud provider runs across its physical network,
+  which is why two accounts can both use `10.0.0.0/16` without conflict.
+
+## How Nebula builds one
+
+Nebula is overlay software for layer 3 (IP) traffic. On each host it does three things.
+
+**It creates a tun device with the host's overlay address.** The address comes from the host's certificate, not from a
+DHCP server or a config setting, so no host can pick a different one. The operating system routes packets for the
+overlay range into that interface, and Nebula reads them from there. See the [`tun`](/docs/config/tun/) reference.
+
+**It encapsulates packets in encrypted UDP on the underlay.** Each overlay packet is encrypted with keys negotiated in a
+per-peer handshake and sent as a UDP datagram to the peer's underlay address and port (default `4242`). Only the peer's
+Nebula process can decrypt it. There is no TCP mode. [Nebula's security model](/docs/concepts/security-model/) covers
+the cryptography.
+
+**It uses lighthouses to learn underlay addresses.** A host behind a NAT does not know its own public address, and a
+laptop's address changes as it moves. Hosts report to a [lighthouse](/docs/concepts/lighthouses/), which records the
+address it saw them come from and hands that out to peers that ask. Discovery is the part of an overlay that is specific
+to each tool, and it is the part that lets Nebula tunnels go directly between hosts rather than through a central
+gateway.
+
+## What the overlay gives you
+
+- **Stable addressing across providers and NATs.** A host keeps the same overlay address whether it is in a cloud VPC, a
+  home network behind CGNAT, or on a phone's cellular connection. Services, firewall rules, and DNS names can refer to
+  that address and never change.
+- **Encryption everywhere.** Everything that crosses the overlay is encrypted and authenticated, including traffic
+  between two hosts on the same physical LAN.
+- **Identity-based firewalling.** Because every packet arrives through a tunnel tied to a verified certificate, a host's
+  [firewall](/docs/config/firewall/) can allow or deny by the peer's name and groups rather than by whatever IP it
+  happens to have. See [Certificates, groups, and the firewall](/docs/concepts/certificates-and-groups/).
+- **No inbound ports on ordinary hosts.** Tunnels are built from the inside out, so laptops and servers behind NATs need
+  no port forwards. Only lighthouses and relays need to be reachable.
+
+## What it costs
+
+- **MTU overhead.** Encapsulation adds headers. Nebula's default tun MTU is 1300 bytes
+  ([`tun.mtu`](/docs/config/tun/#tunmtu)), chosen to fit inside a typical 1500-byte internet path after the UDP, IP, and
+  Nebula headers are added. Applications that send full-size packets get slightly more of them.
+- **A userspace hop.** Packets leave the kernel, pass through the `nebula` process for encryption, and go back to the
+  kernel as UDP. On most hardware this is fast enough not to matter; on small devices or very high-bandwidth links it is
+  the limiting factor. [Performance tuning](/docs/guides/operations/performance-tuning/) covers the knobs.
+- **UDP must be allowed.** Nebula has no TCP fallback. A network that blocks unknown outbound UDP blocks Nebula. See
+  [NAT traversal and firewalls](/docs/guides/nat-traversal/).
+- **Something has to be reachable.** At least one lighthouse needs a public IP and a fixed port. This is the one piece
+  of infrastructure a Nebula network cannot do without.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) runs the lighthouses and the certificate authority for you and generates
+each host's config, so the overlay is the same but the reachable infrastructure is Defined Networking's. The
+[Managed Nebula docs](https://docs.defined.net/) cover the hosted side.
+
+:::
+
+## See also
+
+- [Overlay network](https://www.defined.net/docs/glossary/overlay-network/) in the Defined Networking glossary
+- [How Nebula works](/docs/how-nebula-works/)
+- [Lighthouses](/docs/concepts/lighthouses/)
+- [`tun` reference](/docs/config/tun/)
+- [Introduction to Nebula](/docs/)

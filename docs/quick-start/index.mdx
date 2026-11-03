@@ -1,0 +1,331 @@
+---
+title: >-
+  Nebula quick start: set up a self-hosted mesh VPN
+sidebar_label: Quick start
+description: >-
+  Set up a self-hosted Nebula mesh VPN step by step: create a certificate authority, run a lighthouse, join a laptop and
+  a server, and start Nebula as a service on Linux.
+summary: >-
+  This guide walks you through setting up a small Nebula network for testing. The examples will need to be modified to
+  suit your particular environment.
+slug: /guides/quick-start
+sidebar_position: 3
+---
+
+# Nebula quick start: set up your first overlay network
+
+Nebula is a self-hosted mesh VPN. Every host gets a certificate, a lighthouse helps hosts find each other, and traffic
+flows directly between peers over encrypted UDP tunnels. By the end of this guide you'll have a lighthouse on a public
+IP and two hosts that can ping each other over the overlay, with Nebula running as a system service.
+
+You'll need about 20 minutes, a machine with a public IP (or a port forward) for the lighthouse, and the `nebula` and
+`nebula-cert` binaries. If you'd rather understand the moving parts first, read
+[How Nebula works](/docs/how-nebula-works/).
+
+## Components of a Nebula network
+
+### Lighthouse
+
+In Nebula, a lighthouse is a Nebula host that is responsible for keeping track of all of the other Nebula hosts, and
+helping them find each other within a Nebula network.
+
+### Certificate authority
+
+In its simplest form, a Nebula certificate authority (CA) consists of two files, a CA certificate, and an associated
+private key. A CA certificate is distributed to, and trusted by, every host on the network. The CA private key should
+not be distributed, and can be kept offline when not being used to add hosts to a Nebula network.
+
+### Hosts
+
+A Nebula host is simply any single node in the network, e.g. a server, laptop, phone, tablet. The certificate authority
+is used to sign keys for each host added to a Nebula network. A host certificate contains the name, IP address, group
+membership, and a number of other details about a host. Individual hosts cannot modify their own certificate, because
+doing so will invalidate it. This allows us to trust that a host cannot impersonate another host within a Nebula
+network. Each host will have its own private key, which is used to validate the identity of that host when Nebula
+tunnels are created.
+
+## Prerequisites
+
+This section will walk you through setting up a simple nebula network for testing. The examples will need to be modified
+to suit your particular environment.
+
+### Downloading Nebula
+
+You'll need `nebula-cert` on the machine where you create certificates and the `nebula` binary on every host. Most Linux
+distributions and Homebrew package both; otherwise grab the archive for your platform from the
+[releases page](https://github.com/slackhq/nebula/releases/latest) and extract it:
+
+```shell
+tar -xzf nebula-linux-amd64.tar.gz
+```
+
+[Install Nebula](/docs/install/) lists every package, the Windows and macOS builds, the mobile apps, the official Docker
+image, and how to build from source.
+
+### Creating your first certificate authority
+
+:::note
+
+Nebula offers built-in encryption of the CA private key since v1.7.0. If you do not plan to store the private key in
+encrypted storage (e.g. Ansible Vault or AWS Secrets Manager), it is recommended that you use the built-in encryption.
+
+To encrypt your Nebula private key, pass the `-encrypt` flag when generating the CA and you will be prompted for a
+passphrase. Keep it safe - you will be prompted for it each time you sign a host using the encrypted CA key.
+
+Nebula uses AES-256-GCM encryption with Argon2id for key derivation. The default Argon2 parameters are taken from the
+"FIRST RECOMMENDED" suggestion in the [Argon2 RFC](https://datatracker.ietf.org/doc/rfc9106/) (1 iteration, 4 lanes
+parallelism, 2 GiB RAM.) To select your own parameters, use the `-argon-iterations`, `-argon-parallelism`, and
+`-argon-memory` CLI flags.
+
+:::
+
+Nebula uses certificate authorities to identify individual hosts within a Nebula network. The very first step in
+creating your own Nebula network is to create a certificate authority for your organization. As you add new hosts to
+your Nebula network, your certificate authority is used to create credentials that prove a host should be trusted by
+your organization.
+
+```shell
+./nebula-cert ca -name "Myorganization, Inc"
+```
+
+This will create files named `ca.key` and `ca.cert` in the current directory. The `ca.key` file is the **most
+sensitive** file you'll create, because it is the key used to sign the certificates for individual nebula hosts. Please
+store this file somewhere safe, preferably with strong encryption.
+
+:::info
+
+By default, this CA will be created with a one-year expiration, and all certificates signed will be valid until one
+second before expiration of the CA. When they expire, every tunnel stops.
+
+Before you forget: set a reminder for a month before that date.
+[Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) explains how to check expiry, renew host
+certificates without downtime, and alert on it, and [Rotating a CA](/docs/guides/rotating-certificate-authority/) covers
+the authority itself. If you want a longer-lived test network, pass `-duration` as shown below.
+
+:::
+
+Pass `-duration XXhXXmXXs` to set a custom duration for the CA to be valid at creation, for example `-duration 17531h`
+would generate a CA valid for just under two years.
+
+## Building a Nebula network
+
+### Establishing a lighthouse
+
+Nebula lighthouses allow hosts to find each other, anywhere in the world. Lighthouses are the only hosts in a Nebula
+network whose IP addresses should not change. Running a lighthouse requires very few compute resources, and you can
+easily use the least expensive option from a cloud hosting provider. If you're not sure which provider to use, a number
+of us have used $5/mo [DigitalOcean](https://digitalocean.com) droplets as lighthouses.
+
+Once you have launched an instance, ensure that Nebula UDP traffic (default port udp/4242) can reach it over the
+internet and is not blocked by any inbound firewall.
+
+### Creating keys and certificates
+
+This assumes you have three hosts, which we will name `lighthouse1`, `laptop`, and `server`. You can name the hosts any
+way you'd like, including FQDN. You'll also need to choose the Nebula IP address for each host when generating its
+certificate. In this example, we are creating a Nebula network that uses the subnet `192.168.100.x/24`, and will assign
+IP addresses to each host from within this subnet. This example also demonstrates nebula groups, which can later be used
+to define traffic rules in a nebula network.
+
+```shell
+./nebula-cert sign -name "lighthouse1" -networks "192.168.100.1/24"
+./nebula-cert sign -name "laptop" -networks "192.168.100.5/24" -groups "laptop,ssh"
+./nebula-cert sign -name "server" -networks "192.168.100.9/24" -groups "servers"
+```
+
+:::note
+
+`-networks` replaced `-ip` in Nebula v1.10, when certificates gained IPv6 support. The old flag still works but is
+deprecated, so older tutorials that use `-ip` will still get you a valid certificate.
+
+:::
+
+:::info
+
+Without passing a `-duration XXhXXmXXs` flag, certificates will be valid up until one second before their signing CA
+expires.
+
+:::
+
+### Configuring Nebula
+
+_Note: For the following examples, we use the address 198.51.100.1 as the routable ip for a fictional lighthouse. You'll
+need to substitute the routable IP of your own lighthouse when creating your Nebula configuration files._
+
+#### Configuration files
+
+Download a copy of the nebula
+[example configuration](https://github.com/slackhq/nebula/blob/master/examples/config.yml). Make two separate copies of
+the example configuration file, one for your lighthouse named `config-lighthouse.yaml`, and one that for every
+non-lighthouse host, called `config.yaml`.
+
+```shell
+curl -o config.yml https://raw.githubusercontent.com/slackhq/nebula/master/examples/config.yml
+cp config.yml config-lighthouse.yaml
+cp config.yml config.yaml
+```
+
+#### Lighthouse configuration (`config-lighthouse.yaml`)
+
+On the lighthouse host, you'll need to ensure [`am_lighthouse: true`](/docs/config/lighthouse/#lighthouseam_lighthouse)
+is set. Generally, a lighthouse will not have any entries in its [`static_host_map`](/docs/config/static-host-map/),
+because all hosts will report themselves to a lighthouse. If you use multiple lighthouses, they do not generally need to
+know about each other. (For why lighthouses appear in every other host's
+[`static_host_map`](/docs/config/static-host-map/) but not their own, see
+[How hosts find each other](/docs/guides/host-discovery/).)
+
+```yaml
+static_host_map:
+
+lighthouse:
+  am_lighthouse: true
+```
+
+#### Host configuration (`config.yaml`)
+
+On the individual hosts, ensure the lighthouse is defined properly in the
+[`static_host_map`](/docs/config/static-host-map/) section, and is added to the
+[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) section.
+
+```yaml
+static_host_map:
+  '192.168.100.1': ['198.51.100.1:4242']
+
+lighthouse:
+  am_lighthouse: false
+  interval: 60
+  hosts:
+    - '192.168.100.1'
+```
+
+#### Firewall settings
+
+The example configuration file allows all outbound traffic but only allows specific connections in to each Nebula host.
+You should modify these settings to allow traffic to/from hosts within your network.
+
+```yaml
+firewall:
+  outbound:
+    # Allow all outbound traffic from this node
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    # Allow icmp between any nebula hosts
+    - port: any
+      proto: icmp
+      host: any
+```
+
+### Running Nebula
+
+With the configuration, certificate, and key files created, the last step is copying the appropriate files to each host
+and starting your Nebula network.
+
+#### Lighthouse
+
+1. Copy the `nebula` binary, along with the `config-lighthouse.yaml`, `ca.crt`, `lighthouse1.crt`, and `lighthouse1.key`
+   to your lighthouse. **DO NOT COPY `ca.key` TO YOUR LIGHTHOUSE.**
+
+2. SSH to your lighthouse.
+
+3. Create a directory named `/etc/nebula` on your lighthouse host.
+   ```shell
+   mkdir /etc/nebula
+   ```
+4. Move the configuration, certificates, and key into the appropriate directory.
+
+   _Note_: The example configuration assumes your host certificate and key are named `host.crt` and `host.key`, so
+   you'll need to rename some of the files when you move them to the appropriate directory.
+
+   ```shell
+   mv config-lighthouse.yaml /etc/nebula/config.yaml
+   mv ca.crt /etc/nebula/ca.crt
+   mv lighthouse.crt /etc/nebula/host.crt
+   mv lighthouse.key /etc/nebula/host.key
+   ```
+
+5. Start Nebula
+
+   ```shell
+   ./nebula -config /etc/nebula/config.yaml
+   ```
+
+#### Hosts
+
+_For this example, we are configuring the host created above, named `server`. Please substitute the correct file names
+as appropriate._
+
+1. Copy the `nebula` binary, along with the `config.yaml`, `ca.crt`, `server.crt`, and `server.key` to the host named
+   `server`. **DO NOT COPY THE `ca.key` FILE.**
+
+2. SSH to the host you've named `server`.
+
+3. Create a directory named `/etc/nebula` on the Nebula host.
+   ```shell
+   mkdir /etc/nebula
+   ```
+4. Move the configuration, certificates, and key into the appropriate directory.
+
+   _Note_: The example configuration assumes your host certificate and key are named `host.crt` and `host.key`, so
+   you'll need to rename some of the files when you move them to the appropriate directory.
+
+   ```shell
+   mv config.yaml /etc/nebula/config.yaml
+   mv ca.crt /etc/nebula/ca.crt
+   mv server.crt /etc/nebula/host.crt
+   mv server.key /etc/nebula/host.key
+   ```
+
+5. Start Nebula
+
+   ```shell
+   ./nebula -config /etc/nebula/config.yaml
+   ```
+
+#### Verifying it all works
+
+You should now be able to ping other hosts running nebula (assuming ICMP is allowed). To ping the example lighthouse,
+run:
+
+```shell
+ping 192.168.100.1
+```
+
+### Running Nebula as a service
+
+Running `./nebula` in a terminal is fine for a test, but a real host should start Nebula at boot and restart it if it
+exits. On Linux with systemd, install the unit shipped in the Nebula repository:
+
+```shell
+sudo curl -o /etc/systemd/system/nebula.service \
+  https://raw.githubusercontent.com/slackhq/nebula/master/examples/service_scripts/nebula.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now nebula
+```
+
+The unit expects the binary at `/usr/local/bin/nebula` and the config at `/etc/nebula/config.yml`, so either put the
+files there or edit `ExecStart`. Distribution packages ship their own unit. On Windows, the same binary installs itself
+as a service with `nebula.exe -service install -config C:\path\to\config.yml`.
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) covers systemd, launchd, the Windows service,
+and OpenWrt in detail.
+
+### Adding hosts to your network
+
+It is easy to add hosts to an established Nebula network. You simply create a new host certificate and key, and then
+follow the steps under Running Nebula. You will not need to make changes to your lighthouse or any other hosts when
+adding hosts to your network, and existing hosts will be able to find new ones via the lighthouse, automatically.
+
+## Where to go next
+
+- Hosts connect to the lighthouse but not to each other? Start with
+  [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/).
+- Open up traffic between hosts with [firewall rules](/docs/config/firewall/) and the groups you put in the
+  certificates.
+- Reach devices that can't run Nebula with [unsafe routes](/docs/guides/unsafe_routes/), or route all traffic through a
+  host with [Exit nodes and site-to-site](/docs/guides/networking/exit-nodes-and-site-to-site/).
+- Run it in a container with [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/), or on a
+  [Raspberry Pi](/docs/platforms/raspberry-pi/), [OpenWrt router](/docs/platforms/openwrt/), or
+  [phone](/docs/platforms/mobile/).
+- Add a second [lighthouse](/docs/guides/deploy/multiple-lighthouses/) so the network survives one going away.

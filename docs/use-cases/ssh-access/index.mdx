@@ -1,0 +1,136 @@
+---
+title: SSH access to a fleet over Nebula
+sidebar_label: SSH access
+description: >-
+  Use Nebula to SSH into servers with no public IP and no bastion: bind sshd to the overlay, allow tcp/22 from an admin
+  group, and address hosts by overlay IP or DNS name.
+summary: >-
+  Replace a jump host with certificate-gated SSH over the overlay. Covers sshd binding, the Nebula firewall rule, client
+  configuration, how this differs from Nebula's built-in debug console, and auditing.
+sidebar_position: 4
+---
+
+# SSH access to a fleet over Nebula
+
+This page is for operators who SSH into a set of machines (cloud VMs, on-prem servers, a few Raspberry Pis) and would
+like to stop exposing port 22 to the internet and stop maintaining a bastion. With Nebula, every server has a private
+overlay address, only hosts whose certificate carries the right group can open a connection to port 22, and nothing
+inbound is open on the public interface.
+
+It assumes a working overlay ([quick start](/docs/guides/quick-start/)) and a certificate for each server and each
+administrator's workstation.
+
+## Keep port 22 off the underlay
+
+Once Nebula is on a server, the public interface no longer needs to accept SSH. Two ways to do that:
+
+- **Bind sshd to the overlay address only.** In `sshd_config`, set `ListenAddress` to the host's Nebula address. The tun
+  interface must exist before sshd starts, so on systemd hosts order the `ssh` unit after `nebula.service` (a drop-in
+  with `After=nebula.service` and `Wants=nebula.service`) or sshd fails to bind at boot. Keep a second `ListenAddress`
+  on a LAN or console address until you have confirmed the overlay path works.
+- **Firewall port 22 on the underlay.** Leave sshd listening everywhere and drop inbound tcp/22 on the public interface
+  with the host firewall or the cloud security group, allowing it only on the Nebula interface (`nebula1` by default,
+  see [`tun.dev`](/docs/config/tun/#tundev)). This is easier to roll out to an existing fleet.
+
+Either way, test from a workstation over the overlay before you close the old path.
+
+## Allow tcp/22 from an admin group
+
+Sign administrators' workstations with a group such as `ssh` or `admin`, and on every server allow port 22 from that
+group:
+
+```yaml
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+
+    - port: 22
+      proto: tcp
+      group: admin
+```
+
+A server signed with no `admin` group cannot SSH to other servers even though it is on the overlay, which is usually
+what you want. Use `groups` (plural) when a connection should require several groups at once, for example `admin` and
+`prod`. The rule is reloadable, so you can tighten it on a running host. See the
+[`firewall` reference](/docs/config/firewall/) and [Certificates and groups](/docs/concepts/certificates-and-groups/).
+
+Because the Nebula firewall decides based on the peer's certificate, an attacker who steals an SSH key but has no Nebula
+certificate cannot even reach the port. You still want key-only SSH authentication; Nebula gates the network path, not
+the login.
+
+## Client configuration
+
+Address servers by overlay IP, or by name if you run [lighthouse DNS](/docs/guides/using-lighthouse-dns/) or have put
+the overlay addresses in a resolver ([DNS for Nebula hosts](/docs/guides/networking/dns/)). An SSH client config keeps
+it tidy:
+
+```text
+Host web01
+  HostName 192.168.100.11
+  User deploy
+
+Host *.nebula
+  User deploy
+  IdentityFile ~/.ssh/id_ed25519_fleet
+```
+
+The second block matches names your resolver answers for, such as `db01.nebula`. On the servers, you can restrict
+settings to connections that arrive over the overlay with a `Match` block in `sshd_config`, for example
+`Match Address 192.168.100.0/24`, which is a convenient place to allow a deploy user only from the overlay.
+
+## Replacing a bastion
+
+A jump host exists because servers have no public address and you need one machine that does. On the overlay every
+server is reachable from an admin workstation directly, so the bastion has nothing left to do: remove `ProxyJump` from
+client configs, close the bastion's public port, and retire it. If some servers sit behind a NAT that defeats hole
+punching, add a [relay](/docs/concepts/relays/) rather than keeping the bastion; the relay forwards encrypted packets
+and never sees the SSH session. Hosts with no public IP at all (home servers, servers behind CGNAT, lab machines) work
+the same way.
+
+For a fleet, deliver certificates and config with your configuration management ([Ansible](/docs/platforms/ansible/),
+[NixOS](/docs/platforms/nixos/)) and keep the CA key on a signing host that is not part of the network
+([Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)).
+
+## This is not Nebula's built-in sshd
+
+Nebula has its own [`sshd`](/docs/config/sshd/) setting. It is a debug console for the Nebula process, reached with an
+SSH client, that prints tunnels, remotes, and firewall state and lets you tweak some runtime settings. It is not a
+shell, it cannot run commands on the host, and it refuses to listen on port 22. Keep it bound to localhost or the
+overlay address and treat it as a diagnostic tool; see
+[Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/). Everything else on this page is about the
+operating system's OpenSSH server.
+
+## Auditing
+
+Two logs cover an SSH session over Nebula. Nebula logs every handshake with the peer's certificate name and overlay
+address, and `Handshake message received` lines show whether the tunnel was direct or relayed
+([Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)). The host's sshd logs the login itself: user, key
+fingerprint, and source address, which is the peer's overlay address. Together they tell you which certificate opened a
+tunnel and which SSH key used it. [Monitoring and upgrades](/docs/guides/operations/monitoring-and-upgrades/) covers
+shipping Nebula's logs and metrics somewhere central.
+
+## Managed Nebula
+
+:::note
+
+In [Managed Nebula](https://admin.defined.net), roles take the place of the `admin` group and the tcp/22 rule is written
+once in the admin panel and applied to every host with the matching tag. Hosts are enrolled with a code instead of a
+signed certificate.
+
+:::
+
+## See also
+
+- [`firewall` reference](/docs/config/firewall/)
+- [`sshd` reference](/docs/config/sshd/) (the debug console, not OpenSSH)
+- [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/)
+- [Using lighthouse DNS](/docs/guides/using-lighthouse-dns/)
+- [Connecting CI runners to private infrastructure](/docs/use-cases/ci-runners/)
+- [Nebula FAQ](/docs/faq/)

@@ -1,0 +1,176 @@
+---
+title: Remote access to your homelab with Nebula
+sidebar_label: Homelab remote access
+description: >-
+  Reach a home server from a roaming laptop and phone with Nebula, without port forwarding or exposing anything to the
+  internet, even behind CGNAT.
+summary: >-
+  A plan for the most common Nebula deployment: a home server behind a consumer router, a laptop and a phone that move
+  around, and a cheap lighthouse that lets them find each other.
+sidebar_position: 1
+---
+
+# Remote access to your homelab with Nebula
+
+This page is for the person with a server at home, a laptop in a coffee shop, and a phone, who wants all three on one
+private network without forwarding ports or putting a login page on the internet. It is a plan, not a tutorial: each
+step links to the guide that does the work.
+
+The scenario: a home server behind a consumer router (possibly behind carrier-grade NAT), a laptop and a phone that roam
+between networks, and either a $5 cloud VPS or a Raspberry Pi acting as the lighthouse.
+
+## How it fits together
+
+Every device runs Nebula with a certificate you signed. The lighthouse is the one host with a fixed public address; it
+tells the others where to find each other and then gets out of the way. Once the laptop and the server have each other's
+addresses, traffic flows directly between them through UDP hole punching, encrypted end to end. Nothing on the home
+router is opened for the server itself. If you are new to the pieces, read [How Nebula works](/docs/how-nebula-works/)
+first.
+
+## Step 1: Place the lighthouse
+
+The lighthouse must be reachable at a stable public IP on UDP 4242. Where it lives depends on your home connection:
+
+- **You have a real public IPv4 address** (your router's WAN address matches what a "what is my IP" site shows). A
+  Raspberry Pi at home works. Forward UDP 4242 on the router to the Pi, pin
+  [`listen.port`](/docs/config/listen/#listenport) to `4242` so the forward has a stable target, and set
+  [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) to the public address. Use a
+  dynamic DNS name in other hosts' `static_host_map` if the address changes.
+  [Raspberry Pi](/docs/platforms/raspberry-pi/) covers the install.
+- **You are behind CGNAT** (the WAN address is in `100.64.0.0/10` or otherwise differs from your public address). A port
+  forward cannot help, because the ISP's NAT sits in front of your router. Put the lighthouse on the cheapest cloud VM
+  you can find; it needs almost no CPU or bandwidth. [Cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/) walks
+  through a VPS, and [NAT types](/docs/concepts/nat-types/) explains why CGNAT is the hard case.
+
+A cloud lighthouse is the safer default either way. It stays up when your home internet does not, and it can double as a
+relay (see [behind CGNAT](#if-you-are-behind-cgnat) below).
+
+## Step 2: Certificates and groups
+
+Create a CA on a machine that is not the server (your laptop is fine; keep `ca.key` off the network). Pick an overlay
+range that does not overlap your LAN; `192.168.100.0/24` is the convention in these docs. Sign one certificate per
+device with groups that describe its role:
+
+```shell
+nebula-cert ca -name "homelab" -encrypt
+nebula-cert sign -name "lighthouse" -networks "192.168.100.1/24"
+nebula-cert sign -name "server" -networks "192.168.100.10/24" -groups "home"
+nebula-cert sign -name "laptop" -networks "192.168.100.20/24" -groups "home,admin"
+nebula-cert sign -name "phone" -networks "192.168.100.21/24" -groups "home,admin"
+```
+
+Two groups are enough to start. `home` means "a device of mine"; `admin` means "allowed to manage the server". The phone
+can generate its own key pair in Mobile Nebula so you only sign its public key
+([Signing without a key](/docs/guides/sign-certificates-with-public-keys/)). The
+[quick start](/docs/guides/quick-start/) has the config files;
+[Certificates and groups](/docs/concepts/certificates-and-groups/) explains what goes in a cert.
+
+## Step 3: Firewall rules on the server
+
+Nebula's firewall is on each host and is default deny. On the server, allow only what `admin` devices need:
+
+```yaml
+firewall:
+  outbound:
+    - port: any
+      proto: any
+      host: any
+
+  inbound:
+    - port: any
+      proto: icmp
+      host: any
+
+    - port: 22
+      proto: tcp
+      group: admin
+
+    - port: 443
+      proto: tcp
+      group: home
+```
+
+With this, every device of yours can reach the web service on 443 and ping the server, but only `admin` devices can SSH.
+A guest you later sign with just `home` cannot reach port 22 at all. See the
+[`firewall` reference](/docs/config/firewall/) for `groups` (all listed groups required), `host`, and `cidr` matching.
+
+## Step 4: Reach the rest of the LAN
+
+Printers, a NAS that cannot run Nebula, or a router admin page live on the LAN, not on the overlay. Make the server a
+gateway for them with an unsafe route. Re-sign its certificate with the LAN subnet, enable IP forwarding and NAT on the
+server, add a firewall rule with `local_cidr` for the LAN, and add `unsafe_routes` on the laptop and phone:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: 192.168.1.0/24
+      via: 192.168.100.10
+```
+
+[Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) is the full walkthrough, including the
+`iptables`, `nftables`, and `ufw` rules. If a device on the LAN is a router or NAS, it may be able to run Nebula itself
+instead: see [OpenWrt](/docs/platforms/openwrt/), [pfSense and OPNsense](/docs/platforms/pfsense-and-opnsense/), and
+[NAS](/docs/platforms/nas/).
+
+## Step 5: The phone
+
+Install Mobile Nebula ([iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936),
+[Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula)). The app generates its own key,
+shows you the public key to sign, and takes the CA certificate, the signed host certificate, and the lighthouse address.
+Add the same unsafe route under _Configuration_ → _Advanced_ → _Unsafe routes_ if you want LAN access.
+[Mobile](/docs/platforms/mobile/) has the details and the always-on options.
+
+## If you are behind CGNAT
+
+Hole punching needs at least one side to be behind a NAT that reuses mappings predictably. CGNAT often is not, so a
+laptop on hotel Wi-Fi and a server behind CGNAT may never reach each other directly. The fix is a relay: a host with a
+public address that forwards packets between them, still encrypted end to end. The cloud lighthouse is the natural
+candidate. On it:
+
+```yaml
+relay:
+  am_relay: true
+```
+
+And on the server (the host that is hard to reach), list it:
+
+```yaml
+relay:
+  relays:
+    - 192.168.100.1
+  use_relays: true
+```
+
+Expect somewhat higher latency and throughput bounded by the VPS's bandwidth. Also enable
+[`punchy.punch`](/docs/config/punchy/#punchypunch) and [`punchy.respond`](/docs/config/punchy/#punchyrespond) on the
+server and laptop; they rescue many setups before a relay is needed.
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) explains the behaviors, [Relays](/docs/concepts/relays/) the
+trade-offs, and [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/) how to tell a
+direct tunnel from a relayed one.
+
+## Keeping it running
+
+Run Nebula as a service on the server and lighthouse
+([Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)), and set a reminder before the CA expires;
+the default is one year and every tunnel stops when it does
+([Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)). Give hosts names you will recognize and
+turn on [lighthouse DNS](/docs/guides/using-lighthouse-dns/) so `ssh server` works without remembering addresses.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) hosts the lighthouse and relay for you, signs certificates when you enroll a
+device, and pushes firewall rules from an admin panel. The free tier covers a homelab-sized network. The overlay works
+the same way; you skip the CA and the config files.
+
+:::
+
+## See also
+
+- [Nebula quick start](/docs/guides/quick-start/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Reaching Plex, Jellyfin, and other home services remotely](/docs/use-cases/media-servers/)
+- [SSH access to a fleet over Nebula](/docs/use-cases/ssh-access/)
+- [Nebula FAQ](/docs/faq/)

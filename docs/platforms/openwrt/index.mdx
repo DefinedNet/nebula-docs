@@ -1,0 +1,203 @@
+---
+title: Nebula on OpenWrt
+sidebar_label: OpenWrt
+description:
+  Install Nebula on an OpenWrt router from the official packages, run it as a service or as a LuCI network interface,
+  assign it a firewall zone, and route your LAN over it.
+summary:
+  OpenWrt packages Nebula as nebula, nebula-cert, nebula-proto, nebula-service, and luci-proto-nebula. This page shows
+  both ways to run it on a router, where the config lives, how to put the tunnel in a firewall zone, and how to make the
+  router a gateway for the whole LAN.
+sidebar_position: 2
+---
+
+# Nebula on OpenWrt
+
+Running Nebula on the router itself means every device on the LAN can be reached from the overlay without installing
+anything on them, and the router can join the mesh as a host, a lighthouse, or a [relay](/docs/config/relay/). OpenWrt
+carries Nebula in its package feeds, with an init script and a `netifd` protocol handler so the tunnel can be managed
+like any other interface.
+
+The packages are maintained in the OpenWrt packages feed, and the most complete documentation for them is
+[stangri's OpenWrt Nebula page](https://docs.mossdef.org/nebula), a third-party site that this page draws on. The
+package sources are in the [openwrt/packages repository](https://github.com/openwrt/packages/tree/master/net/nebula).
+
+## Before you start
+
+- **Flash space.** Nebula is a Go binary and is large by OpenWrt standards. Check free space on the overlay with
+  `df -h /overlay` before installing; routers with 16 MB of flash are usually too small. The packages exist for every
+  architecture OpenWrt builds Go for, including MIPS.
+- **A matching release.** Install packages from the release your firmware came from. If `opkg` can't find
+  `nebula-proto`, the firmware is probably an old snapshot; flash a current release or snapshot image.
+- **Certificates.** Sign the router's certificate on whichever machine holds your CA, as in the
+  [quick start](/docs/guides/quick-start/). You only need `nebula-cert` on the router if you want to sign there.
+
+## Packages
+
+| Package             | What it provides                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `nebula`            | The `nebula` binary (installed as `/usr/sbin/nebula`). Pulls in `kmod-tun`. Required for everything. |
+| `nebula-cert`       | The `nebula-cert` binary. Only needed to create or sign certificates on the router.                  |
+| `nebula-service`    | An `init.d` script that starts one Nebula instance per `.yml` file in `/etc/nebula/`.                |
+| `nebula-proto`      | A `netifd` protocol handler so a Nebula tunnel can be a named interface in `/etc/config/network`.    |
+| `luci-proto-nebula` | LuCI support for the `nebula` protocol, so the interface can be created and edited in the web UI.    |
+
+Install with `opkg` (on OpenWrt versions that have moved to `apk`, the package names are the same):
+
+```shell
+opkg update
+opkg install nebula nebula-service      # service style, or
+opkg install nebula nebula-proto luci-proto-nebula   # interface style
+```
+
+Pick one of the two styles below. Both read a standard Nebula `config.yml`; the difference is who starts the process and
+whether OpenWrt knows about the tunnel as an interface.
+
+## Option 1: run it as a service
+
+`nebula-service` is the simpler choice when the router is just a host or lighthouse and you don't need to reference the
+tunnel in the firewall or routing config. Put the config and certificates in `/etc/nebula/`:
+
+```text
+/etc/nebula/config.yml
+/etc/nebula/ca.crt
+/etc/nebula/host.crt
+/etc/nebula/host.key
+```
+
+Then enable and start it:
+
+```shell
+/etc/init.d/nebula enable
+/etc/init.d/nebula start
+logread -e nebula
+```
+
+The script starts one instance for every `*.yml` in `/etc/nebula/`, so you can run two networks by dropping in two
+files. When an instance starts, the script registers a firewall rule through `procd` that accepts inbound UDP on the
+port it finds in that file's `listen.port` (4242 if the key is absent), from any zone. That is what a lighthouse or
+relay on the router needs; for an ordinary host it's harmless. The script's YAML parser is a simple one, so keep
+`listen.host` and `listen.port` as plain `key: value` lines at the top level of the `listen` section.
+
+## Option 2: run it as a network interface
+
+`nebula-proto` registers a `nebula` protocol with `netifd`. A Nebula tunnel then becomes an interface you can put in a
+firewall zone, show in LuCI, and reference from other config, which is what you want when the router is a gateway for
+the LAN. After installing `nebula-proto`, reboot once so `netifd` picks up the new protocol.
+
+Add an interface to `/etc/config/network`:
+
+```text
+config interface 'nebula1'
+	option proto 'nebula'
+	option config_file '/etc/nebula/config1.yml'
+```
+
+Two rules the protocol handler enforces:
+
+- The interface name must match [`tun.dev`](/docs/config/tun/#tundev) in the referenced config file (`nebula1` above).
+  It refuses to start otherwise.
+- The config file must exist and be non-empty; the handler logs `Config file not found or empty!` if not.
+
+Bring it up with `ifup nebula1` (or `/etc/init.d/network reload`). The handler starts Nebula, waits for the tunnel,
+imports its addresses into `netifd`, and, like the service, opens the UDP listen port in the firewall. With
+`luci-proto-nebula` installed, the same interface can be created in LuCI's interface editor by choosing the Nebula
+protocol and pointing it at the config file; the fields map to the two options above.
+
+## Firewall zones
+
+Whichever style you use, decide what the tunnel is allowed to talk to. With the interface style, add the interface to a
+zone in `/etc/config/firewall`. A dedicated zone keeps the rules readable:
+
+```text
+config zone
+	option name 'nebula'
+	option network 'nebula1'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config forwarding
+	option src 'nebula'
+	option dest 'lan'
+
+config forwarding
+	option src 'lan'
+	option dest 'nebula'
+```
+
+`input ACCEPT` lets overlay hosts reach services on the router itself (LuCI, SSH, DNS); tighten it with rules if you
+only want some. The two `forwarding` sections let overlay hosts into the LAN and LAN devices out to the overlay. There's
+no need for `masq` on this zone: the router is already the LAN's default gateway, so replies from LAN devices come back
+through it without NAT. Nebula's own [firewall](/docs/config/firewall/) still applies on top of this, so a remote host
+also needs a matching inbound rule in the router's `config.yml` (see below). Reload with `/etc/init.d/firewall reload`.
+The syntax is covered in the
+[OpenWrt firewall configuration guide](https://openwrt.org/docs/guide-user/firewall/firewall_configuration).
+
+With the service style there is no interface for the zone to reference, so either switch to the interface style or
+manage the tunnel with your own `nft` rules.
+
+## The router as a gateway for the LAN
+
+This is the OpenWrt version of [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/), and it is
+simpler than on a host inside the LAN because forwarding and the return path already exist on a router.
+
+1. Sign the router's certificate with the LAN subnet it will route for:
+
+   ```shell
+   nebula-cert sign -name router -networks 192.168.100.2/24 -unsafe-networks 192.168.1.0/24
+   ```
+
+2. In the router's `config.yml`, allow the traffic in. Rules for routed traffic must set `local_cidr`:
+
+   ```yaml
+   firewall:
+     inbound:
+       - port: any
+         proto: any
+         host: any
+         local_cidr: 192.168.1.0/24
+   ```
+
+3. Use the interface style and the zone forwarding from the previous section, so `nebula` to `lan` is allowed.
+
+4. On every remote host that should reach the LAN, add the route:
+
+   ```yaml
+   tun:
+     unsafe_routes:
+       - route: 192.168.1.0/24
+         via: 192.168.100.2
+   ```
+
+   Mobile Nebula has the same setting under the site's advanced configuration.
+
+Remote hosts can now reach `192.168.1.x` addresses directly. If the overlay range and your LAN range overlap with
+networks your remote users sit on (another `192.168.1.0/24` at a coffee shop, say), the route won't work from there;
+pick a less common LAN range if you can.
+
+## A lighthouse on the router
+
+A router with a public WAN address can run a lighthouse. Set
+[`lighthouse.am_lighthouse: true`](/docs/config/lighthouse/#lighthouseam_lighthouse) and pin
+[`listen.port`](/docs/config/listen/#listenport) to `4242`. The service or protocol handler opens that UDP port in the
+firewall for you, so no manual WAN rule is required. If the WAN address is itself behind carrier-grade NAT, the router
+can't be a lighthouse; use a [cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/) and keep the router as a host.
+
+## Troubleshooting
+
+- `logread -e nebula` shows Nebula's own log lines and the protocol handler's messages.
+- `ip addr show nebula1` and `ip route` confirm the tunnel is up and that routes for `unsafe_routes` exist.
+- If the tunnel starts but nothing can connect, check both firewalls: the OpenWrt zone
+  (`nft list ruleset | grep nebula`) and Nebula's inbound rules.
+  [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/) walks through the rest.
+- Config changes need a restart: `/etc/init.d/nebula restart` or `ifup nebula1`.
+
+## See also
+
+- [stangri's OpenWrt Nebula documentation](https://docs.mossdef.org/nebula), the source for the package details above
+- [Nebula packages in openwrt/packages](https://github.com/openwrt/packages/tree/master/net/nebula)
+- [OpenWrt firewall configuration](https://openwrt.org/docs/guide-user/firewall/firewall_configuration)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Exit nodes and site-to-site](/docs/guides/networking/exit-nodes-and-site-to-site/)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)

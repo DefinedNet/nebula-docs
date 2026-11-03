@@ -1,6 +1,6 @@
 {
   "label": "Security bulletins",
-  "position": 3,
+  "position": 12,
   "link": {
     "type": "generated-index",
     "description": "Security bulletins for the Nebula overlay networking tool.",

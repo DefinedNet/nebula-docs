@@ -1,0 +1,137 @@
+---
+title: Connecting CI runners to private infrastructure with Nebula
+sidebar_label: CI runners
+description:
+  Give GitHub Actions or GitLab self-hosted runners access to private services over Nebula with short-lived
+  certificates, a locked-down ci group, and no inbound exposure.
+summary:
+  A self-hosted runner runs Nebula as a service and reaches internal services over the overlay. Covers short-lived
+  certificates for ephemeral runners, firewall rules, container versus host placement, and keeping the CA key away from
+  runners.
+sidebar_position: 5
+---
+
+# Connecting CI runners to private infrastructure with Nebula
+
+This page is for teams whose CI jobs need to reach something private: a staging database, an internal package registry,
+a Kubernetes API, a deploy target with no public address. A self-hosted runner (GitHub Actions or GitLab) with Nebula on
+it can reach those services over the overlay, and the services can allow exactly that runner and nothing else.
+
+It assumes an existing overlay with a lighthouse and a signing host. Nothing here depends on runner-specific flags
+beyond what the runner vendors document; links to those docs are below.
+
+## How it fits together
+
+A self-hosted runner only ever makes outbound connections to GitHub or GitLab to pick up jobs, which is why it can live
+on a private network. Add Nebula and it also has an outbound path to your overlay. The private services run Nebula too
+(or sit behind a gateway with an [unsafe route](/docs/guides/unsafe_routes/)) and carry firewall rules that admit the
+`ci` group on the ports a job needs. Nothing is opened inbound anywhere; the runner, the services, and the lighthouse
+are all reached the way every Nebula host is.
+
+- GitHub:
+  [About self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners)
+  and the [self-hosted runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners),
+  which lists the hosts a runner must reach over outbound HTTPS.
+- GitLab: [GitLab Runner](https://docs.gitlab.com/runner/), with [install](https://docs.gitlab.com/runner/install/),
+  [register](https://docs.gitlab.com/runner/register/), and [executors](https://docs.gitlab.com/runner/executors/).
+
+## Run Nebula on the runner
+
+On a long-lived runner host, install Nebula as a service exactly as on any server
+([Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)). Jobs then see the overlay the way any
+process on the host does: `psql -h 192.168.100.40` works from a job step with no extra configuration.
+
+Where the runner executes jobs in containers (GitHub's container jobs, GitLab's Docker or Kubernetes executors), choose
+one of:
+
+- **Nebula on the runner host.** Containers share the host's network path to the overlay as long as they can route to
+  it, which is the default for Docker's bridge network. One certificate per runner host. Simplest.
+- **Nebula inside the job or runner container.** Needed when the host is not yours (a managed Kubernetes node pool) or
+  when each job must have its own identity. The container needs `/dev/net/tun` and `NET_ADMIN`; the official image is
+  `nebulaoss/nebula`. [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/) covers both the container and
+  a sidecar in a pod.
+
+## Short-lived certificates for ephemeral runners
+
+Autoscaled runners are created for one job and destroyed. Both vendors support this directly: GitHub registers a runner
+as ephemeral with the `--ephemeral` option to its `config.sh` and de-registers it after one job, and GitLab's
+autoscaling executors create instances per job. A certificate that lasts a year on a machine that lives for ten minutes
+is a liability, so sign for hours instead.
+
+Generate the key on the runner at provision time so the private key never leaves it, and sign only the public key on
+your signing host:
+
+```shell
+# on the runner, at provision time
+nebula-cert keygen -out-key host.key -out-pub host.pub
+
+# on the signing host, after receiving host.pub
+nebula-cert sign -in-pub host.pub -name "runner-7f3a" -networks "192.168.100.213/24" -groups "ci" -duration 4h
+```
+
+`-duration 4h` gives the certificate four hours; pick a value longer than your slowest job plus provisioning time. Pass
+the certificate back to the runner along with `ca.crt` and the config. Automate the exchange however you provision
+runners (cloud-init, a bootstrap script, an API your signing host exposes to the provisioner); the only requirement is
+that the private key stays where it was generated.
+[Signing without a key](/docs/guides/sign-certificates-with-public-keys/) describes the flow, and
+[Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/) covers durations and what happens at expiry.
+
+Because expired certificates stop working on their own, you do not need to clean up after ephemeral runners. Addresses
+do need managing: allocate from a pool reserved for runners and release an address when its certificate expires, or give
+each runner image a fixed address and never run two at once.
+
+Long-lived runners can use longer durations, but re-sign on a schedule rather than for the life of the CA.
+
+## A ci group with tight rules
+
+Sign runner certificates with a `ci` group and nothing else. On each private service, allow only the port a job needs
+from that group:
+
+```yaml
+firewall:
+  inbound:
+    - port: 5432
+      proto: tcp
+      group: ci
+```
+
+A few guidelines:
+
+- Do not give runners `admin` or any group a person carries. A compromised job should get the database port and nothing
+  more.
+- Runners do not need inbound rules of their own. Leave their `inbound` list at ICMP only, or empty.
+- When different pipelines need different things, use different groups (`ci-deploy`, `ci-test`) and sign runners
+  accordingly. Use `groups` (plural) on a sensitive service to require two.
+- A deploy target behind a gateway's unsafe route needs the rule on the gateway with `local_cidr` set to the target.
+
+The [`firewall` reference](/docs/config/firewall/) has the fields;
+[Certificates and groups](/docs/concepts/certificates-and-groups/) explains how groups travel in the certificate.
+
+## Secrets handling
+
+The CA private key never goes near a runner. Keep it on a signing host (or in a secrets manager or PKCS#11 device; see
+the [`pki` reference](/docs/config/pki/)), encrypted with `-encrypt`, and let that host sign public keys on request. A
+runner receives only `ca.crt`, its own certificate, and its own private key, which it generated itself. If a runner is
+compromised, the attacker has one short-lived certificate with the `ci` group; add its fingerprint to
+[`pki.blocklist`](/docs/config/pki/#pkiblocklist) on the services it could reach and wait for it to expire.
+
+Do not store runner certificates or keys in the repository or as reusable CI secrets. The point of the public-key flow
+is that there is nothing reusable to store.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) enrolls a runner with a single-use enrollment code generated from its API,
+so provisioning scripts need no signing host, and roles replace the `ci` group. Certificates are rotated automatically.
+
+:::
+
+## See also
+
+- [Docker and Kubernetes](/docs/guides/deploy/docker-and-kubernetes/)
+- [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)
+- [Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/)
+- [SSH access to a fleet over Nebula](/docs/use-cases/ssh-access/)
+- [GitHub self-hosted runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners)
+- [GitLab Runner executors](https://docs.gitlab.com/runner/executors/)

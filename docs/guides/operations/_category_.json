@@ -1,0 +1,9 @@
+{
+  "label": "Operations",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Day-two tasks: privileges, logs, debugging, monitoring, upgrades, and performance.",
+    "slug": "/guides/operations"
+  }
+}

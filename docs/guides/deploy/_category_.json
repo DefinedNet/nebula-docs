@@ -1,0 +1,9 @@
+{
+  "label": "Deploy",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Run Nebula as a service, in containers, and with lighthouses that stay up.",
+    "slug": "/guides/deploy"
+  }
+}

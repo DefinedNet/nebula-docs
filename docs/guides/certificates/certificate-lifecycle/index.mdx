@@ -1,0 +1,251 @@
+---
+title: 'Certificate lifecycle: expiry, renewal, and monitoring'
+sidebar_label: Certificate lifecycle
+description:
+  How Nebula certificates expire, how to check expiry with nebula-cert print, how to renew a host certificate without
+  downtime, and how to alert on it.
+summary:
+  Every Nebula certificate expires, and by default that happens one year after it was created. This guide explains what
+  expires, what breaks when it does, how to inspect and renew host certificates without dropping tunnels, and how to
+  alert on expiry before it bites.
+sidebar_position: 1
+---
+
+# Certificate lifecycle: expiry, renewal, and monitoring
+
+Every Nebula host proves its identity with a certificate signed by your certificate authority (CA), and every one of
+those certificates carries an expiry date. By default, the CA lasts one year and host certificates expire one second
+before the CA does. Nothing warns you ahead of time unless you set that up. This guide is for anyone who runs a
+self-managed Nebula network and wants to know what expires, what happens when it does, how to renew a host certificate
+without downtime, and how to see expiry coming.
+
+If you're looking for the full CA replacement procedure, that's covered in
+[Rotating a certificate authority](/docs/guides/rotating-certificate-authority/). This page covers the host certificate
+side and the monitoring around it.
+
+## What expires, and when
+
+There are two kinds of certificate in a Nebula network, and both have a `Not After` date:
+
+- **The CA certificate** (`ca.crt`). `nebula-cert ca` defaults `-duration` to `8760h`, which is 365 days. Host
+  certificates signed by a CA are only valid while that CA is valid, so the CA's expiry is a hard ceiling for the whole
+  network.
+- **Host certificates** (`host.crt`). `nebula-cert sign` also takes `-duration`, and its help text explains the default:
+  "The default is 1 second before the signing cert expires." In other words, a host certificate signed today inherits
+  whatever is left of the CA's lifetime, not a fresh year of its own.
+
+Two consequences follow from that default. First, every host certificate you sign over the life of a CA expires at
+roughly the same moment, so one expiry date is a network-wide event rather than a per-host one. Second, a shorter
+`-duration` on `sign` gives you per-host expiry that you control, which is what you want if you'd rather renew hosts on
+a rolling schedule than rotate everything at once.
+
+`nebula-cert sign` refuses to run against an expired CA with the error `ca certificate is expired`, so an expired CA
+can't be used to issue replacements. Rotate the CA before that point.
+
+## What happens at expiry
+
+Nebula checks certificates at two moments: when it starts, and whenever two hosts handshake.
+
+**At startup.** A host whose own certificate has expired fails to start, logging
+`nebula certificate for this host is expired`. An expired certificate in the `pki.ca` bundle logs a warning,
+`expired certificate present in CA pool`, and is ignored. If every CA in the bundle is expired, startup fails with
+`no valid CA certificates present`.
+
+**At handshake.** When a host initiates or accepts a tunnel, it verifies the peer's certificate against its CA bundle:
+the certificate must be unexpired and signed by a trusted CA. A peer presenting an expired certificate fails that check,
+so no new tunnel is built in either direction.
+
+**For tunnels that already exist.** By default, Nebula does not tear down an established tunnel when the peer's
+certificate expires. The tunnel keeps passing traffic until something causes a new handshake (a restart on either side,
+a change of underlay address, or an inactive tunnel being dropped), and that handshake then fails. This is why an
+expired certificate often shows up as a network that "mostly works" for a while and then loses hosts one at a time.
+Setting [`pki.disconnect_invalid: true`](/docs/config/pki/#pkidisconnect_invalid) changes this: Nebula then checks
+cached peer certificates periodically and closes the tunnel of any peer whose certificate no longer verifies, logging
+`Remote certificate is no longer valid, tearing down the tunnel`. (Peers on the
+[`pki.blocklist`](/docs/config/pki/#pkiblocklist) are always disconnected, regardless of this setting.)
+
+:::tip
+
+Enable `pki.disconnect_invalid` before you need it. It turns a slow, confusing failure into an immediate, logged one,
+which is far easier to diagnose, and the rotating CA guide recommends it for the same reason.
+
+:::
+
+## Checking when a certificate expires
+
+`nebula-cert print` decodes a certificate and shows its details, including the expiry:
+
+```shell
+nebula-cert print -path /etc/nebula/host.crt
+```
+
+```text
+NebulaCertificate {
+	Details {
+		Name: host1
+		Ips: [
+			192.168.100.5/24
+		]
+		...
+		Not before: 2026-02-20 16:22:00 -0400 EDT
+		Not After: 2027-02-20 16:08:16 -0400 EDT
+		Is CA: false
+		Issuer: d5978d6d54a58e4685551708c5f57fbdd3774be67d470ecb0033cf70bbf5fbb5
+		...
+	}
+	Fingerprint: 92efefd0575f71c10973dc96d9e2111d62703139383855f5a6a74feea68af05e
+	...
+}
+```
+
+`Not After` is the expiry. `Issuer` is the fingerprint of the CA that signed it, which is useful when you have more than
+one CA in the bundle. `print` also accepts `-json` for machine-readable output and `-out-qr` to write the certificate as
+a PNG QR code. Run it against `ca.crt` the same way to see the CA's own expiry.
+
+To check validity rather than just read dates, use `nebula-cert verify`. It confirms that a certificate is unexpired and
+signed by one of the CAs you pass, and exits non-zero otherwise:
+
+```shell
+nebula-cert verify -ca /etc/nebula/ca.crt -crt /etc/nebula/host.crt
+```
+
+On a running host, the [SSH debug console](/docs/guides/debug-ssh-commands/) can print the certificate currently in use
+with `print-cert`, and the certificate of any connected peer with `print-cert <vpn ip>`. That's the quickest way to
+confirm which certificate a host actually loaded after a renewal.
+
+## Renewing a host certificate without downtime
+
+Renewing means signing a new certificate for the same identity and swapping it in. The host's private key can stay the
+same, and so can its name, address, and groups. Nebula reloads certificate material on a config reload, so the swap does
+not require a restart or drop existing tunnels.
+
+1. **Sign a replacement.** On the machine that holds the CA key, sign a new certificate with the same details as the old
+   one. Use `nebula-cert print` on the old certificate to read them off. To keep the existing private key, sign against
+   the host's public key with `-in-pub` (see
+   [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)); otherwise
+   `nebula-cert sign` generates a new keypair and writes both files.
+
+   ```shell
+   nebula-cert sign -name "host1" -networks "192.168.100.5/24" -groups "prod,api" -duration 2160h \
+     -in-pub host1.pub -out-crt host1.crt
+   ```
+
+   `-networks` is the flag name since v1.10; the older `-ip` still works but is deprecated. If the host routes
+   [`unsafe_routes`](/docs/guides/unsafe_routes/), repeat its `-unsafe-networks` (formerly `-subnets`) exactly, because
+   a gateway silently stops routing for any subnet missing from its certificate.
+
+2. **Replace the file.** Copy the new certificate over the path in [`pki.cert`](/docs/config/pki/#pkicert) (and the key
+   over [`pki.key`](/docs/config/pki/#pkikey) if you generated a new one). Keep the old files until you've confirmed the
+   reload. If the certificate is inlined in the config as a YAML string, update it there instead.
+
+3. **Reload.** `pki.ca`, `pki.cert`, and `pki.key` are all marked **Reloadable** in the
+   [`pki` reference](/docs/config/pki/), so a reload picks them up without a restart. On Linux and macOS, send the
+   process a HUP: `kill -HUP <pid>`, or `systemctl reload nebula` with the shipped systemd unit, whose `ExecReload` line
+   does exactly that. On any platform, including Windows, the SSH debug console's `reload` command does the same thing,
+   as does `nebula ctl reload` on v1.12 and later. Watch the log for:
+
+   ```text
+   msg="Caught HUP, reloading config"
+   msg="Client certificate(s) refreshed from disk"
+   ```
+
+   One limit applies, and the `pki` reference states it: a new certificate only takes effect after a reload if the IP
+   address has not changed. All other properties (name, groups, expiry, subnets) can change on reload. If the overlay
+   address differs, Nebula logs `The new cert changes our networks, a restart is required to use them` and keeps the old
+   certificate until you restart.
+
+4. **Verify.** Run `nebula-cert print` against the live file, or `print-cert` over the SSH console, and check that
+   `Not After` moved. Existing tunnels keep running on the session they already negotiated; peers see the new
+   certificate on their next handshake with this host.
+
+## Choosing durations
+
+The `-duration` flag takes Go duration units: `s`, `m`, and `h`. There are no day or year units, so one year is `8760h`
+and 90 days is `2160h`.
+
+- **Short CA, inherited host expiry** (the defaults). Everything expires together once a year. Simple, but renewal is a
+  whole-network project. If you take this route, follow the
+  [rotating CA guide](/docs/guides/rotating-certificate-authority/) and start two or three months early.
+- **Long CA, short host certificates.** Create the CA with a multi-year `-duration` and sign hosts for a few months at a
+  time. Host renewal becomes a routine per-host task that you can automate (see below), and a stolen host key has a
+  shorter useful life. The trade-off is more frequent signing, which is why this pattern pairs well with automation.
+
+Whichever you pick, a host certificate can never be valid past its CA, so plan the CA's expiry as the outer deadline.
+
+## Monitoring expiry
+
+Nebula exports a gauge named `certificate.ttl_seconds` that holds the number of seconds until the host's own certificate
+expires. With Prometheus [stats](/docs/config/stats/) enabled, the metric name is prefixed with your
+[`stats.namespace`](/docs/config/stats/#statsnamespace) and [`stats.subsystem`](/docs/config/stats/#statssubsystem) and
+the dots become underscores, so the reference config's `namespace: prometheusns` and `subsystem: nebula` produce
+`prometheusns_nebula_certificate_ttl_seconds`. An alert that fires 30 days out looks like this:
+
+```yaml
+groups:
+  - name: nebula
+    rules:
+      - alert: NebulaCertificateExpiringSoon
+        expr: prometheusns_nebula_certificate_ttl_seconds < 30 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Nebula certificate on {{ $labels.instance }} expires in under 30 days'
+```
+
+Because every host reports its own TTL, scraping all hosts gives you per-host expiry, and the lowest value across the
+network is your next deadline. The community-maintained
+[Nebula stats dashboard](https://grafana.com/grafana/dashboards/20965-nebula-stats/) on Grafana is a reasonable starting
+point for the rest of the metrics; see
+[Monitoring Nebula and upgrading safely](/docs/guides/operations/monitoring-and-upgrades/) for what else is worth
+watching.
+
+If you don't run Prometheus, a scheduled job that runs `nebula-cert verify` catches a certificate only once it has
+already expired, so pair it with a check on the `Not After` date from `nebula-cert print`. One simple approach is to
+record the expiry when you sign the certificate and put a reminder in a shared calendar for well before it, as the
+rotating CA guide suggests.
+
+## Automating renewal
+
+Renewal is easy to automate once you separate key generation from signing, so the CA key never leaves the machine that
+holds it:
+
+1. Each host generates its own keypair once with `nebula-cert keygen` and keeps the private key local.
+2. The host's public key is collected centrally (it isn't secret).
+3. A job on the CA machine signs a fresh certificate for every host with `nebula-cert sign -in-pub ...` on a schedule,
+   using the same name, networks, and groups each time.
+4. Configuration management (Ansible, Chef, Puppet, or similar) ships the new certificate to the host and triggers a
+   reload.
+
+[Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/) walks through the
+signing step. If your CA key is encrypted (`nebula-cert ca -encrypt`, available since v1.7.0), the signing job will be
+prompted for the passphrase, so plan for how it gets that secret.
+
+## Relationship to CA rotation
+
+Host renewal and CA rotation are the same mechanism at different scopes. Renewing a host swaps one certificate while the
+CA stays trusted everywhere. Rotating the CA adds a new CA to every host's `pki.ca` bundle first, then renews every host
+certificate against the new CA, then removes the old CA. If your host certificates use the default duration, they all
+expire with the CA, so CA rotation is unavoidable at least once a year. If you use shorter host durations under a
+longer-lived CA, CA rotation becomes a rare event and host renewal is the routine one. Either way, the procedure in
+[Rotating a certificate authority](/docs/guides/rotating-certificate-authority/) is the one to follow when the CA itself
+is the thing expiring.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) operates the certificate authority for you and issues host certificates
+through its client, so there is no CA key to protect and no renewal job to schedule. Hosts enroll once with a code and
+receive their certificates from the service. See the [Managed Nebula docs](https://docs.defined.net/) for details.
+
+:::
+
+## See also
+
+- [`pki` reference](/docs/config/pki/)
+- [Rotating a certificate authority](/docs/guides/rotating-certificate-authority/)
+- [Signing a certificate without a private key](/docs/guides/sign-certificates-with-public-keys/)
+- [Monitoring Nebula and upgrading safely](/docs/guides/operations/monitoring-and-upgrades/)
+- [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-commands/)
+- [`nebula-cert` source](https://github.com/slackhq/nebula/tree/master/cmd/nebula-cert) for the full flag list

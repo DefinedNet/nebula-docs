@@ -1,0 +1,208 @@
+---
+title: Nebula FAQ
+sidebar_label: FAQ
+description: >-
+  Short answers to common Nebula questions: which ports to open, running alongside Tailscale or WireGuard, relayed
+  tunnels, lighthouse outages, IPv6, upgrades, and how Nebula compares.
+summary: >-
+  Two to five sentence answers to the questions people ask most, grouped by topic, each with a link to the page that
+  goes deeper.
+sidebar_position: 11
+---
+
+# Nebula FAQ
+
+Short answers, each with a link to the page that explains more. If your question is "why can't these two hosts talk", go
+straight to [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/).
+
+## Getting started
+
+### Which ports do I need to open?
+
+UDP 4242 inbound on lighthouses and relays, and nothing inbound on ordinary hosts. Every other host connects outward to
+the lighthouse and punches through its own NAT; it needs outbound UDP and return traffic, which almost every network
+allows. The port is [`listen.port`](/docs/config/listen/#listenport) and you can change it. See
+[NAT traversal and firewalls](/docs/guides/nat-traversal/).
+
+### Does Nebula support TCP?
+
+No. Nebula runs over UDP only, and there is no TCP fallback. Networks that block unknown UDP break Nebula the same way
+they break QUIC; a relay with a public address on a port the network allows is the usual workaround.
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) lists what the network must allow.
+
+### Is there a GUI?
+
+Not in open source Nebula. You edit a YAML config, sign certificates with `nebula-cert`, and run `nebula` as a service.
+[Managed Nebula](https://docs.defined.net/) from Defined Networking adds an admin panel, SSO, and enrollment codes on
+top of the same protocol. Mobile Nebula on [iOS and Android](/docs/platforms/mobile/) has a UI for importing a config.
+
+### Can I use it on a phone?
+
+Yes. Mobile Nebula ([iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936),
+[Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula)) is a full Nebula host: it generates
+its own key pair, you sign the public key, and it supports unsafe routes. See [Mobile](/docs/platforms/mobile/).
+
+### How do I get help?
+
+Ask in the [NebulaOSS Slack](https://join.slack.com/t/nebulaoss/shared_invite/zt-39pk4xopc-CUKlGcb5Z39dQ0cK1v7ehA) or in
+[GitHub Discussions](https://github.com/slackhq/nebula/discussions). Bugs go to
+[GitHub issues](https://github.com/slackhq/nebula/issues). Include your Nebula version, OS, and the relevant log lines
+([Viewing Nebula logs](/docs/guides/viewing-nebula-logs/)).
+
+## Networking
+
+### Can I run Nebula alongside Tailscale, WireGuard, or ZeroTier?
+
+Yes. Each uses its own virtual interface, its own address range, and its own UDP port, so they do not interfere. The one
+thing to avoid is overlapping subnets: pick a Nebula range that does not collide with `100.64.0.0/10` (Tailscale), your
+WireGuard addresses, or any LAN you route to. Running both is the normal way to migrate; see
+[Moving from Tailscale or Headscale](/docs/migrate/from-tailscale-or-headscale/).
+
+### Can one host be in two Nebula networks?
+
+Yes. Run two `nebula` processes with separate config files, each with its own certificate from its own CA, its own
+[`tun.dev`](/docs/config/tun/#tundev) name, its own [`listen.port`](/docs/config/listen/#listenport), and
+non-overlapping overlay ranges. Nebula has no built-in multi-network mode, and the maintainers do not support one
+process serving two networks with overlapping addresses, so keep them as separate instances.
+
+### What happens if the lighthouse goes down?
+
+Existing tunnels keep working, because the lighthouse is not in the data path. New tunnels cannot be set up while hosts
+cannot ask it for addresses, and hosts that restart cannot find anyone. Run two lighthouses so a single outage is
+invisible: [Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/).
+
+### Does the lighthouse see my traffic?
+
+No. A lighthouse only learns which public address each host is reporting from and hands that out to peers. Packets
+between hosts never pass through it. A relay does forward packets, but they stay encrypted end to end and the relay
+cannot read them. See [Lighthouses](/docs/concepts/lighthouses/) and [Relays](/docs/concepts/relays/).
+
+### What is the difference between a lighthouse and a relay?
+
+A lighthouse helps hosts find each other and carries no traffic. A relay forwards encrypted packets between two hosts
+that cannot reach each other directly. Any host with a public address can do either or both; set
+[`lighthouse.am_lighthouse`](/docs/config/lighthouse/#lighthouseam_lighthouse) for one and
+[`relay.am_relay`](/docs/config/relay/#relayam_relay) for the other. Small networks often use the lighthouse as the
+relay too.
+
+### Why is my tunnel relayed?
+
+Because no direct path was found, usually since one side is behind a hard (symmetric) NAT or CGNAT that hands out a
+different mapping per destination. The `from` field on `Handshake message received` log lines says `(relayed)` when this
+happens. Enable [`punchy.punch`](/docs/config/punchy/#punchypunch) and
+[`punchy.respond`](/docs/config/punchy/#punchyrespond) on both hosts, or give one side a public address;
+[NAT traversal and firewalls](/docs/guides/nat-traversal/) explains the cases.
+
+### Does Nebula support IPv6?
+
+On the underlay, yes: hosts and lighthouses can talk over IPv6 and have for a long time. On the overlay, yes since
+v1.10.0 with version 2 certificates, which can carry IPv6 addresses. Hosts running older releases or v1 certificates are
+IPv4-only on the overlay. See [Upgrading to cert v2 and IPv6](/docs/guides/upgrade-to-cert-v2-and-ipv6/).
+
+### What MTU does Nebula use?
+
+The tun device defaults to 1300 bytes ([`tun.mtu`](/docs/config/tun/#tunmtu)), which leaves room for Nebula's headers
+inside a 1500-byte path across the internet. You can raise it per route with `tun.routes` for hosts on a known large-MTU
+path such as a single data center. [Performance tuning](/docs/guides/operations/performance-tuning/) covers when that
+helps.
+
+### Can I give hosts DNS names?
+
+Yes. Set [`lighthouse.serve_dns`](/docs/config/lighthouse/#lighthouseserve_dns) and the lighthouse answers `A` queries
+for certificate names, or add overlay addresses to a resolver you already run. See
+[Using lighthouse DNS](/docs/guides/using-lighthouse-dns/) and [DNS for Nebula hosts](/docs/guides/networking/dns/).
+
+### Can I reach devices that cannot run Nebula?
+
+Yes, through a Nebula host on the same LAN. Sign that host's certificate with the LAN subnet, enable forwarding, and add
+an `unsafe_routes` entry on the hosts that need access.
+[Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) is the walkthrough.
+
+## Security
+
+### How do I revoke a host?
+
+Add its certificate fingerprint to [`pki.blocklist`](/docs/config/pki/#pkiblocklist) on every host it could reach and
+reload; the blocklist is not distributed by lighthouses. Short certificate lifetimes (`-duration` at signing time) make
+revocation mostly unnecessary, since a certificate you stop renewing simply expires. See
+[Certificate lifecycle](/docs/guides/certificates/certificate-lifecycle/).
+
+### What happens when the CA expires?
+
+Every certificate it signed expires with it, by default one year after creation, and every tunnel stops. Set a reminder
+well ahead and rotate: a new CA can be trusted alongside the old one so hosts move over without downtime. See
+[Rotating a CA](/docs/guides/rotating-certificate-authority/).
+
+### Is the firewall centrally managed?
+
+No. Each host enforces the rules in its own config file, matching on the peer's certificate (groups, name, address).
+There is no central policy server to compromise and nothing is pushed; distribute config with your usual tooling. See
+the [`firewall` reference](/docs/config/firewall/) and [Security model](/docs/concepts/security-model/).
+
+### What encryption does Nebula use?
+
+Handshakes use the Noise Protocol Framework with Curve25519 (or P-256 for FIPS environments), and traffic uses
+AES-256-GCM by default, with ChaCha20-Poly1305 available via [`cipher`](/docs/config/cipher/). Every host has a
+certificate signed by your CA, and both sides authenticate before any traffic flows. See [Security](/docs/security/).
+
+## Operations
+
+### How do I update Nebula without dropping tunnels?
+
+Nebula reloads most settings on `SIGHUP` without restarting, including firewall rules and certificates, so config
+changes rarely need downtime. Upgrading the binary does restart the process, and tunnels re-establish within seconds
+once it is back; peers retry on their own. Upgrade lighthouses one at a time if you have more than one. See
+[Monitoring and upgrades](/docs/guides/operations/monitoring-and-upgrades/).
+
+### Do I need root?
+
+The tun device needs privileges to create, but Nebula can run as an unprivileged user after that on Linux, and a
+lighthouse with [`tun.disabled`](/docs/config/tun/#tundisabled) needs no tun at all. See
+[Running Nebula as non-root](/docs/guides/running-nebula-as-non-root/).
+
+### How do I monitor it?
+
+Enable [`stats`](/docs/config/stats/) to export Prometheus or Graphite metrics, ship logs with
+[`logging`](/docs/config/logging/) set to JSON, and alert on certificate expiry. The
+[Grafana dashboard](https://grafana.com/grafana/dashboards/20965-nebula-stats/) is a starting point. See
+[Monitoring and upgrades](/docs/guides/operations/monitoring-and-upgrades/).
+
+## Comparisons
+
+### How is Nebula different from Tailscale or Headscale?
+
+Nebula has no control plane: a lighthouse only helps hosts find each other, identity is a certificate you sign rather
+than an SSO login, and firewall policy lives on each host instead of in a central policy file. Tailscale (and Headscale,
+its self-hosted control server) gives you SSO, a device console, and MagicDNS in exchange for that central component.
+See [Nebula vs. Tailscale](https://www.defined.net/compare/nebula-vs-tailscale/) and
+[Moving from Tailscale or Headscale](/docs/migrate/from-tailscale-or-headscale/).
+
+### How is Nebula different from WireGuard?
+
+WireGuard is a point-to-point tunnel protocol with static peer keys; you build the mesh, the discovery, and the firewall
+around it yourself. Nebula is a full overlay: certificates with groups, a built-in host firewall, lighthouses for
+discovery, NAT traversal, and relays. Defined Networking's
+[Comparing and contrasting Nebula and WireGuard](https://www.defined.net/blog/nebula-vs-wireguard/) goes into the design
+differences.
+
+### Is Nebula faster than WireGuard?
+
+It depends on hardware, cipher, and configuration, and the honest answer is to measure on your own hosts. Nebula's
+default AES-256-GCM is fast on CPUs with AES instructions, and [`routines`](/docs/config/routines/) spreads work across
+cores. Read [Comparing and contrasting Nebula and WireGuard](https://www.defined.net/blog/nebula-vs-wireguard/) for the
+design trade-offs and [Performance tuning](/docs/guides/operations/performance-tuning/) for what to adjust.
+
+### How is Nebula different from ZeroTier or NetBird?
+
+All three are mesh overlays. ZeroTier bridges Ethernet frames and uses a hosted controller by default; NetBird is
+WireGuard-based with a management server and SSO. Nebula routes IP packets and runs with no controller at all. See
+[Nebula vs. ZeroTier](https://www.defined.net/compare/nebula-vs-zerotier/) and
+[Nebula vs. NetBird](https://www.defined.net/compare/nebula-vs-netbird/).
+
+## See also
+
+- [How Nebula works](/docs/how-nebula-works/)
+- [Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/)
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Configuration reference](/docs/config/)
+- [Defined Networking glossary](https://www.defined.net/docs/glossary/)

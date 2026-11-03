@@ -1,0 +1,149 @@
+---
+title: Lighthouses
+sidebar_label: Lighthouses
+description:
+  What a Nebula lighthouse is, what it stores and does not do, why it needs a public IP, how hosts bootstrap to it, and
+  how it compares to Tailscale's coordination server and ZeroTier's roots.
+summary:
+  The lighthouse is Nebula's discovery service. This page explains its role, its limits, the config that points hosts at
+  it, and how it differs from the coordination servers and relays in other mesh VPNs.
+sidebar_position: 2
+---
+
+# Lighthouses
+
+A lighthouse is a Nebula host with a stable public address whose job is to tell other hosts where their peers can be
+reached. Every network needs at least one. This page explains what a lighthouse does, what it deliberately does not do,
+what it needs from the network, and how it compares to the central servers in other mesh VPNs. For the config keys see
+the [`lighthouse` reference](/docs/config/lighthouse/); for the step-by-step mechanics of discovery see
+[How hosts find each other](/docs/guides/host-discovery/).
+
+## The role
+
+Overlay addresses are not routable on the internet, so before host A can handshake with host B it needs B's underlay
+address: a real IP and UDP port. Hosts behind NATs do not know their own public address, and mobile hosts change
+addresses constantly, so a config file cannot hold this information. The lighthouse holds it instead.
+
+Every non-lighthouse host reports to each of its lighthouses on a timer,
+[`lighthouse.interval`](/docs/config/lighthouse/#lighthouseinterval) (10 seconds by default). The report lists the
+addresses the host sees on its own interfaces, filtered by
+[`lighthouse.local_allow_list`](/docs/config/lighthouse/#lighthouselocal_allow_list), plus anything in
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs). The lighthouse also records the
+source IP and port the report arrived from, which is the host's address as seen from the public side of its NAT.
+
+When a host wants to reach a peer it has no static entry for, it asks the lighthouse, gets back that peer's list of
+addresses (filtered on the asking side by
+[`lighthouse.remote_allow_list`](/docs/config/lighthouse/#lighthouseremote_allow_list)), and starts sending handshakes
+to all of them. The lighthouse also pokes the peer so it sends a packet back toward the asker, which opens the peer's
+NAT. The peer's list of [relays](/docs/concepts/relays/) rides along in the same answer.
+
+## What it stores
+
+A lighthouse keeps an in-memory map from each host's overlay address to:
+
+- the underlay addresses that host reported about itself,
+- the underlay address and port the lighthouse observed its reports coming from,
+- the relays the host listed in its own [`relay.relays`](/docs/config/relay/#relayrelays).
+
+Entries are refreshed on every report, so a host that moves networks is updated within one interval. Nothing is written
+to disk, and a restarted lighthouse rebuilds the map from the next round of reports. You can inspect the map on a
+lighthouse with the `list-lighthouse-addrmap` command in the [debug SSH server](/docs/guides/debug-ssh-commands/).
+
+## What it does not do
+
+- **It does not carry traffic.** Packets between two hosts go directly between them, or through a relay. The lighthouse
+  only ever handles reports and queries. If you want the same machine to also relay, set
+  [`relay.am_relay`](/docs/config/relay/#relayam_relay) on it; that is a second, separate role.
+- **It holds no key material except its own.** A lighthouse has its own certificate and private key like any host. It
+  never sees the CA private key or any other host's private key, and it cannot sign certificates or issue addresses.
+- **It has no policy.** Firewall rules live in each host's config and match on the peer's certificate. A lighthouse
+  cannot grant or revoke access, and a malicious lighthouse cannot make a host accept a peer it would otherwise reject.
+  See [Nebula's security model](/docs/concepts/security-model/) for what a compromised lighthouse _can_ do.
+- **It is not needed for existing tunnels.** Tunnels that are already up keep running if every lighthouse goes away.
+  Hosts just cannot discover new peers until one comes back.
+
+## Why it needs a public IP and a fixed port
+
+Hosts find each other through the lighthouse, so the lighthouse must be reachable without any discovery of its own. That
+means a public IP (or a port forward to it) and a fixed UDP port, `4242` by convention, set in
+[`listen.port`](/docs/config/listen/#listenport). A lighthouse behind a NAT or with a random port cannot do the job.
+Cell networks, CGNAT, and most home connections without a port forward are out. A small cloud instance is the usual
+choice; [Deploying a cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/) walks through one.
+
+The lighthouse's own [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) list should be empty: it does not
+report to anything.
+
+## How hosts bootstrap to it
+
+A host cannot ask a lighthouse where the lighthouse is, so each host's config must say where to find it in two places:
+
+```yml
+static_host_map:
+  '192.168.100.1': ['203.0.113.42:4242'] # lighthouse overlay IP -> its public address
+
+lighthouse:
+  am_lighthouse: false
+  hosts:
+    - '192.168.100.1' # the same overlay IP
+```
+
+[`static_host_map`](/docs/config/static-host-map/) gives the underlay address, and
+[`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) says this is a lighthouse to report to and query. The
+static entry can be a DNS name, which is re-resolved on a cadence set by [`static_map`](/docs/config/static-map/). On
+the lighthouse itself, `am_lighthouse: true` and nothing else is required.
+
+## Optional features
+
+- **Lighthouse DNS.** With [`lighthouse.serve_dns`](/docs/config/lighthouse/#lighthouseserve_dns), a lighthouse answers
+  `A` queries for host names with overlay addresses and `TXT` queries with certificate details. See
+  [Using lighthouse DNS](/docs/guides/using-lighthouse-dns/) and
+  [DNS on a Nebula network](/docs/guides/networking/dns/).
+- **`advertise_addrs`.** A host whose reachable address differs from what Nebula can observe, usually because of a port
+  forward, lists it in [`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) and the
+  lighthouse passes it on.
+- **Allow lists.** [`local_allow_list`](/docs/config/lighthouse/#lighthouselocal_allow_list) controls which of a host's
+  own addresses it reports (for example, excluding Docker bridges);
+  [`remote_allow_list`](/docs/config/lighthouse/#lighthouseremote_allow_list) controls which returned addresses a host
+  will try.
+- **More than one.** Hosts can report to several lighthouses and query all of them. Each keeps its own map; they do not
+  sync with each other. [Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/) covers the setup.
+
+## Compared with other mesh VPNs
+
+The nearest equivalents in other tools do more than a lighthouse, and the difference comes from where identity lives.
+
+**Tailscale and Headscale.** Tailscale clients register with a coordination server (Headscale is an open-source
+implementation of it). That server distributes each node's public key to its peers and distributes the ACL policy, so it
+is a control plane: it decides who is on the network and what they may reach. Tailscale's DERP servers are a separate
+set of relays that forward encrypted WireGuard packets when a direct path fails. In Nebula, identity and group
+membership are signed into certificates by an offline CA, and policy is in each host's config, so the lighthouse only
+has addresses to hand out. Relaying is a separate role that any host, including a lighthouse, can take on. See
+[Nebula vs Tailscale](https://www.defined.net/compare/nebula-vs-tailscale/) and
+[Migrating from Tailscale or Headscale](/docs/migrate/from-tailscale-or-headscale/).
+
+**ZeroTier.** ZeroTier has network controllers, which hold membership and rules for a network and hand out its
+configuration, and root servers, which help nodes find each other and relay packets until a direct path is found. A
+Nebula lighthouse is closer to a root than to a controller, but it does not relay unless you enable `am_relay`, and
+there is no controller at all. See [Nebula vs ZeroTier](https://www.defined.net/compare/nebula-vs-zerotier/).
+
+The practical consequence: a Nebula lighthouse can be rebuilt from scratch in minutes with nothing but its own
+certificate and config, because it holds no network state that is not re-learned from the next round of reports.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) runs lighthouses for you and inserts their static addresses into every
+host's generated config. You can also enroll your own lighthouses alongside them. See the
+[Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [`lighthouse` reference](/docs/config/lighthouse/)
+- [How hosts find each other](/docs/guides/host-discovery/)
+- [Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/)
+- [Deploying a cloud lighthouse](/docs/guides/deploy/cloud-lighthouse/)
+- [Relays](/docs/concepts/relays/)
+- [Lighthouse](https://www.defined.net/docs/glossary/lighthouse/) in the Defined Networking glossary

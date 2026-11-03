@@ -1,0 +1,183 @@
+---
+title: Nebula on a Raspberry Pi
+sidebar_label: Raspberry Pi
+description:
+  Run Nebula on a Raspberry Pi as a home lighthouse, a gateway into your LAN, or an ordinary host, with the right
+  release build, package, cipher, and systemd setup.
+summary:
+  Which Nebula build matches each Raspberry Pi model, installing from Raspberry Pi OS packages or the release archive,
+  using a Pi as a home lighthouse behind a port forward or as a subnet gateway for your LAN, and why older Pis prefer
+  the ChaCha20 cipher.
+sidebar_position: 1
+---
+
+# Nebula on a Raspberry Pi
+
+A Raspberry Pi is a good always-on Nebula host: it draws a few watts, sits on your home LAN, and runs the same Linux
+build of Nebula as any server. The usual jobs are a [lighthouse](/docs/config/lighthouse/) at home for a network you
+don't want to put in the cloud, a gateway that lets remote hosts reach devices on the LAN that can't run Nebula, or
+simply a host you want to SSH into from anywhere without a port forward.
+
+This page covers what is specific to the Pi: picking the right build, the Raspberry Pi OS package, the cipher choice on
+models without AES hardware, and the two gateway-style roles. Everything else is the normal
+[quick start](/docs/guides/quick-start/).
+
+## Which build to download
+
+Nebula publishes separate Linux archives for 64-bit and 32-bit Arm on the
+[releases page](https://github.com/slackhq/nebula/releases/latest). The right one depends on the operating system you
+installed, not just the board, because a Pi 3, 4, or 5 can run either the 64-bit or the 32-bit Raspberry Pi OS. Check
+with `uname -m`:
+
+| `uname -m` | Typical hardware                                      | Archive                     |
+| ---------- | ----------------------------------------------------- | --------------------------- |
+| `aarch64`  | Pi 3, 4, 5, Zero 2 W, and Pi 400/500 on the 64-bit OS | `nebula-linux-arm64.tar.gz` |
+| `armv7l`   | Pi 2 and later on the 32-bit OS                       | `nebula-linux-arm-7.tar.gz` |
+| `armv6l`   | Pi 1, original Pi Zero, Zero W (ARMv6 only, 32-bit)   | `nebula-linux-arm-6.tar.gz` |
+
+Use the 64-bit OS on any board that supports it. The `arm-7` build runs on a 64-bit-capable board under the 32-bit OS,
+but you lose nothing by going 64-bit and some crypto is faster there.
+
+Install the archive exactly as on any other Linux host:
+
+```shell
+curl -LO https://github.com/slackhq/nebula/releases/latest/download/nebula-linux-arm64.tar.gz
+tar -xzf nebula-linux-arm64.tar.gz
+sudo install -m 0755 nebula nebula-cert /usr/local/bin/
+sudo mkdir -p /etc/nebula
+```
+
+See [Install Nebula](/docs/install/) for checksum verification and the other archives.
+
+## The Raspberry Pi OS package
+
+Raspberry Pi OS is built from Debian, and Debian packages Nebula for both `arm64` and `armhf`, so this works on a Pi:
+
+```shell
+sudo apt install nebula
+```
+
+The catch is the version. Debian 12 (bookworm) ships Nebula [1.6.1](https://packages.debian.org/bookworm/nebula) and
+Debian 13 (trixie) ships [1.9.3](https://packages.debian.org/trixie/nebula). Those predate encrypted CA keys (v1.7.0),
+certificate v2 and IPv6 overlays (v1.10.0), and lighthouse self-resolution (v1.11.0), and a 1.6.1 host can't join a
+network whose certificates are version 2. If the rest of your network runs a current release, use the release archive
+instead. Run `nebula -version` to see what you have. Where the package put its unit file and example config is up to the
+packager; `dpkg -L nebula` lists its files.
+
+## Running it as a service
+
+Whichever way you installed, run Nebula under systemd so it survives reboots and power cuts, which a Pi on a shelf will
+see plenty of. The [example unit](https://github.com/slackhq/nebula/blob/master/examples/service_scripts/nebula.service)
+expects `/usr/local/bin/nebula` and `/etc/nebula/config.yml`:
+
+```shell
+sudo curl -o /etc/systemd/system/nebula.service \
+  https://raw.githubusercontent.com/slackhq/nebula/master/examples/service_scripts/nebula.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now nebula
+```
+
+[Running Nebula as a service](/docs/guides/deploy/running-as-a-service/) covers the unit in detail, and
+[Running Nebula as a non-root user](/docs/guides/running-nebula-as-non-root/) shows how to drop root with
+`CAP_NET_ADMIN`.
+
+## A home lighthouse on a Pi
+
+A lighthouse needs to be reachable at a stable public address and UDP port. On a home connection that means:
+
+1. **A real public IPv4 address on your router.** If your ISP uses carrier-grade NAT (the router's WAN address is in
+   `100.64.0.0/10` or another private range), a port forward will not make the Pi reachable, and the Pi can't be a
+   lighthouse. Put the lighthouse on a [small cloud instance](/docs/guides/deploy/cloud-lighthouse/) instead and keep
+   the Pi as a normal host.
+2. **A fixed LAN address for the Pi**, through a DHCP reservation on the router or a static address on the Pi.
+3. **A port forward** on the router for UDP 4242 to the Pi's LAN address. Every router's UI differs; look for "port
+   forwarding" or "virtual server" in its documentation.
+4. **A pinned listen port**, since the forward must point at a port that doesn't change:
+
+```yaml
+lighthouse:
+  am_lighthouse: true
+
+listen:
+  host: 0.0.0.0
+  port: 4242
+```
+
+Other hosts then list the home public address, or a dynamic DNS name for it, in their
+[`static_host_map`](/docs/config/static-host-map/):
+
+```yaml
+static_host_map:
+  '192.168.100.1': ['home.example.net:4242']
+```
+
+DNS names in the static host map are re-resolved on a cadence set by
+[`static_map.cadence`](/docs/config/static-map/#static_mapcadence), so a dynamic DNS name keeps working after your ISP
+changes your address, within that interval. See [NAT traversal](/docs/guides/nat-traversal/) for what the port forward
+does and doesn't fix, and [Multiple lighthouses](/docs/guides/deploy/multiple-lighthouses/) if you want a second
+lighthouse elsewhere so the network survives a power cut at home.
+
+## A gateway into the home LAN
+
+The Pi can route traffic from remote Nebula hosts to printers, cameras, a NAS, or anything else on the LAN that can't
+run Nebula. This is the `unsafe_routes` feature, and
+[Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) is the full walkthrough using a Pi as the
+router. The short version:
+
+1. Sign the Pi's certificate with the LAN subnet:
+   `nebula-cert sign -name home-pi -networks 192.168.100.10/24 -unsafe-networks 192.168.1.0/24`.
+2. On the Pi, add a [firewall inbound rule](/docs/config/firewall/#firewallinbound) with `local_cidr` set to the LAN
+   subnet, enable `net.ipv4.ip_forward`, and add a masquerade rule so LAN devices reply to the Pi.
+3. On each remote host, add the route under [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes) with `via` set to
+   the Pi's Nebula address. Mobile Nebula has the same setting under the site's advanced configuration.
+
+A gateway Pi doesn't need to be a lighthouse or have a port forward: hole punching usually gets remote hosts a direct
+tunnel to it. If you already forward a port to it, add the forwarded address with
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) so peers skip punching entirely.
+
+## Cipher choice: AES or ChaCha20
+
+Nebula encrypts with AES-256-GCM by default, which is the right choice on CPUs with AES instructions. The Raspberry Pi 4
+and earlier models don't have them: a Raspberry Pi engineer
+[confirmed on the forums](https://forums.raspberrypi.com/viewtopic.php?t=207888&start=25#p1642865) that the BCM2711's
+Cortex-A72 cores were built without the Arm cryptography extensions, and the older SoCs never had them either. The
+Raspberry Pi 5 is the first model whose processor is listed
+[with cryptography extensions](https://www.raspberrypi.com/products/raspberry-pi-5/).
+
+On a Pi 4 or older, AES runs in software and ChaCha20-Poly1305, which was designed for exactly that case, generally
+gives higher tunnel throughput. Set it with:
+
+```yaml
+cipher: chachapoly
+```
+
+:::warning
+
+[`cipher`](/docs/config/cipher/) must be identical on every host and lighthouse in the network. Switching one Pi to
+`chachapoly` while the rest run `aes` breaks its tunnels. Decide per network, not per host; if your other hosts are
+AES-capable servers and laptops, leaving the default is fine and the Pi will still work, just with lower peak
+throughput. On a Pi 5, keep `aes`.
+
+:::
+
+To see what your board supports, check for `aes` in `grep Features /proc/cpuinfo`. For measuring the difference and
+other knobs, see [Performance tuning](/docs/guides/operations/performance-tuning/).
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) runs the lighthouses and relays for you, so a Pi at home is just another
+host: no port forward and no dynamic DNS, and it can still act as a route to your LAN. See the
+[Managed Nebula docs](https://docs.defined.net/).
+
+:::
+
+## See also
+
+- [Install Nebula](/docs/install/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Running Nebula as a service](/docs/guides/deploy/running-as-a-service/)
+- [Homelab remote access](/docs/use-cases/homelab-remote-access/)
+- [Nebula with Home Assistant](/docs/platforms/home-assistant/), which often runs on the same Pi
+- [`cipher` reference](/docs/config/cipher/)

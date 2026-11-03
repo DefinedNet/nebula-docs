@@ -1,0 +1,155 @@
+---
+title: Nebula with pfSense and OPNsense
+sidebar_label: pfSense and OPNsense
+description: >-
+  How to use Nebula behind a pfSense or OPNsense firewall: a gateway host plus a static route, outbound NAT static port,
+  and why running Nebula on the firewall itself is unsupported.
+summary: >-
+  There is no Nebula package for pfSense or OPNsense. The reliable pattern is a Nebula gateway host behind the firewall
+  with a static route and the right NAT settings on the firewall; running the FreeBSD binary on the firewall itself is
+  possible but unsupported.
+sidebar_position: 3
+---
+
+# Nebula with pfSense and OPNsense
+
+pfSense and OPNsense are the firewalls most homelabs and small offices put at the edge, so "how do I run Nebula on my
+firewall?" comes up often. The honest answer is that you mostly don't. Neither project ships a Nebula package or plugin;
+a pfSense feature request ([#11270](https://redmine.pfsense.org/issues/11270)) has been open since 2021 at low priority,
+and there is no OPNsense plugin. What works well is running Nebula on a host behind the firewall and teaching the
+firewall two or three things about it. This page covers that pattern, the NAT setting that matters for hole punching,
+and what to expect if you insist on running the binary on the firewall itself.
+
+Menu paths and field names below come from the [pfSense](https://docs.netgate.com/pfsense/en/latest/) and
+[OPNsense](https://docs.opnsense.org/) documentation; both UIs change over time, so treat them as pointers rather than
+exact clicks.
+
+## Approach A: a Nebula gateway host behind the firewall (recommended)
+
+Pick a machine on the LAN that is always on: a Raspberry Pi, a small VM, a NAS that can run Docker. That host runs
+Nebula and, with [`unsafe_routes`](/docs/guides/unsafe_routes/), routes traffic between the overlay and the LAN. The
+firewall keeps doing its job and needs no new software.
+
+### 1. Set up the gateway host
+
+Follow [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) end to end. In short, sign the
+gateway's certificate with the LAN subnet, allow routed traffic in Nebula's firewall with `local_cidr`, enable IP
+forwarding, and add a masquerade rule so LAN devices answer the gateway directly:
+
+```shell
+nebula-cert sign -name gateway -networks 192.168.100.10/24 -unsafe-networks 192.168.1.0/24
+```
+
+```yaml
+firewall:
+  inbound:
+    - port: any
+      proto: any
+      host: any
+      local_cidr: 192.168.1.0/24
+```
+
+Remote hosts add `192.168.1.0/24 via 192.168.100.10` under [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes).
+With masquerading on the gateway, remote hosts can reach the LAN with no change on the firewall at all: from the
+firewall's point of view the gateway host is just talking to its neighbours.
+
+### 2. Keep NAT from breaking hole punching
+
+The gateway, like every Nebula host behind the firewall, needs outbound UDP to the lighthouse and to peers. Both
+firewalls allow that by default. What they also do by default is rewrite the source port of outbound connections, and
+that turns the firewall into a [hard NAT](/docs/guides/nat-traversal/#hard-nat-symmetric-nat-cgnat) from Nebula's point
+of view: the port the lighthouse observes is not the port other peers can use, so tunnels fall back to relays or fail
+one-way. A [Netgate forum thread](https://forum.netgate.com/post/1037216) describes exactly this symptom.
+
+The fix is an outbound NAT rule for the Nebula host with static port translation:
+
+- **pfSense:** **Firewall > NAT**, **Outbound** tab. Switch the mode to **Hybrid Outbound NAT**, add a rule whose source
+  is the gateway host's LAN address, and check **Static Port** in the Translation section. The
+  [outbound NAT docs](https://docs.netgate.com/pfsense/en/latest/nat/outbound.html) describe the modes and the option.
+- **OPNsense:** **Firewall > NAT > Outbound** (the docs call it Source NAT). Set the mode to **Hybrid**, add a rule for
+  the host, and enable **Static-port**. See the [OPNsense NAT docs](https://docs.opnsense.org/manual/nat.html).
+
+With a static port, the host behaves like an [easy NAT](/docs/guides/nat-traversal/#easy-nat-endpoint-independent) and
+hole punching works as designed. Do this for any Nebula host behind the firewall that you want direct tunnels to, not
+only the gateway.
+
+### 3. (Optional) Let LAN devices reach overlay hosts
+
+Step 1 lets remote Nebula hosts into the LAN. If devices on the LAN that don't run Nebula should also be able to open
+connections to overlay addresses (a LAN workstation reaching `192.168.100.x`), the firewall needs a route for the
+overlay subnet pointing at the gateway host:
+
+- **pfSense:** **System > Routing**. On the **Gateways** tab, add a gateway on the LAN interface with the gateway host's
+  LAN address. On the **Routes** tab, add a static route with **Destination Network** `192.168.100.0/24` and that
+  gateway, as described in the [static routes docs](https://docs.netgate.com/pfsense/en/latest/routing/static.html).
+- **OPNsense:** **System > Gateways > Configuration** to add the gateway (on the LAN interface; no need for **Far
+  Gateway** since it is on the LAN subnet), then **System > Routes > Configuration** with **Network Address**
+  `192.168.100.0/24` and that **Gateway**. See the [OPNsense routes docs](https://docs.opnsense.org/manual/routes.html).
+
+The overlay hosts also need the return path: an `unsafe_routes` entry for `192.168.1.0/24` via the gateway, which they
+already have from step 1.
+
+Expect asymmetric routing with this setup. A LAN device sends to the firewall, the firewall forwards to the gateway on
+the same interface, but the replies go from the gateway straight to the LAN device without touching the firewall. A
+stateful firewall sees half a conversation and drops it. Both products have a switch for this case:
+
+- **pfSense:** **System > Advanced**, **Firewall/NAT** tab, **Bypass firewall rules for traffic on the same interface**.
+- **OPNsense:** **Firewall > Settings > Advanced**, **Static route filtering** (applies only when static routes are
+  defined).
+
+An alternative that avoids the asymmetry is to put Nebula on the LAN devices that need overlay access and skip the route
+entirely; the gateway then only serves devices that can't run Nebula.
+
+### 4. (Optional) If the gateway is a lighthouse or relay
+
+A [lighthouse](/docs/config/lighthouse/) or [relay](/docs/config/relay/) must be reachable from the internet, which
+means a port forward on the WAN interface to the gateway host and a pinned
+[`listen.port`](/docs/config/listen/#listenport):
+
+- **pfSense:** **Firewall > NAT**, **Port Forward** tab: **Interface** WAN, **Protocol** UDP, **Destination port range**
+  4242, **Redirect target IP** the gateway host, **Redirect target port** 4242
+  ([port forward docs](https://docs.netgate.com/pfsense/en/latest/nat/port-forwards.html)).
+- **OPNsense:** **Firewall > NAT > Port Forward** (Destination NAT) with the same values.
+
+This only helps if the WAN address is a real public IP. Behind carrier-grade NAT, put the lighthouse on a
+[cloud instance](/docs/guides/deploy/cloud-lighthouse/) instead; the gateway host doesn't need to be a lighthouse to
+route for the LAN.
+
+## Approach B: running Nebula on the firewall itself
+
+:::warning
+
+Neither pfSense nor OPNsense supports installing software outside its own package set, and neither has a Nebula package.
+Anything you add by hand can be removed or broken by the next upgrade, is invisible to the firewall's own interface,
+rule, and backup system, and is on you to keep working. Use approach A unless you have a specific reason not to.
+
+:::
+
+Both products are FreeBSD, and the Nebula release archive `nebula-freebsd-amd64.tar.gz` runs on them. At a high level
+you would extract the binary somewhere outside the paths the upgrader manages, place a config and certificates next to
+it, and start it from a shell script or an rc script of your own. What you get is a `tun` interface the firewall UI
+doesn't know about: it won't appear as an assignable interface, so rules for it have to be written by hand, and routing
+between the overlay and your LAN segments is manual pf work. A
+[Lawrence Systems forum thread](https://forums.lawrencesystems.com/t/nebula-pfsense/18233) asked precisely whether the
+interface would become assignable; nobody reported making it work, and the consensus was not to modify the firewall.
+Expect to redo the setup after upgrades, and keep approach A as your fallback.
+
+## Managed Nebula
+
+:::note
+
+[Managed Nebula](https://admin.defined.net) runs the lighthouses and relays, so no port forward is needed for any host
+behind the firewall. The static-port NAT rule and the gateway-host pattern above apply unchanged.
+
+:::
+
+## See also
+
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/)
+- [Exit nodes and site-to-site](/docs/guides/networking/exit-nodes-and-site-to-site/)
+- [Nebula on a Raspberry Pi](/docs/platforms/raspberry-pi/) and [Nebula on OpenWrt](/docs/platforms/openwrt/), where the
+  router can run Nebula natively
+- [pfSense feature request #11270](https://redmine.pfsense.org/issues/11270) and the
+  [Lawrence Systems thread](https://forums.lawrencesystems.com/t/nebula-pfsense/18233) for community discussion
+- [Install Nebula](/docs/install/#freebsd) for the FreeBSD builds

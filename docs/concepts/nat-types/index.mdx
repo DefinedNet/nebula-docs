@@ -1,0 +1,123 @@
+---
+title: NAT types and why they matter
+sidebar_label: NAT types
+description:
+  Symmetric NAT, full cone, CGNAT, and the RFC 4787 mapping and filtering behaviors behind the names, explained for
+  Nebula users who want to know whether hole punching will work.
+summary:
+  The vocabulary of NAT behavior in plain words, how to find out which kind you are behind, and where to look for what
+  Nebula does about each.
+sidebar_position: 3
+---
+
+# NAT types and why they matter
+
+Whether two Nebula hosts can build a direct tunnel depends mostly on how the NATs in front of them behave. The names
+people use for that behavior (full cone, symmetric, CGNAT) are informal and overlap, so this page explains the two
+properties that actually matter, maps the colloquial names onto them, and shows how to find out what you have. It is
+background for [NAT traversal and firewalls](/docs/guides/nat-traversal/), which is where Nebula's handling of each case
+is documented. Read that guide for the fix; read this page if the terms in it are unfamiliar.
+
+## What a NAT does
+
+A NAT sits between a private network and the internet, usually because the private side has addresses like
+`192.168.1.0/24` that are not routable outside. When a host inside sends a UDP packet out, the NAT rewrites the source
+address and port to its own public address and some external port, remembers that mapping, and uses it to rewrite
+replies back to the inside host. The mapping is what makes return traffic possible; without it, nothing on the internet
+could address the inside host at all.
+
+UDP hole punching ([explained in the NAT guide](/docs/guides/nat-traversal/#how-hole-punching-works)) is the trick of
+getting two hosts, each behind a NAT, to send packets outward at the same time so that each NAT creates a mapping that
+lets the other side's packets in. For it to work, each host has to be able to predict what mapping the other side's NAT
+will use, and the NAT has to accept packets through that mapping from a host it has not seen before. Those are the two
+properties that [RFC 4787](https://www.rfc-editor.org/rfc/rfc4787.html) defines.
+
+## Mapping behavior: does the external port stay the same?
+
+When an inside host sends from one internal address and port to several different destinations, does the NAT reuse one
+external port for all of them, or pick a new one per destination?
+
+- **Endpoint-independent mapping.** One external port per internal address and port, regardless of destination. The
+  address a lighthouse sees on a host's reports is therefore the same address any other peer can use. Hole punching
+  works. This is the behavior RFC 4787 requires, and home routers mostly comply.
+- **Endpoint-dependent mapping** (address-dependent or address-and-port-dependent). A different external port for each
+  destination. The address the lighthouse saw only works for the lighthouse. Other peers dial a port that maps to
+  nothing. Hole punching fails unless the other side is directly reachable.
+
+Mapping behavior is the property that decides most Nebula outcomes, and it is what the NAT guide means by
+[easy NAT](/docs/guides/nat-traversal/#easy-nat-endpoint-independent) versus
+[hard NAT](/docs/guides/nat-traversal/#hard-nat-symmetric-nat-cgnat).
+
+## Filtering behavior: who may send in through a mapping?
+
+Once a mapping exists, which outside hosts may send packets through it?
+
+- **Endpoint-independent filtering.** Anyone. Once the inside host has sent anything from a port, any outside host can
+  reach it on the mapped port.
+- **Address-dependent filtering.** Only outside addresses the inside host has already sent to, on any port.
+- **Address-and-port-dependent filtering.** Only the exact address and port the inside host has already sent to.
+
+Stricter filtering is fine for hole punching as long as both sides send first, because each host sends to the other
+before expecting anything back. It matters in the mixed case, where one side has an endpoint-dependent mapping and the
+other does not: the easy side can be reached at its observed address only if its filtering admits a packet from a port
+it has not yet sent to. The NAT guide's pair table marks that case "usually direct" for this reason.
+
+## The colloquial names
+
+The older names from [RFC 3489](https://www.rfc-editor.org/rfc/rfc3489.html), which the newer vocabulary replaced,
+combine a mapping and a filtering behavior:
+
+| Name                      | Mapping              | Filtering                  | Nebula outcome                  |
+| ------------------------- | -------------------- | -------------------------- | ------------------------------- |
+| Full cone                 | Endpoint-independent | Endpoint-independent       | Direct                          |
+| (Address) restricted cone | Endpoint-independent | Address-dependent          | Direct                          |
+| Port restricted cone      | Endpoint-independent | Address-and-port-dependent | Direct, except some mixed pairs |
+| Symmetric                 | Endpoint-dependent   | Address-and-port-dependent | Relayed when peer is also hard  |
+
+The first three are all "easy NAT" to Nebula. "Symmetric" is the one to watch for. Vendor marketing terms like
+"persistent NAT" or "full cone NAT" generally mean endpoint-independent mapping.
+
+## CGNAT
+
+Carrier-grade NAT is a second NAT that an ISP or mobile carrier runs in front of many customers at once, so a host may
+be behind its home router's NAT and then behind the carrier's. An address in `100.64.0.0/10` on the WAN side of your
+router is the usual sign. CGNAT devices commonly use endpoint-dependent mappings, short UDP timeouts, and public
+addresses shared by many customers, so hosts behind them should expect to need [relays](/docs/concepts/relays/) when
+talking to other NATed hosts, and cannot host a lighthouse at all. Some carriers expose a setting or a paid option to
+get a real public address.
+
+## Finding out what you have
+
+**Compare the port the lighthouse sees with the port the host uses.** On the host, note its
+[`listen.port`](/docs/config/listen/#listenport). On a lighthouse, open the
+[debug SSH server](/docs/guides/debug-ssh-commands/) and run `list-lighthouse-addrmap` to see the address and port the
+host's reports arrived from. If the port differs from `listen.port`, the NAT is rewriting ports, which is normal and not
+by itself a problem. If you have two lighthouses and the same host shows a _different_ external port on each, the
+mapping is endpoint-dependent and you are behind a hard NAT.
+
+**Use a STUN-based checker.** [RFC 5780](https://www.rfc-editor.org/rfc/rfc5780.html) defines tests that classify
+mapping and filtering behavior using a STUN server, and several open-source STUN clients implement them. They report the
+RFC 4787 terms directly. Run the check from the same network path Nebula will use; wired and wireless segments often
+differ.
+
+**Read the logs.** A host whose handshakes always complete with a `(relayed)` suffix is not punching through; the
+[NAT guide](/docs/guides/nat-traversal/#telling-direct-from-relayed) shows what to look for.
+
+## What Nebula does about it
+
+The NAT guide's [pair table](/docs/guides/nat-traversal/#what-to-expect-pair-by-pair) is the reference: direct when at
+least one side is easy or public, relayed when both are hard. The tools, in rough order of preference, are
+[`punchy.punch`](/docs/config/punchy/#punchypunch) to keep mappings alive,
+[`punchy.respond`](/docs/config/punchy/#punchyrespond) to retry the handshake from the harder side, a port forward plus
+[`lighthouse.advertise_addrs`](/docs/config/lighthouse/#lighthouseadvertise_addrs) to skip punching entirely, and
+[relays](/docs/concepts/relays/) when nothing else works.
+[Troubleshooting connectivity](/docs/guides/networking/troubleshooting-connectivity/) has the diagnostic steps.
+
+## See also
+
+- [NAT traversal and firewalls](/docs/guides/nat-traversal/)
+- [Relays](/docs/concepts/relays/)
+- [`punchy` reference](/docs/config/punchy/)
+- [RFC 4787: NAT behavioral requirements for unicast UDP](https://www.rfc-editor.org/rfc/rfc4787.html)
+- [Symmetric NAT](https://www.defined.net/docs/glossary/symmetric-nat/) and
+  [NAT traversal](https://www.defined.net/docs/glossary/nat-traversal/) in the Defined Networking glossary
