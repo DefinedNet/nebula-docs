@@ -39,7 +39,8 @@ var theme = {
     {
       types: ['comment', 'prolog', 'punctuation'],
       style: {
-        color: 'hsl(var(--dn-color-gray-hs), 50%)',
+        // Meets WCAG AA (4.5:1) on the dark code surface; 50% fell short at 3.7:1
+        color: 'hsl(var(--dn-color-gray-hs), 58%)',
       },
     },
   ],

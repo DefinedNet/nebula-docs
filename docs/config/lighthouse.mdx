@@ -42,14 +42,14 @@ lighthouse:
 
 ## lighthouse.am_lighthouse
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 `am_lighthouse` is used to enable lighthouse functionality for a node. This should ONLY be `true` on nodes you have
 configured to be lighthouses in your network
 
 ## lighthouse.serve_dns
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 `serve_dns` optionally starts a DNS listener that responds to `A` and `TXT` queries and can even be delegated to for
 name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set
@@ -64,7 +64,7 @@ regardless of whether it is communicating over the Nebula network.
 `TXT` records can only be queried over the Nebula network, and contain certificate information for the requested host IP
 address.
 
-For example, if `192.168.100.1` was your Lighthouse node running a DNS server and you wanted to find the Nebula IP
+For example, if `192.168.100.1` was your lighthouse node running a DNS server and you wanted to find the Nebula IP
 address of a host named `web01`:
 
 ```shell

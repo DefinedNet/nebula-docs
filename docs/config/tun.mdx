@@ -27,7 +27,7 @@ tun:
 
 ## tun.disabled
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 Allows the nebula interface (tun) to be disabled, which lets you run a lighthouse without a nebula interface (and
 therefore without root). You will not be able to communicate over IP with a nebula node that uses this setting.
@@ -39,13 +39,13 @@ required. If set, must be in the form `utun[0-9]+`. For FreeBSD: Required to be 
 
 ## tun.drop_local_broadcast
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 Toggles forwarding of local broadcast packets, the address of which depends on the ip/mask encoded in pki.cert
 
 ## tun.drop_multicast
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 
 Toggles forwarding of multicast packets
 
@@ -135,7 +135,7 @@ remaining available gateways, though load balancing may become uneven until the 
 
 ## tun.use_system_route_table
 
-<Pill className="mb-24">Default: False</Pill>
+<Pill className="mb-24">Default: false</Pill>
 <Pill className="mb-24">Added in v1.7.0</Pill>
 
 This option is only supported on Linux.

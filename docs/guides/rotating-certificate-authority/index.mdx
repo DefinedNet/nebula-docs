@@ -1,11 +1,12 @@
 ---
 title: Rotating a certificate authority
+sidebar_label: Rotating a CA
 description: How to rotate an expiring Nebula certificate authority without downtime.
 summary:
   This guide will teach you how to migrate from an expiring certificate authority by creating a new certificate
   authority, updating your device's Nebula config to trust the new authority, signing new host certificates, and
   removing the old certificate authority from the trust bundle.
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # How to rotate to a new certificate authority
@@ -34,7 +35,7 @@ bundle, giving you as much time as possible to rollback and fix any issues befor
 
 ## Let's get started!
 
-### Step 1: Generate a new Certificate Authority
+### Step 1: Generate a new certificate authority
 
 The first thing we need to do is create a new certificate authority with an expiration in the future. The new CA should
 use the exact same CIDR, group, and subnet restrictions as the original certificate. You can use `nebula-cert print` to
