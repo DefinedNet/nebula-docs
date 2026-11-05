@@ -1,0 +1,266 @@
+---
+title: Serving one address from several hosts
+sidebar_label: Service VIPs
+description:
+  Give a service a virtual IP that several Nebula hosts answer for, using unsafe networks on the backends and ECMP
+  unsafe_routes on the clients.
+summary:
+  This guide explains how to put a service behind a virtual IP served by several Nebula hosts. Each client spreads its
+  connections across the backends itself, and backends reply directly, so there is no load balancer in the path.
+sidebar_position: 12
+---
+
+# Serving one address from several hosts
+
+This guide explains how to give a service a virtual IP (VIP) that several Nebula hosts answer for. Clients connect to
+the VIP, and Nebula on each client picks a backend for every connection.
+
+Outside of Nebula this is usually done with a load balancer, or with direct server return (DSR) where a director sends
+requests to backends and the backends reply to clients directly. In a Nebula network every client already has its own
+encrypted tunnel to every backend, so each client can be its own director:
+
+- **No middle box.** Requests go straight from the client to a backend, and replies come straight back.
+- **No NAT and no IP forwarding.** The VIP is a local address on each backend.
+- **Backends see who is calling.** A request arrives over the client's own tunnel with the client's overlay address as
+  its source, so backend firewall rules on groups, hosts and CAs work as they do for any other traffic.
+
+The examples use IPv6. IPv4 works the same way; see [Using IPv4](#using-ipv4) for the differences.
+
+## How it works
+
+Three Nebula features fit together:
+
+1. Each backend's certificate carries the VIP as an **unsafe network**. That lets the backend receive traffic addressed
+   to the VIP and send replies from it.
+2. Each client has an **`unsafe_routes` entry for the VIP with several gateways**, one per backend.
+   [ECMP support](/docs/config/tun/#ecmp-support-for-unsafe_routes) spreads connections across them.
+3. When a backend replies from the VIP, the client accepts it because the VIP is in that backend's certificate.
+
+## Prerequisites
+
+_Read the [Extending network access beyond overlay hosts](/docs/guides/unsafe_routes/) guide first. This guide uses the
+same `unsafe_routes` feature._
+
+You'll need:
+
+1. A working overlay network running Nebula v1.10.0 or later
+1. Two or more Linux hosts that will serve the VIP
+1. The `nebula-cert` binary, and the `ca.key` and `ca.crt` files for the network
+1. Root access to the backends and to each client that will use the VIP
+
+IPv6 overlay addresses need version 2 certificates. If your network still uses version 1 certificates, see
+[Upgrading a Nebula network to IPv6 overlay addresses](/docs/guides/upgrade-to-cert-v2-and-ipv6/), or follow this guide
+with IPv4.
+
+If your CA restricts the unsafe networks it can sign, the VIP must be inside them. Run `nebula-cert print -path ca.crt`
+and check the CA's unsafe networks (shown as _subnets_ on version 1 certificates). An empty list means there is no
+restriction.
+
+## Example network
+
+The following addresses are used throughout this guide.
+
+| Overlay host IP           | Overlay hostname | Description                     |
+| ------------------------- | ---------------- | ------------------------------- |
+| `fdc8:d0db:a315:cb00::11` | `api-1`          | Backend serving the VIP         |
+| `fdc8:d0db:a315:cb00::12` | `api-2`          | Backend serving the VIP         |
+| `fdc8:d0db:a315:cb00::50` | `laptop`         | Client that connects to the VIP |
+
+- The overlay network is `fdc8:d0db:a315:cb00::/64`.
+- The VIP is `fdc8:d0db:a315:cb01::10`, taken from `fdc8:d0db:a315:cb01::/64`, a range set aside for service addresses.
+
+## Choose an address range for VIPs
+
+**The VIP must be outside every host's overlay network.** Nebula treats any address inside a host's own overlay network
+as one specific Nebula host. That host will try to handshake with a VIP inside its overlay network directly instead of
+routing it, and Nebula won't start with an `unsafe_routes` entry that falls inside the host's overlay network.
+
+Two things to check:
+
+- **Every certificate's network prefix, not just the range you use.** A host signed with
+  `-networks fdc8:d0db:a315:cb00::50/48` treats all of `fdc8:d0db:a315::/48` as its overlay network, so a VIP in
+  `fdc8:d0db:a315:cb01::/64` would not work from that host.
+- **Your hosts' local networks.** Clients install a route for the VIP, so it should not overlap a LAN any client sits
+  on. See
+  [Avoid IP conflicts with underlay networks](/docs/guides/unsafe_routes/#avoid-ip-conflicts-with-underlay-networks).
+
+Setting aside one range for all of your VIPs keeps this simple: you check it once, and each new service takes the next
+address.
+
+## Configuration steps
+
+### Step 1. Sign the backend certificates with the VIP
+
+From the directory containing `ca.crt` and `ca.key`, sign a certificate for each backend with the VIP as an unsafe
+network.
+
+```shell
+nebula-cert sign -name 'api-1' -networks 'fdc8:d0db:a315:cb00::11/64' \
+  -unsafe-networks 'fdc8:d0db:a315:cb01::10/128' -groups 'api'
+nebula-cert sign -name 'api-2' -networks 'fdc8:d0db:a315:cb00::12/64' \
+  -unsafe-networks 'fdc8:d0db:a315:cb01::10/128' -groups 'api'
+```
+
+A backend that serves several VIPs lists them all, separated by commas.
+
+Copy each certificate and key to its backend, replacing the old ones, and restart Nebula.
+
+### Step 2. Add the VIP to each backend
+
+Each backend has to accept the VIP as one of its own addresses. Add it to the loopback interface:
+
+```shell
+sudo ip addr add fdc8:d0db:a315:cb01::10/128 dev lo
+```
+
+Linux accepts a packet for any of its local addresses on any interface, so requests arriving on the Nebula interface
+reach a service listening on the VIP or on `::`. Replies go out with the VIP as their source address and leave through
+the Nebula interface, because that is the route back to the client.
+
+This change lasts until reboot. To make it permanent, add the address in your distribution's network configuration (for
+example a systemd-networkd `.network` file for `lo`, or netplan).
+
+There is nothing to forward, so IP forwarding and NAT rules are not needed.
+
+### Step 3. Allow the service in each backend's Nebula firewall
+
+Add an inbound rule for the service with `local_cidr` set to the VIP:
+
+```yaml
+firewall:
+  inbound:
+    - port: 443
+      proto: tcp
+      group: api-clients
+      local_cidr: fdc8:d0db:a315:cb01::10/128
+```
+
+`local_cidr` is required. On a host whose certificate has unsafe networks, a rule without `local_cidr` applies only to
+the host's own overlay address, so Nebula drops requests for the VIP before they reach the host.
+
+Because each request arrives over the client's own tunnel, `group`, `host` and `ca_name` match the client's certificate
+as usual.
+
+### Step 4. Route the VIP through the backends on each client
+
+On each client, add an `unsafe_routes` entry for the VIP with one gateway per backend:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: fdc8:d0db:a315:cb01::10/128
+      via:
+        - gateway: fdc8:d0db:a315:cb00::11
+        - gateway: fdc8:d0db:a315:cb00::12
+```
+
+`unsafe_routes` is reloadable, so you can send Nebula `SIGHUP` instead of restarting it. Nebula logs `Added route` with
+the VIP when the route is installed.
+
+Connect to the VIP from the client:
+
+```shell
+curl 'https://[fdc8:d0db:a315:cb01::10]/'
+```
+
+To see connections spread out, run the request several times and watch the logs on both backends. Each new connection
+picks a backend, so expect some runs of the same backend rather than strict alternation.
+
+Add the same `unsafe_routes` entry to every client that needs the service.
+
+## How connections are spread
+
+The client hashes each packet's source and destination ports and maps the hash to a backend. All packets of one
+connection have the same ports, so a connection stays on one backend. Different connections from the same client use
+different source ports and spread across the backends.
+
+Give a backend more or less of the traffic with `weight` (default 1). With these weights `api-1` gets about two thirds
+of the connections:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: fdc8:d0db:a315:cb01::10/128
+      via:
+        - gateway: fdc8:d0db:a315:cb00::11
+          weight: 2
+        - gateway: fdc8:d0db:a315:cb00::12
+          weight: 1
+```
+
+## Failover and maintenance
+
+**A client moves off a backend only when it has no working tunnel to it.** If the client has no tunnel to the backend a
+connection hashes to, it starts a handshake with that backend and sends the connection to another backend that does have
+a tunnel. Connections that were open on a failed backend break and have to reconnect. While a backend is down, all of
+its share goes to the first other backend that is up, so load is uneven until it comes back.
+
+**Nebula does not check the service itself.** If the service on a backend stops but Nebula keeps running, clients keep
+sending that backend its share of connections. Run a health check on each backend that stops Nebula when the service is
+unhealthy, or take the backend out of the clients' `via` lists.
+
+**To take a backend out of service**, stop Nebula on it. Nebula closes its tunnels when it shuts down, so clients send
+new connections to the other backends right away.
+
+**Connections move back when a backend returns.** Once a client's tunnel to a returning backend is up, connections that
+hash to it go to it again. A connection that moved to another backend while it was away is reset.
+
+**A connection opened while a tunnel is coming up can be reset.** If a connection starts while the client has a tunnel
+to some backends but not to the one it hashes to, its first packets go to another backend. As soon as the handshake
+finishes, the rest of its packets go to the backend it hashes to, which resets it. This happens after a backend's Nebula
+restarts, or after an idle tunnel is closed when `tunnels.drop_inactive` is enabled. Short requests often finish before
+the handshake does; long-lived or slow connections are the ones that break, and a retry succeeds. When a client first
+sends to the VIP it starts handshakes with every backend at once, so a freshly started client is rarely affected.
+
+**Changing the backend list or weights reshuffles some connections.** Adding a backend, removing one or changing a
+weight moves part of the hash space between backends. Connections in the part that moves land on a different backend and
+break. Make these changes when a few reconnects are acceptable.
+
+## Troubleshooting
+
+**Some connections to the VIP hang while others work.** Only the connections that hash to one backend fail. On that
+backend, check that:
+
+- its certificate lists the VIP in its unsafe networks (`nebula-cert print -path <backend>.crt`). A client drops packets
+  for the VIP to a gateway whose certificate doesn't carry it.
+- its inbound firewall rule sets `local_cidr` to the VIP (see
+  [Step 3](#step-3-allow-the-service-in-each-backends-nebula-firewall)).
+- the VIP is on its loopback interface (`ip addr show dev lo`).
+
+**Nebula won't start on a client after adding the route.** If the VIP is inside the client's overlay network, Nebula
+logs an error like this and exits:
+
+```
+level=ERROR msg="Could not parse tun.unsafe_routes" error="entry 1.route in tun.unsafe_routes is contained within the configured vpn networks; route: fdc8:d0db:a315:cb01::10/128, network: fdc8:d0db:a315:cb00::50/48"
+```
+
+Pick a VIP outside every host's overlay network (see
+[Choose an address range for VIPs](#choose-an-address-range-for-vips)).
+
+## Using IPv4
+
+Every step works the same with IPv4 addresses, and IPv4 works with version 1 certificates. Use `/32` for the VIP where
+the IPv6 examples use `/128`. With an overlay network of `192.168.100.0/24` and VIPs set aside in `192.168.101.0/24`:
+
+| Step                | IPv4 value                                                                     |
+| ------------------- | ------------------------------------------------------------------------------ |
+| Backend certificate | `-networks '192.168.100.11/24' -unsafe-networks '192.168.101.10/32'`           |
+| Backend loopback    | `sudo ip addr add 192.168.101.10/32 dev lo`                                    |
+| Backend firewall    | `local_cidr: 192.168.101.10/32`                                                |
+| Client route        | `route: 192.168.101.10/32` with gateways `192.168.100.11` and `192.168.100.12` |
+
+A host can serve an IPv4 VIP and an IPv6 VIP at the same time. List both in `-unsafe-networks`, add both to `lo`, and
+give each its own firewall rule and `unsafe_routes` entry.
+
+## When to use a load balancer instead
+
+A load balancer host that terminates connections and forwards them to the backends also works over Nebula, with no
+special configuration. Choose one instead of this guide when you need:
+
+- **Health checks on the service**, so a backend whose service has failed is taken out automatically.
+- **Decisions in one place**, such as request routing, connection draining, or limits shared across all clients.
+- **Clients you can't configure**, since every client in this guide needs the `unsafe_routes` entry.
+
+The trade-off is that backends see the load balancer's overlay address, not the client's. Nebula firewall rules on the
+backends then apply to the load balancer's certificate. Use the PROXY protocol or a header such as `X-Forwarded-For` if
+the service needs to know the original client.
