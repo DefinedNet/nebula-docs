@@ -9,6 +9,18 @@ const category = categories.find(({ slug }) => entry.id.startsWith(`${slug}/`));
 const crumbs: { label: string; href?: string }[] = category
   ? [{ label: category.label, href: `/${category.slug}/` }, { label: currentLabel }]
   : [{ label: currentLabel }];
+
+// Google shows this trail in search results in place of the raw URL.
+const breadcrumbList = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map(({ label, href }, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: label,
+    item: new URL(href ?? Astro.url.pathname, Astro.site).href,
+  })),
+};
 ---
 
 <nav class="breadcrumbs" aria-label="Breadcrumbs">
@@ -18,4 +30,5 @@ const crumbs: { label: string; href?: string }[] = category
     ))}
   </ol>
 </nav>
+<script type="application/ld+json" set:html={JSON.stringify(breadcrumbList).replaceAll('<', '\\u003c')} />
 <Default />

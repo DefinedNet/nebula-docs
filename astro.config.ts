@@ -166,6 +166,7 @@ export default defineConfig({
             ]
           : []),
       ],
+      routeMiddleware: './src/routeData.ts',
       components: {
         Header: './src/components/starlight/Header.astro',
         Sidebar: './src/components/starlight/Sidebar.astro',
