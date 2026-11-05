@@ -1,7 +1,6 @@
 import { satteri } from '@astrojs/markdown-satteri';
 import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
-import starlightDocSearch from '@astrojs/starlight-docsearch';
 import { defineConfig } from 'astro/config';
 import starlightLinksValidator from 'starlight-links-validator';
 import { categories } from './src/util/categories';
@@ -136,10 +135,6 @@ export default defineConfig({
         },
         { tag: 'meta', attrs: { property: 'og:image', content: 'https://nebula.defined.net/img/nebula-docs-og.jpg' } },
         { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://nebula.defined.net/img/nebula-docs-og.jpg' } },
-        {
-          tag: 'link',
-          attrs: { rel: 'preconnect', href: 'https://3Z2PF7OC67-dsn.algolia.net', crossorigin: 'anonymous' },
-        },
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' } },
         {
@@ -191,15 +186,7 @@ export default defineConfig({
           },
         },
       },
-      plugins: [
-        starlightDocSearch({
-          appId: '3Z2PF7OC67',
-          // Public search-only key
-          apiKey: 'e18093227a63ac004263f767e3f5a896',
-          indexName: 'defined-nebula',
-        }),
-        starlightLinksValidator(),
-      ],
+      plugins: [starlightLinksValidator()],
       sidebar: [
         { label: 'Get started', items: ['docs'] },
         ...categories.map(({ label, slug }) => ({
