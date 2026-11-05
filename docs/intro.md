@@ -46,7 +46,7 @@ Nebula is written in Go and is designed for portability.
 
 - Packaged for Linux, macOS, Windows, iOS, Android, and FreeBSD
 - Efficiently runs on x86, ARM, MIPS, PPC, and RISC hardware (32 & 64-bit)
-- A single `nebula` executable runs host firewall and service
+- A single `nebula` executable runs host firewall and service, and `nebula ctl` inspects and controls it locally
 - Host config file defines CA trust, host cert & key, and firewall rules
 - At least one host in overlay network should be a _Lighthouse_, which helps hosts discover routes to one another and
   assists in NAT traversal.
@@ -106,7 +106,8 @@ Discovery nodes allow individual peers to find each other and optionally use UDP
 from behind most firewalls or NATs. Users can move data between nodes in any number of cloud service providers,
 datacenters, and endpoints, without needing to maintain a particular addressing scheme.
 
-Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration.
+Nebula uses elliptic curve Diffie-Hellman key exchange, and AES-256-GCM in its default configuration. It can also be
+built to run in [FIPS 140-3 mode](/docs/guides/fips-140-3/).
 
 Nebula was created to provide a mechanism for groups hosts to communicate securely, even across the internet, while
 enabling expressive firewall definitions similar in style to cloud security groups.

@@ -3,7 +3,11 @@ sidebar_position: 7
 description: Selection of cipher used to encrypt Nebula network traffic
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
 # cipher
+
+<Pill className="mb-24">Default: aes</Pill>
 
 :::danger
 
@@ -20,3 +24,5 @@ Because most devices have hardware support for the AES instruction set (e.g. AES
 ```yml
 cipher: aes
 ```
+
+Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`, at startup.

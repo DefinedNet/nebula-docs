@@ -50,7 +50,7 @@ to apply. For the sake of this guide, let's assume your Nebula network space is 
 assign the IP address `192.168.100.25` to the new host. We'll use the groups `users` and `developers`.
 
 ```shell
-nebula-cert sign -in-pub alice.pub -name "Alice" -ip "192.168.100.25/24" --groups "users,developers"
+nebula-cert sign -in-pub alice.pub -name "Alice" -networks "192.168.100.25/24" -groups "users,developers"
 ```
 
 This will create a certificate at `Alice.crt`. To verify the certificate you can use `nebula-cert print`. For example:
