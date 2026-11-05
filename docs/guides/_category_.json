@@ -1,9 +1,0 @@
-{
-  "label": "Guides",
-  "position": 2,
-  "link": {
-    "type": "generated-index",
-    "description": "Step-by-step guides for configuring and troubleshooting Nebula overlay networks, including quick start, certificate management, DNS, and routing.",
-    "slug": "/guides"
-  }
-}

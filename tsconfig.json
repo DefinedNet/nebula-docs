@@ -1,14 +1,15 @@
 {
-  // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@docusaurus/tsconfig",
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["build"],
   "compilerOptions": {
-    "baseUrl": ".",
-    "incremental": true,
-    // If you add any more aliases here, be sure to also add it to .prettierc.cjs
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    // If you add any more aliases here, be sure to also add them to prettier.config.mjs
     "paths": {
-      "@docs/*": ["docs/*"],
-      "@src/*": ["src/*"],
-      "@components/*": ["src/components/*"]
+      "@docs/*": ["./src/content/docs/docs/*"],
+      "@src/*": ["./src/*"],
+      "@components/*": ["./src/components/*"]
     }
   }
 }

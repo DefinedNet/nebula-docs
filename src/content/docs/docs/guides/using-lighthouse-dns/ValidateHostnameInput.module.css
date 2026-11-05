@@ -1,0 +1,44 @@
+.ValidateHostnameInput {
+  --status-lightness: 30%;
+  --status-bg-lightness: 94%;
+
+  display: grid;
+  gap: 1rem;
+}
+
+:global([data-theme='dark']) .ValidateHostnameInput {
+  --status-lightness: 78%;
+  --status-bg-lightness: 16%;
+}
+
+.ValidateHostnameInput_input {
+  /* Prevent ios from "zooming in" */
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--field-bg);
+  color: var(--text-body);
+  padding: 0.5rem;
+}
+
+.ValidateHostnameInput_info,
+.ValidateHostnameInput_error,
+.ValidateHostnameInput_success {
+  color: hsl(var(--status-hs), var(--status-lightness));
+  background-color: hsl(var(--status-hs), var(--status-bg-lightness));
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  width: fit-content;
+}
+
+.ValidateHostnameInput_info {
+  --status-hs: var(--dn-color-blue-hs);
+}
+
+.ValidateHostnameInput_error {
+  --status-hs: var(--dn-color-red-hs);
+}
+
+.ValidateHostnameInput_success {
+  --status-hs: var(--dn-color-green-hs);
+}

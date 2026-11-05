@@ -1,0 +1,20 @@
+---
+const { prev, next } = Astro.locals.starlightRoute.pagination;
+---
+
+{(prev || next) && (
+  <nav class="pagination-nav print:hidden" aria-label="Docs pages">
+    {prev && (
+      <a href={prev.href} rel="prev" class="pagination-nav-link pagination-nav-link--prev">
+        <span class="pagination-nav-sublabel">Previous</span>
+        <span class="pagination-nav-label">{prev.label}</span>
+      </a>
+    )}
+    {next && (
+      <a href={next.href} rel="next" class="pagination-nav-link pagination-nav-link--next">
+        <span class="pagination-nav-sublabel">Next</span>
+        <span class="pagination-nav-label">{next.label}</span>
+      </a>
+    )}
+  </nav>
+)}

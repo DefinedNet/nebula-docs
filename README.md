@@ -6,10 +6,12 @@ This is the documentation for the [nebula open source project](https://github.co
 
 All commands are run from the root of the project, from a terminal:
 
-| Command        | Action                                      |
-| :------------- | :------------------------------------------ |
-| `pnpm install` | Installs dependencies                       |
-| `pnpm start`   | Starts local dev server at `localhost:3000` |
+| Command        | Action                                         |
+| :------------- | :--------------------------------------------- |
+| `pnpm install` | Installs dependencies                          |
+| `pnpm start`   | Starts local dev server at `localhost:4321`    |
+| `pnpm build`   | Builds the site to `./build/` and checks links |
+| `pnpm preview` | Serves the production build                    |
 
 ## Environment setup
 

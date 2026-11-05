@@ -1,0 +1,122 @@
+/**
+ * Points Starlight's theme variables at the semantic tokens in base.css.
+ *
+ * Starlight declares its variables inside cascade layers, so these unlayered
+ * rules win in both themes without matching its `[data-theme]` selectors. The
+ * tokens already switch per theme, so one mapping covers light and dark.
+ */
+:root {
+  --sl-color-white: var(--text-strong);
+  --sl-color-gray-1: var(--text-strong);
+  --sl-color-gray-2: var(--text-body);
+  --sl-color-gray-3: var(--text-muted);
+  --sl-color-gray-4: var(--text-muted);
+  --sl-color-gray-5: var(--border-color);
+  --sl-color-gray-6: var(--surface-1);
+  --sl-color-gray-7: var(--surface-1);
+  --sl-color-black: var(--surface-bg);
+
+  --sl-color-accent-low: var(--accent-subtle);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent-strong);
+
+  --sl-color-text: var(--text-body);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--accent-solid-text);
+  --sl-color-bg: var(--surface-bg);
+  --sl-color-bg-nav: var(--sidebar-bg);
+  --sl-color-bg-sidebar: var(--sidebar-bg);
+  --sl-color-bg-inline-code: var(--surface-2);
+  --sl-color-bg-accent: var(--accent-solid);
+  --sl-color-hairline-light: var(--border-subtle);
+  --sl-color-hairline: var(--border-color);
+  --sl-color-hairline-shade: var(--border-color);
+  --sl-color-backdrop-overlay: color-mix(in srgb, var(--dn-color-gray-10) 55%, transparent);
+
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+
+  --sl-font: var(--font-sans);
+  --sl-font-mono: var(--font-mono);
+
+  --sl-text-h1: 2.125rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.1875rem;
+  --sl-text-h4: 1rem;
+  --sl-text-h5: 1rem;
+  --sl-line-height: 1.7;
+  --sl-line-height-headings: 1.25;
+
+  --sl-sidebar-width: 240px;
+  --sl-sidebar-pad-x: 0.75rem;
+  --sl-menu-button-size: 2.75rem;
+  --sl-content-width: 54.25rem;
+  --sl-content-gap-y: 1.25rem;
+
+  /* Space for the inline-start menu button in the mobile header */
+  --header-menu-offset: calc(var(--sl-menu-button-size) + 0.5rem);
+}
+
+/*
+ * On desktop the header is the top of the left rail: logo over a full-width
+ * search box. Its height stays in --sl-nav-height so the sidebar pane starts
+ * below it, while the content columns, which sit beside the rail, reset it.
+ */
+@media (min-width: 50rem) {
+  :root {
+    --sl-nav-height: 8.75rem;
+    scroll-padding-top: calc(1.5rem + var(--sl-mobile-toc-height));
+  }
+  .main-frame,
+  .right-sidebar {
+    --sl-nav-height: 0rem;
+  }
+}
+
+@media (min-width: 50rem) {
+  :root {
+    --sl-content-pad-x: 1rem;
+  }
+}
+
+/*
+ * Wide layouts center an 82.5rem page beside the left rail and split it 3:1 between the article
+ * and the outline. The outline is position: fixed, so widths come from the frame's container
+ * units: 100vw would count a classic scrollbar and push the page off center.
+ */
+@media (min-width: 72rem) {
+  :root {
+    scroll-padding-top: 1.5rem;
+    --page-width: min(100cqw, 82.5rem);
+    --page-gutter: calc((100cqw - var(--page-width)) / 2);
+    --toc-column: calc(var(--page-gutter) + var(--page-width) / 4);
+  }
+  .main-frame {
+    container-type: inline-size;
+  }
+  /* Pages without an outline keep the article column and leave its space empty */
+  [data-has-sidebar] .main-pane {
+    --sl-content-margin-inline: auto 0;
+    --sl-content-width: calc(var(--page-width) * 0.75 - 2 * var(--sl-content-pad-x));
+    width: calc(100% - var(--toc-column));
+  }
+  .right-sidebar-container {
+    width: var(--toc-column);
+  }
+  .right-sidebar-panel {
+    padding-inline: var(--sl-content-pad-x);
+  }
+  .right-sidebar-panel .sl-container {
+    width: calc(var(--page-width) / 4 - 2 * var(--sl-content-pad-x));
+    max-width: none;
+  }
+}
+
+::selection {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+[data-theme='dark'] ::selection {
+  color: var(--dn-color-gray-10);
+}

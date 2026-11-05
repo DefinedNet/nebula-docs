@@ -1,0 +1,54 @@
+---
+import Default from '@astrojs/starlight/components/PageFrame.astro';
+
+const columns = [
+  {
+    title: 'Docs',
+    links: [
+      { label: 'Guides', href: '/docs/guides/' },
+      { label: 'Config reference', href: '/docs/config/' },
+      { label: 'Docs GitHub', href: 'https://github.com/DefinedNet/nebula-docs' },
+    ],
+  },
+  {
+    title: 'Nebula',
+    links: [
+      { label: 'GitHub', href: 'https://github.com/slackhq/nebula' },
+      { label: 'Slack', href: 'https://join.slack.com/t/nebulaoss/shared_invite/zt-39pk4xopc-CUKlGcb5Z39dQ0cK1v7ehA' },
+    ],
+  },
+  {
+    title: 'Defined Networking',
+    links: [
+      { label: 'Home', href: 'https://defined.net' },
+      { label: 'Blog', href: 'https://defined.net/blog' },
+      { label: 'Docs', href: 'https://docs.defined.net' },
+    ],
+  },
+];
+---
+
+<Default>
+  <slot name="header" slot="header" />
+  <slot name="sidebar" slot="sidebar" />
+  <slot />
+  <footer class="site-footer print:hidden">
+    <div class="site-footer-columns">
+      {columns.map(({ title, links }) => (
+        <div>
+          <h2 class="site-footer-title">{title}</h2>
+          <ul>
+            {links.map(({ label, href }) => (
+              <li>
+                <a href={href} rel={href.startsWith('http') ? 'noopener' : undefined}>
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+    <p class="site-footer-copyright">Copyright © {new Date().getFullYear()} Defined Networking.</p>
+  </footer>
+</Default>
