@@ -202,6 +202,12 @@ site-search dialog {
   font-size: 1rem;
 }
 
+/* Pagefind's default UI fades the placeholder to opacity 0.2, about 1.4:1 on --field-bg */
+#starlight__search .pagefind-ui__search-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
 /* Starlight already turns the border accent on focus, so the UA ring would draw a second outline */
 #starlight__search .pagefind-ui__search-input:focus {
   outline: none;
