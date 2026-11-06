@@ -582,9 +582,8 @@ to the ports you intend to forward and add separate, narrower rules for services
 On overlay hosts, configuring full-tunnel routing through an internet gateway host varies in complexity depending on the
 operating system.
 
-Mobile Nebula [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) and
-[iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) apps handle `0.0.0.0/0` correctly if you follow the
-guidelines in [Use unsafe routes with Mobile Nebula](#use-unsafe-routes-with-mobile-nebula).
+Mobile Nebula [Android](https://play.google.com/store/apps/details?id=net.defined.mobile_nebula) app handles `0.0.0.0/0` correctly if you follow the
+guidelines in [Use unsafe routes with Mobile Nebula](#use-unsafe-routes-with-mobile-nebula). However, Mobile Nebula [iOS](https://apps.apple.com/us/app/mobile-nebula/id1509587936) app doesn't yet support routing `0.0.0.0/0`.
 
 On non-mobile Nebula hosts, routing `0.0.0.0/0` creates a routing loop. To maintain the overlay network, each Nebula
 host must communicate with the lighthouse and other overlay hosts (underlay traffic). By default, overlay hosts that
@@ -606,11 +605,23 @@ listen:
   so_mark: 0x6EB
 ```
 
+By default, Nebula automatically adds configured unsafe routes directly to the main system routing table. While standard subnets rarely cause issues, specifying `0.0.0.0/0` installs a `default dev nebula1` route that conflicts with your system's default gateway route.
+
+To prevent the conflict and manage the traffic via policy routing, disable automatic route installation by adding this to your config:
+
+```yaml
+tun:
+  unsafe_routes:
+    - route: 0.0.0.0/0
+      via: 10.0.0.5
+      install: false
+```
+
 After that, configure policy routing by creating a custom routing table for internal overlay network traffic. In that
-table, set the default route via the internet gateway host and add policy rules to bypass marked underlay packets:
+table, set the default route via Nebula's internet gateway host. Then add a policy rule to ignore the `/0` traffic in the main routing table &mdash; ensuring more specific local subnet traffic, such as `/24`, is not routed via Nebula &mdash; and another policy rule to bypass marked underlay packets:
 
 ```sh
-ip route replace default via 10.0.0.5 dev nebula1 table 4242
+ip route replace default dev nebula1 table 4242
 ip rule add pref 5000 table main suppress_prefixlength 0
 ip rule add pref 5001 not fwmark 0x6EB table 4242
 ```
@@ -626,11 +637,12 @@ Configure routing all traffic `0.0.0.0/0` to the Nebula tunnel. To avoid conflic
 route, split `0.0.0.0/0` into two more specific `/1` routes that will take precedence over the default gateway:
 
 ```yaml
-unsafe_routes:
-  - route: 0.0.0.0/1
-    via: 10.0.0.5
-  - route: 128.0.0.0/1
-    via: 10.0.0.5
+tun:
+  unsafe_routes:
+    - route: 0.0.0.0/1
+      via: 10.0.0.5
+    - route: 128.0.0.0/1
+      via: 10.0.0.5
 ```
 
 Bypass underlay traffic by manually adding explicit static routes in your operating system's routing table for the
