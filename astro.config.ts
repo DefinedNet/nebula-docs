@@ -127,6 +127,7 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/DefinedNet/nebula-docs/edit/main/',
       },
+      lastUpdated: true,
       customCss: ['./src/css/base.css', './src/css/starlight.css', './src/css/components.css'],
       head: [
         {
