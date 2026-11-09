@@ -1,0 +1,88 @@
+---
+title: 'dns'
+description: Point the host's resolver at nameservers on the Nebula network, for some domains or for every lookup.
+sidebar:
+  order: 19
+---
+
+import { Pill } from '@components/Pill/Pill';
+
+<Pill className="mb-24">Added in v1.12.0</Pill> <Pill className="mb-24">Experimental</Pill>
+
+`dns` configures the host's resolver to send lookups to nameservers reachable over Nebula, such as a
+[lighthouse serving DNS](/docs/guides/using-lighthouse-dns/). It can do this for a set of domains (split DNS), or for
+every lookup on the host.
+
+```yml
+dns:
+  enabled: true
+  nameservers:
+    - 192.168.100.1
+  match_domains:
+    - mesh.example.com
+  search_domains:
+    - mesh.example.com
+  identity: nebula
+```
+
+This is supported on macOS and Windows. It needs Nebula to run as root on macOS, or as an administrator on Windows. On
+other platforms, Nebula logs a warning and leaves the host's DNS settings alone; the tunnel still comes up.
+
+Nebula puts the host's previous DNS settings back when it stops. If Nebula crashes, its settings stay in place until
+Nebula starts again with the same [`dns.identity`](#dnsidentity), which clears them whether or not `dns` is enabled.
+
+A `dns` stanza that fails to load stops Nebula from starting, and fails a reload.
+
+## dns.enabled
+
+<Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+Set to `true` to manage the host's DNS settings. Turning it off on reload puts the host's previous settings back.
+
+Nebula must have a tun device, so this can't be used with [`tun.disabled`](/docs/config/tun/#tundisabled). On Windows,
+[`tun.dev`](/docs/config/tun/#tundev) must also be set.
+
+## dns.nameservers
+
+<Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+A list of nameserver IP addresses to send matching lookups to. At least one is required when
+[`dns.enabled`](#dnsenabled) is `true`.
+
+## dns.match_domains
+
+<Pill className="mb-24">Default: dns.search_domains</Pill> <Pill className="mb-24">Reloadable</Pill>
+
+A list of domain suffixes whose lookups go to [`dns.nameservers`](#dnsnameservers). Lookups for other names use the
+host's usual resolver.
+
+When `match_domains` is not set, it defaults to [`dns.search_domains`](#dnssearch_domains). One of the two must be set.
+
+:::caution
+
+An explicitly empty list, `match_domains: []`, sends every lookup on the host to `dns.nameservers`. If those nameservers
+are only reachable over Nebula, the host can't resolve anything while the tunnel to them is down.
+
+:::
+
+The root domain, `.`, is not accepted. Use `match_domains: []` instead.
+
+## dns.search_domains
+
+<Pill className="mb-24">Reloadable</Pill>
+
+A list of domains to try when looking up a bare name, such as `host1` for `host1.mesh.example.com`. Each must fall under
+a [`dns.match_domains`](#dnsmatch_domains) entry.
+
+## dns.identity
+
+<Pill className="mb-24">Default: nebula</Pill>
+
+The name Nebula records its DNS settings under, so it can find and remove them later without touching settings made by
+anything else. It must start with a lowercase letter or digit, and hold only lowercase letters, digits, `.`, `_`, and
+`-`, up to 63 characters.
+
+When more than one Nebula on a host manages DNS, give each its own `identity`. Otherwise each one clears the others'
+settings when it starts.
+
+A change to `identity` takes effect after a restart.

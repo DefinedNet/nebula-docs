@@ -66,6 +66,8 @@ Quote group names. YAML converts unquoted values before Nebula sees them, so `gr
 `group: 1.10` as `1.1`. Booleans and decimal integers are (currently) accepted, with a warning. All other non-string
 types are rejected.
 
+An empty `group:` or `groups:` is read as null, and is rejected unless `host`, `cidr`, or another group limits the rule.
+
 :::
 
 - `cidr`: a remote CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
