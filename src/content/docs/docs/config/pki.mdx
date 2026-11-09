@@ -37,20 +37,25 @@ pki:
     -----END NEBULA CERTIFICATE-----
 ```
 
+CA certificates that this version of Nebula does not support, such as one from a newer certificate version, are skipped.
+
 ## pki.cert
 
 <Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 :::note
 
-A new certificate will only take effect after a reload if the IP address has not changed, but all other properties of
-the certificate can be changed.
+A new certificate takes effect on reload as long as its networks and curve match the running certificate. All other
+properties of the certificate can be changed.
 
 :::
 
 The `cert` is a certificate unique to every host on a Nebula network. The certificate identifies a host’s IP address,
 name, and group membership within a Nebula network. The certificate is signed by a certificate authority when created,
 which informs other hosts on whether to trust a particular host certificate.
+
+`pki.cert` may contain one v1 and one v2 certificate. Certificates that this version of Nebula does not support are
+skipped, so a bundle prepared for a future upgrade can be deployed ahead of time.
 
 ## pki.key
 
@@ -110,20 +115,27 @@ The `blocklist` contains a list of individual hosts' certificate fingerprints wh
 certificate is otherwise valid (signed by a trusted CA and unexpired.) This should be used if a host's credentials are
 stolen or compromised.
 
+Each entry is the hex SHA-256 fingerprint shown by `nebula-cert print`. Tunnels to a blocklisted host are always torn
+down, regardless of [`pki.disconnect_invalid`](#pkidisconnect_invalid). Rejected handshakes are counted in the
+`handshake_manager.rejected.blocklisted` metric.
+
 ## pki.disconnect_invalid
 
-<Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
+<Pill className="mb-24">Default: true</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `disconnect_invalid` is a toggle to force a client to be disconnected if the certificate is expired or invalid.
 
 ## pki.initiating_version
 
-<Pill className="mb-24">Default: 0</Pill> <Pill className="mb-24">Added in v1.10.0</Pill>
+<Pill className="mb-24">Default: 1 with a v1 certificate, otherwise 2</Pill> <Pill className="mb-24">Reloadable</Pill>
+<Pill className="mb-24">Added in v1.10.0</Pill>
 
-`pki.initiating_version` determines which nebula cert version to use when initiating new connections. This setting only
-applies if both a v1 and a v2 certificate are configured, in which case it will default to `1`. Once all hosts in the
-mesh are configured with both a v1 and v2 certificate then this will default to `2`. After all hosts in the mesh are
-using a v2 certificate then v1 certificates are no longer needed.
+`pki.initiating_version` determines which nebula cert version to use when initiating new connections. Valid values are
+`1` and `2`. This setting only matters if both a v1 and a v2 certificate are configured, in which case it defaults to
+`1`. If only a v2 certificate is configured it defaults to `2`.
+
+Once all hosts in the mesh are configured with both a v1 and v2 certificate, set it to `2`. After all hosts in the mesh
+are using a v2 certificate then v1 certificates are no longer needed.
 
 In most instances this config option should not be needed, as Nebula will automatically select the correct certificate
 version to use.
