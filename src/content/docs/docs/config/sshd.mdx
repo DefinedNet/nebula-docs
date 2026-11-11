@@ -30,7 +30,8 @@ See also the [Debugging with Nebula SSH commands](/docs/guides/debug-ssh-command
 available locally, without the SSH server, through [`nebula ctl`](/docs/guides/local-control-and-info-api/).
 
 A reload that changes `sshd.enabled`, `sshd.listen`, `sshd.host_key`, `sshd.trusted_cas`, or `sshd.authorized_users`
-restarts the SSH server, which closes every open session.
+restarts the SSH server, which closes every open session. If the new settings can't be applied, for example a host key
+that doesn't load, the SSH server stops and logs `Failed to reconfigure the sshd` until a reload succeeds.
 
 ## sshd.enabled
 

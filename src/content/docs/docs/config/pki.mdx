@@ -45,8 +45,10 @@ CA certificates that this version of Nebula does not support, such as one from a
 
 :::note
 
-A new certificate takes effect on reload as long as its networks and curve match the running certificate. All other
-properties of the certificate can be changed.
+A new certificate takes effect on reload as long as its networks and curve match the running certificate of the same
+version. All other properties of the certificate can be changed. Adding a certificate of the other version also works on
+reload, but networks it adds are not used until Nebula restarts. Removing the v2 certificate only works on reload when
+the remaining v1 certificate has the same networks.
 
 :::
 
@@ -118,6 +120,9 @@ stolen or compromised.
 Each entry is the hex SHA-256 fingerprint shown by `nebula-cert print`. Tunnels to a blocklisted host are always torn
 down, regardless of [`pki.disconnect_invalid`](#pkidisconnect_invalid). Rejected handshakes are counted in the
 `handshake_manager.rejected.blocklisted` metric.
+
+Since v1.12.0, an entry that isn't a hex SHA-256 fingerprint stops Nebula from starting, and fails a reload. The valid
+entries in a failed reload are still blocked.
 
 ## pki.disconnect_invalid
 

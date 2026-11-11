@@ -25,4 +25,5 @@ Because most devices have hardware support for the AES instruction set (e.g. AES
 cipher: aes
 ```
 
-Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`, at startup.
+Changing `cipher` requires a restart. Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`
+at startup, and a reload that sets it fails.

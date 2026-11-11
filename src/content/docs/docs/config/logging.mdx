@@ -49,7 +49,7 @@ zeros dropped, e.g. `2026-10-28T14:03:07.12034567-04:00`. `logging.timestamp_for
 
 ## Rate limited messages
 
-Some errors that can repeat for every packet are logged at most once per second each. The next line logged carries a
+Some messages that can repeat for every packet are logged at most once per second each. The next line logged carries a
 `suppressed` field with the number of lines skipped. These are:
 
 - `Failed to write outgoing packet`

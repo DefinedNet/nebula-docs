@@ -25,11 +25,20 @@ dns:
   identity: nebula
 ```
 
-This is supported on macOS and Windows. It needs Nebula to run as root on macOS, or as an administrator on Windows. On
-other platforms, Nebula logs a warning and leaves the host's DNS settings alone; the tunnel still comes up.
+This is supported on macOS and Windows. It needs Nebula to run as root on macOS, or as LocalSystem on Windows, for
+example as a service. On other platforms, Nebula logs a warning and leaves the host's DNS settings alone; the tunnel
+still comes up.
 
-Nebula puts the host's previous DNS settings back when it stops. If Nebula crashes, its settings stay in place until
-Nebula starts again with the same [`dns.identity`](#dnsidentity), which clears them whether or not `dns` is enabled.
+:::caution
+
+On Windows, running Nebula as an elevated Administrator instead of LocalSystem can leave Nebula's DNS rules in effect
+after it stops, which can break DNS resolution on the host.
+
+:::
+
+Nebula removes the DNS settings it applied when it stops; it does not restore older values. If Nebula crashes, its
+settings stay in place until Nebula starts again with the same [`dns.identity`](#dnsidentity), which clears them whether
+or not `dns` is enabled.
 
 A `dns` stanza that fails to load stops Nebula from starting, and fails a reload.
 
@@ -37,7 +46,7 @@ A `dns` stanza that fails to load stops Nebula from starting, and fails a reload
 
 <Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-Set to `true` to manage the host's DNS settings. Turning it off on reload puts the host's previous settings back.
+Set to `true` to manage the host's DNS settings. Turning it off on reload removes the settings Nebula applied.
 
 Nebula must have a tun device, so this can't be used with [`tun.disabled`](/docs/config/tun/#tundisabled). On Windows,
 [`tun.dev`](/docs/config/tun/#tundev) must also be set.

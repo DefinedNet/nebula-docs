@@ -67,7 +67,8 @@ setting only applies on Linux.
 Default MTU for every packet, safe setting is (and the default) 1300 for internet routed packets.
 
 The maximum MTU is 8937, here and on any route in [`tun.routes`](#tunroutes) or
-[`tun.unsafe_routes`](#tununsafe_routes). When the overlay carries IPv6, the MTU must be at least 1280.
+[`tun.unsafe_routes`](#tununsafe_routes). When the overlay carries IPv6, the MTU must be at least 1280; Linux and
+Windows refuse a smaller one.
 
 On iOS, Android, and macOS network extensions, the MTU is set by the host app and this setting is ignored.
 
@@ -129,7 +130,8 @@ For more information, see the [Extending network access beyond overlay hosts](/d
 
 macOS allows a single route per destination. If another interface already routes an unsafe route's destination, such as
 the local network you are connected to, Nebula's route is installed only after the other one is removed, for example
-after moving to a different network. A Nebula route deleted by hand stays deleted until Nebula reloads or restarts.
+after moving to a different network. A Nebula route deleted by hand stays deleted until Nebula reloads or restarts, or
+until another interface routes the destination and releases it.
 
 ### ECMP support for `unsafe_routes`
 
@@ -251,7 +253,8 @@ This option is only supported on Linux, and only applies while [`tun.pin_threads
 
 Overrides which CPUs the tun reader threads pin to: a list of CPU IDs, one per routine. A list shorter than `routines`
 is cycled across the queues; extra entries are ignored. IDs must be within the process's allowed CPU set, so the list
-respects `taskset` and cgroup cpusets.
+respects `taskset` and cgroup cpusets. A non-integer or disallowed entry disables the override, and the default pin
+selection is used.
 
 ```yml
 tun:

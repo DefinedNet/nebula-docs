@@ -34,7 +34,7 @@ local_api:
 The sockets are only created by the `nebula` and `nebula-service` binaries. Apps that embed Nebula, such as Mobile
 Nebula, do not create them, and neither does `nebula -test`.
 
-A problem with either socket logs a warning but does not stop Nebula.
+A problem with either socket logs an error or a warning but does not stop Nebula.
 
 ## local_api.control.enabled
 
@@ -98,8 +98,8 @@ Set to `true` to serve the info API. [`local_api.info.socket`](#local_apiinfosoc
 <Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 The path of the info socket. There is no default. The same path rules, [directory checks](#socket-directory), and
-Windows pipe naming apply as for the control socket, and it must be a different path from the control socket. On
-Windows, name the pipe under `\\.\pipe\ProtectedPrefix\Administrators\`.
+Windows pipe naming apply as for the control socket, and when both are enabled it must be a different path from the
+control socket. On Windows, name the pipe under `\\.\pipe\ProtectedPrefix\Administrators\`.
 
 ## local_api.info.group
 

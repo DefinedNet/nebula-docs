@@ -47,9 +47,9 @@ one host statically reachable means editing every peer's config — and if the a
 peers waste handshake attempts dialing it.
 
 DNS names in the static host map are re-resolved periodically, not just at startup, and again whenever a handshake to
-that host starts. A lookup that fails keeps the addresses from the last successful one; only a not found answer removes
-them. The [`static_map`](/docs/config/static-map/) settings control the re-resolution cadence, the lookup timeout, and
-which IP version is used — the default is IPv4-only, so IPv6-only hosts must set
+that host starts. A lookup that fails keeps the addresses from the last successful one; only a not found answer
+(NXDOMAIN, or no records) removes them. The [`static_map`](/docs/config/static-map/) settings control the re-resolution
+cadence, the lookup timeout, and which IP version is used — the default is IPv4-only, so IPv6-only hosts must set
 [`static_map.network`](/docs/config/static-map/#static_mapnetwork) to `ip6` or `ip`.
 
 ## The dynamic path: lighthouse discovery

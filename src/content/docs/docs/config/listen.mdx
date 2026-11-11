@@ -53,7 +53,8 @@ cost of per-syscall throughput.
 
 <Pill className="mb-24">Reloadable</Pill>
 
-This option is only supported on Linux.
+This option is only supported on Linux. Removing a value on reload leaves the socket at the old size until Nebula
+restarts.
 
 Configure socket buffers for the udp side (outside), leave unset to use the system defaults. Values will be doubled by
 the kernel. Default is `net.core.rmem_default` and `net.core.wmem_default` (`/proc/sys/net/core/rmem_default` and

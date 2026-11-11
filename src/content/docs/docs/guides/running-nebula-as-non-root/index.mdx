@@ -132,7 +132,8 @@ sudo -u nebula nebula ctl list-hostmap
 
 To let other users run it, set [`local_api.control.group`](/docs/config/local-api/#local_apicontrolgroup). If the socket
 is not at the default path, pass `-config /etc/nebula/config.yml` so `nebula ctl` can find it; since `/etc/nebula` is
-only readable by the nebula user above, run it as root or as the nebula user.
+only readable by the nebula user above, run it as root or as the nebula user. Members of the group can instead pass the
+socket path directly with `nebula ctl -socket <path>`, which doesn't need to read the config.
 
 ## Verifying
 

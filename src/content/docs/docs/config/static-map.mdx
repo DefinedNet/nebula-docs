@@ -55,4 +55,5 @@ hostname also triggers an immediate re-query.
 Timeout for DNS lookup of static hosts.
 
 A lookup that fails or times out keeps the last addresses that resolved successfully and logs
-`DNS resolution failed for static_map host`. Only a not found answer (NXDOMAIN) removes them.
+`DNS resolution failed for static_map host`. Only a not found answer (NXDOMAIN, or no records) removes them. On macOS a
+lookup while offline also counts as not found; the addresses are resolved again on the next handshake.

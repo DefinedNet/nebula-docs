@@ -71,7 +71,7 @@ Some metrics worth watching:
 
 | Metric                                   | Meaning                                                                                                                       |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `udp.tx.dropped`                         | Packets queued for the UDP socket that the kernel did not accept                                                              |
+| `udp.tx.dropped`                         | Packets queued for a batched UDP send that were not written, including ones to unreachable or stale remotes                   |
 | `udp.gro.enabled`, `udp.gso.enabled`     | Linux only. `1` when the UDP socket is using GRO or GSO, see [`listen.udp_offloads`](/docs/config/listen/#listenudp_offloads) |
 | `lighthouse.query.dropped`               | Lighthouse queries dropped because [`handshakes.query_buffer`](/docs/config/handshake/#handshakesquery_buffer) was full       |
 | `handshake_manager.rejected.blocklisted` | Handshakes refused because the peer's certificate is in [`pki.blocklist`](/docs/config/pki/#pkiblocklist)                     |
@@ -102,7 +102,8 @@ supported.
 
 <Pill className="mb-24">Required</Pill> <Pill className="mb-24">Reloadable</Pill>
 
-IP address of the host that Graphite should push stats updates to.
+Address of the Graphite host to push stats updates to, as `host:port`. A hostname is accepted and resolved when the
+config loads.
 
 ## Prometheus options
 

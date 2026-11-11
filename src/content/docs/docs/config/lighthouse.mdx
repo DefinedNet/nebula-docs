@@ -54,8 +54,8 @@ A lighthouse needs a fixed, non-zero [`listen.port`](/docs/config/listen/#listen
 <Pill className="mb-24">Default: false</Pill> <Pill className="mb-24">Reloadable</Pill>
 
 `serve_dns` optionally starts a DNS listener that responds to `A`, `AAAA`, and `TXT` queries and can even be delegated
-to for name resolution by external DNS hosts. To enable listening on IPv6 in addition to IPv4, set
-[`lighthouse.dns.host`](#lighthousedns) to `'::'`.
+to for name resolution by external DNS hosts. When [`lighthouse.dns.host`](#lighthousedns) is unset the listener accepts
+both IPv4 and IPv6; set it to `0.0.0.0` to listen on IPv4 only.
 
 The DNS listener can only respond to requests about hosts it's aware of. For this reason, it can only be enabled on
 Lighthouses.
@@ -63,8 +63,8 @@ Lighthouses.
 `A` records contain the Nebula IP for a host name and can be queried by any host that can reach the DNS listener,
 regardless of whether it is communicating over the Nebula network.
 
-`TXT` records can only be queried from hosts on the Nebula network or from the lighthouse itself, and contain the
-certificate of the requested host IP address.
+`TXT` records contain the certificate of the requested host IP address. They are only answered for queries from the
+lighthouse itself, over loopback or one of its own Nebula addresses; a `TXT` query from any other host gets no response.
 
 For example, if `192.168.100.1` was your lighthouse node running a DNS server and you wanted to find the Nebula IP
 address of a host named `web01`:

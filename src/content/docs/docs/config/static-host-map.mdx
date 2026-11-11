@@ -37,7 +37,8 @@ static_host_map:
 ```
 
 DNS names are re-resolved periodically, and again whenever a handshake to that host starts. A failed lookup keeps the
-last known good addresses; only a not found answer removes them. The [static_map](/docs/config/static-map/) settings
-control the resolution cadence, lookup timeout, and which IP version is used to reach static hosts.
+last known good addresses; only a not found answer (NXDOMAIN, or no records) removes them. The
+[static_map](/docs/config/static-map/) settings control the resolution cadence, lookup timeout, and which IP version is
+used to reach static hosts.
 
 Every host listed in [`lighthouse.hosts`](/docs/config/lighthouse/#lighthousehosts) must have an entry here.

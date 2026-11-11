@@ -47,7 +47,8 @@ The possible fields of a firewall rule are:
   second and further fragments of fragmented packets (since there is no port available).
 
 - `proto`: One of `any`, `tcp`, `udp`, or `icmp`. `icmp` matches both ICMP and ICMPv6, and `port` has no effect on
-  `icmp` rules. Traffic of any other IP protocol, such as GRE, SCTP, ESP, or IP-in-IP, only matches `proto: any` rules.
+  `icmp` rules. Traffic of any other IP protocol, such as GRE, SCTP, ESP, or IP-in-IP, only matches `proto: any` rules
+  with `port: any`.
 
 - `ca_name`: An issuing CA name
 
@@ -67,6 +68,8 @@ Quote group names. YAML converts unquoted values before Nebula sees them, so `gr
 types are rejected.
 
 An empty `group:` or `groups:` is read as null, and is rejected unless `host`, `cidr`, or another group limits the rule.
+An empty list (`groups: []`), an empty string (`group: ''`), or a rule with no `host`, `group`, `groups`, or `cidr` at
+all is accepted and matches any host. Write `host: any` when that is what you mean.
 
 :::
 
