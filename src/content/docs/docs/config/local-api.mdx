@@ -84,7 +84,8 @@ tunnels, and changing the log level. Only name a group whose members you would t
 
 :::
 
-On Windows, a change to `group` takes effect after a restart.
+On Windows, the socket's access can't change while it is served. A reload that adds to `group` takes effect after a
+restart. A reload that removes access stops the control socket, so `nebula ctl` doesn't work until Nebula restarts.
 
 ## local_api.info.enabled
 

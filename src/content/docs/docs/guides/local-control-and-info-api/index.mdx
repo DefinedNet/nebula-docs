@@ -101,16 +101,23 @@ an IPv6 address with a port as `[addr]:port`. Add `?pretty` to any request to in
 ```console
 $ curl --unix-socket /var/run/nebula/info.sock 'http://localhost/v1/identity/10.128.1.2:443?pretty'
 {
-  "name": "web01",
-  "vpnAddrs": ["10.128.1.2"],
-  "networks": ["10.128.1.2/16"],
-  "unsafeNetworks": [],
-  "groups": ["servers", "web"],
-  "fingerprint": "6d1f...",
-  "issuer": "4f0b...",
-  "notBefore": "2026-01-05T17:00:00Z",
-  "notAfter": "2027-01-05T16:59:59Z",
-  "certVersion": 2
+    "name": "web01",
+    "vpnAddrs": [
+        "10.128.1.2"
+    ],
+    "networks": [
+        "10.128.1.2/16"
+    ],
+    "unsafeNetworks": [],
+    "groups": [
+        "servers",
+        "web"
+    ],
+    "fingerprint": "6d1f...",
+    "issuer": "4f0b...",
+    "notBefore": "2026-01-05T17:00:00Z",
+    "notAfter": "2027-01-05T16:59:59Z",
+    "certVersion": 2
 }
 ```
 

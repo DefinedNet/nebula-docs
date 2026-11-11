@@ -64,7 +64,7 @@ Lighthouses.
 regardless of whether it is communicating over the Nebula network.
 
 `TXT` records can only be queried from hosts on the Nebula network or from the lighthouse itself, and contain the
-certificate of the requested host IP address as JSON.
+certificate of the requested host IP address.
 
 For example, if `192.168.100.1` was your lighthouse node running a DNS server and you wanted to find the Nebula IP
 address of a host named `web01`:
@@ -81,7 +81,9 @@ Or if you wanted to get certificate information about the host:
 $ dig +short @192.168.100.1 192.168.100.5 TXT
 ```
 
-The answer is the host's certificate as JSON, in the same form `nebula-cert print -json` prints a certificate.
+The answer carries the host's certificate details, but it is not valid JSON. To read a peer's certificate as JSON, use
+the [info API](/docs/guides/local-control-and-info-api/#looking-up-identities-with-the-info-api) on a host that has a
+tunnel to it.
 
 :::note
 

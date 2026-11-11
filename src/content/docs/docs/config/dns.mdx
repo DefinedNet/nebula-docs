@@ -71,8 +71,8 @@ The root domain, `.`, is not accepted. Use `match_domains: []` instead.
 
 <Pill className="mb-24">Reloadable</Pill>
 
-A list of domains to try when looking up a bare name, such as `host1` for `host1.mesh.example.com`. Each must fall under
-a [`dns.match_domains`](#dnsmatch_domains) entry.
+A list of domains to try when looking up a bare name, such as `host1` for `host1.mesh.example.com`. When
+[`dns.match_domains`](#dnsmatch_domains) lists domains, each must fall under one of them.
 
 ## dns.identity
 
