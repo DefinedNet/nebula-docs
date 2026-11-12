@@ -29,11 +29,11 @@ in your network, it's a good idea to start rotating certificates early, possibly
 connection issues. Ideally your hosts are managed using a config management tool like Ansible, Chef, or Puppet. If not,
 you'll need to manually connect to each device to update its Nebula config.
 
-Additionally, consider checking your config and enabling
-[`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) if you have not already. This flag will cause Nebula
-to close existing tunnels to hosts which are no longer trusted - either because their certificates are expired or are no
-longer signed by a trusted CA. This will accelerate how quickly you learn of problems after updating your CA trust
-bundle, giving you as much time as possible to rollback and fix any issues before your CA expires.
+Additionally, check that [`pki.disconnect_invalid`](/docs/config/pki/#pkidisconnect_invalid) is not set to `false` in
+your config. It defaults to `true`. This flag will cause Nebula to close existing tunnels to hosts which are no longer
+trusted - either because their certificates are expired or are no longer signed by a trusted CA. This will accelerate
+how quickly you learn of problems after updating your CA trust bundle, giving you as much time as possible to rollback
+and fix any issues before your CA expires.
 
 ## Let's get started!
 
@@ -65,9 +65,9 @@ NebulaCertificate {
 }
 ```
 
-To match this certificate, we would run `nebula-cert ca -name "test ca - do not use #2" -ips "192.168.100.0/24"`. We do
-not need to pass `-groups` or `-subnets` because this CA has no such restrictions. By default, Nebula will set the
-expiration to a year from today. If you'd like to use a custom expiration, you can use the `-duration` flag.
+To match this certificate, we would run `nebula-cert ca -name "test ca - do not use #2" -networks "192.168.100.0/24"`.
+We do not need to pass `-groups` or `-unsafe-networks` because this CA has no such restrictions. By default, Nebula will
+set the expiration to a year from today. If you'd like to use a custom expiration, you can use the `-duration` flag.
 
 :::note
 
@@ -109,16 +109,19 @@ PEM certificate below the existing certificate(s).
 
 In order for this change to take effect, you must restart or reload Nebula. If you're using systemd,
 `systemctl restart nebula` will restart the process. Alternatively, to gracefully reload Nebula without tearing down
-tunnels, find its pid in your process list and run `kill -SIGHUP <pid>`. You can verify the config was reloaded by
-looking for the following lines:
+tunnels, run `sudo nebula ctl reload`, or find its pid in your process list and run `kill -SIGHUP <pid>`.
+`nebula ctl reload` prints the outcome directly; after a `SIGHUP`, look for these lines in the log:
 
 ```
-time="2022-07-27T11:32:04-04:00" level=info msg="Caught HUP, reloading config"
+time=2026-07-27T11:32:04.183-04:00 level=INFO msg="Caught HUP, reloading config"
 ...
-time="2022-07-27T11:32:04-04:00" level=info msg="Trusted CA certificates refreshed" fingerprints=[d5978d6d54a58e4685551708c5f57fbdd3774be67d470ecb0033cf70bbf5fbb5 b680813a506933b2020f6e9980fc26f7df79c8124302e32aedba23c820e813dc]"
+time=2026-07-27T11:32:04.190-04:00 level=INFO msg="Config reload complete"
 ```
 
-For extra credit, you can verify that your newly minted CA's fingerprint appears in the log line shown above.
+With [`logging.level`](/docs/config/logging/#logginglevel) set to `debug`, the reload also logs a
+`Trusted CA fingerprints` line listing the fingerprint of every trusted CA.
+
+For extra credit, you can verify that your newly minted CA's fingerprint appears in that line.
 
 ### Step 3: Signing new host certificates
 
@@ -150,7 +153,7 @@ NebulaCertificate {
 	Fingerprint: 92efefd0575f71c10973dc96d9e2111d62703139383855f5a6a74feea68af05e
 	Signature: dc680011a11078fc00cce84d176662f54c96fa071d1bd49d5410a987f5743c3a641e27142ec19d5ed1929d5464bcdffe927a787b3a4f200b008d84821e3c4a0d
 }
-$ nebula-cert sign -name "host1" -subnets "10.0.0.0/8" -ip "192.168.100.5/24" -groups "prod,api"
+$ nebula-cert sign -name "host1" -networks "192.168.100.5/24" -unsafe-networks "10.0.0.0/8" -groups "prod,api"
 ```
 
 This will create a new `host1.crt` and `host1.key`. Copy the new certificate and key to your host, update the Nebula
@@ -177,12 +180,3 @@ pki:
 ```
 
 Congratulations on rotating your certificate authority. Don't forget to set a reminder before the next expiration!
-
-:::note
-
-Sick of manually managing IP addresses, certificates, and certificate authority expirations?
-
-<a href="https://defined.net">Defined Networking</a> can help! We offer a Managed Nebula solution that removes the toil
-of managing your network. <a href="https://admin.defined.net/signup">Try it today!</a>
-
-:::

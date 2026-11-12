@@ -127,6 +127,7 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/DefinedNet/nebula-docs/edit/main/',
       },
+      lastUpdated: true,
       customCss: ['./src/css/base.css', './src/css/starlight.css', './src/css/components.css'],
       head: [
         {
@@ -167,6 +168,7 @@ export default defineConfig({
         Sidebar: './src/components/starlight/Sidebar.astro',
         PageTitle: './src/components/starlight/PageTitle.astro',
         PageFrame: './src/components/starlight/PageFrame.astro',
+        PageSidebar: './src/components/starlight/PageSidebar.astro',
         Pagination: './src/components/starlight/Pagination.astro',
         ThemeSelect: './src/components/starlight/ThemeSelect.astro',
         MobileMenuFooter: './src/components/starlight/Empty.astro',
