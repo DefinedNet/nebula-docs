@@ -1,0 +1,69 @@
+---
+import Default from '@astrojs/starlight/components/PageSidebar.astro';
+
+const { toc, entry } = Astro.locals.starlightRoute;
+const showPromo = Boolean(toc) && entry.data.managedPromo !== false;
+
+// Tag the signup link with the page it was clicked from, so signups can be attributed per placement and page.
+const signupUrl = new URL('https://admin.defined.net/signup');
+signupUrl.search = new URLSearchParams({
+  utm_source: 'nebula-docs',
+  utm_medium: 'sidebar',
+  utm_campaign: 'managed-nebula',
+  utm_content: entry.id.replace(/^docs\//, '') || 'docs-home',
+}).toString();
+---
+
+<Default />
+
+{showPromo && (
+  <div class="right-sidebar-panel managed-promo-panel sl-hidden lg:sl-block">
+    <aside class="sl-container managed-promo" aria-label="Managed Nebula">
+      <p class="managed-promo-label">Managed Nebula</p>
+      <p class="managed-promo-body">Hosted lighthouse and CA, with automatic certificate rotation.</p>
+      <a class="managed-promo-link" href={signupUrl.href}>
+        Free for up to 100 hosts →
+      </a>
+    </aside>
+  </div>
+)}
+
+<style>
+  /* Reuses .right-sidebar-panel / .sl-container so the width and gutters match the TOC above. */
+  .managed-promo-panel {
+    padding-top: 0;
+  }
+
+  .managed-promo {
+    padding: 1rem 0.75rem 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .managed-promo-label {
+    margin: 0 0 0.25rem;
+    font-size: var(--label-size);
+    font-weight: var(--label-weight);
+    letter-spacing: var(--label-tracking);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .managed-promo-body {
+    margin: 0 0 0.375rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--text-body);
+  }
+
+  .managed-promo-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .managed-promo-link:hover {
+    color: var(--accent-strong);
+    text-decoration: underline;
+  }
+</style>
