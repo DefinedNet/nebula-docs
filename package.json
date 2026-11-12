@@ -14,11 +14,11 @@
     "test": "uvu -r tsm src '\\.test\\.ts$'"
   },
   "dependencies": {
-    "@astrojs/markdown-satteri": "^0.4.6",
-    "@astrojs/mdx": "^8.1.2",
-    "@astrojs/react": "^7.1.2",
-    "@astrojs/starlight": "^0.42.8",
-    "astro": "^7.4.5",
+    "@astrojs/markdown-satteri": "^0.4.7",
+    "@astrojs/mdx": "^8.1.3",
+    "@astrojs/react": "^7.1.4",
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.4.7",
     "parse-domain": "^8.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
