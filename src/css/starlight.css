@@ -81,8 +81,8 @@
 
 /*
  * Wide layouts center an 82.5rem page beside the left rail and split it 3:1 between the article
- * and the outline. The outline is position: fixed, so widths come from the frame's container
- * units: 100vw would count a classic scrollbar and push the page off center.
+ * and the outline. Widths come from the frame's container units: 100vw would count a classic
+ * scrollbar and push the page off center.
  */
 @media (min-width: 72rem) {
   :root {
@@ -102,6 +102,12 @@
   }
   .right-sidebar-container {
     width: var(--toc-column);
+  }
+  /* Sticky rather than Starlight's fixed, so the outline stops at the end of its column instead of painting over the site footer */
+  .right-sidebar {
+    position: sticky;
+    height: auto;
+    max-height: 100vh;
   }
   .right-sidebar-panel {
     padding-inline: var(--sl-content-pad-x);
