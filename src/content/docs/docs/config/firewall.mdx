@@ -68,8 +68,8 @@ Quote group names. YAML converts unquoted values before Nebula sees them, so `gr
 types are rejected.
 
 An empty `group:` or `groups:` is read as null, and is rejected unless `host`, `cidr`, or another group limits the rule.
-An empty list (`groups: []`), an empty string (`group: ''`), or a rule with no `host`, `group`, `groups`, or `cidr` at
-all is accepted and matches any host. Write `host: any` when that is what you mean.
+A rule that sets only `local_cidr`, `ca_name`, or `ca_sha`, alongside an empty list (`groups: []`) or an empty string
+(`group: ''`), is accepted and matches any host. Write `host: any` when that is what you mean.
 
 :::
 
