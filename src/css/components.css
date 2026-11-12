@@ -62,6 +62,8 @@ starlight-toc h2,
 
 .sl-menu-button {
   inset-inline: var(--sl-nav-pad-x) auto;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-sm);
   background-color: transparent;
   box-shadow: none;
