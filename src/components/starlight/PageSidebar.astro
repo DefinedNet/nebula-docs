@@ -2,7 +2,6 @@
 import Default from '@astrojs/starlight/components/PageSidebar.astro';
 
 const { toc, entry } = Astro.locals.starlightRoute;
-// Explicit `!== false` rather than trusting the schema default, which a stale content cache can leave unset.
 const showPromo = Boolean(toc) && entry.data.managedPromo !== false;
 
 // Tag the signup link with the page it was clicked from, so signups can be attributed per placement and page.
