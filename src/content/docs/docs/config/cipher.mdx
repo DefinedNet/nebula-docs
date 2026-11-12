@@ -5,6 +5,10 @@ sidebar:
   order: 7
 ---
 
+import { Pill } from '@components/Pill/Pill';
+
+<Pill className="mb-24">Default: aes</Pill>
+
 :::danger
 
 This value must be identical on ALL nodes and lighthouses. Nebula does not support the use of different ciphers
@@ -20,3 +24,6 @@ Because most devices have hardware support for the AES instruction set (e.g. AES
 ```yml
 cipher: aes
 ```
+
+Changing `cipher` requires a restart. Nebula built in [FIPS 140-3 mode](/docs/guides/fips-140-3/) refuses `chachapoly`
+at startup, and a reload that sets it fails.
