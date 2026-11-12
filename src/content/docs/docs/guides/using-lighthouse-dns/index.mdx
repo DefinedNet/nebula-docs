@@ -77,7 +77,7 @@ I can also query the TXT record for the nebula IP for certificate info. The answ
 details, but it is not valid JSON; to read a peer's certificate as JSON, use the
 [info API](/docs/guides/local-control-and-info-api/#looking-up-identities-with-the-info-api). TXT queries are only
 answered when they come from the lighthouse itself, over loopback or one of its own Nebula addresses, so run this on the
-lighthouse; from any other host the query gets no response.
+lighthouse; from any other host the query gets an empty answer.
 
 ```bash
 dig @100.100.0.1 +short "100.100.0.2" TXT

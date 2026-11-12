@@ -64,7 +64,8 @@ Lighthouses.
 regardless of whether it is communicating over the Nebula network.
 
 `TXT` records contain the certificate of the requested host IP address. They are only answered for queries from the
-lighthouse itself, over loopback or one of its own Nebula addresses; a `TXT` query from any other host gets no response.
+lighthouse itself, over loopback or one of its own Nebula addresses; a `TXT` query from any other host gets an empty
+answer.
 
 For example, if `192.168.100.1` was your lighthouse node running a DNS server and you wanted to find the Nebula IP
 address of a host named `web01`:
