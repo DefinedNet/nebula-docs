@@ -11,6 +11,8 @@ export const collections = {
         description: z.string(),
         // Some guides carry a longer summary of what they cover; nothing renders it.
         summary: z.string().optional(),
+        // Set false on pages with their own Managed Nebula callout, so the sidebar promo doesn't repeat it.
+        managedPromo: z.boolean().default(true),
       }),
     }),
   }),
