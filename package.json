@@ -18,7 +18,7 @@
     "@astrojs/mdx": "^8.1.2",
     "@astrojs/react": "^7.1.2",
     "@astrojs/starlight": "^0.42.8",
-    "astro": "^7.4.5",
+    "astro": "^7.4.7",
     "parse-domain": "^8.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
