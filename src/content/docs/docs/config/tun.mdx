@@ -101,7 +101,9 @@ silently refuse to route traffic.
 :::
 
 Unsafe routes allows you to route traffic over nebula to non-nebula nodes. Unsafe routes should be avoided unless you
-have hosts/services that cannot run nebula.
+have hosts/services that cannot run nebula: nebula does not encrypt or authenticate traffic between the `via` node and
+those nodes, and they have no certificate for firewall rules to match. See
+[What makes unsafe routes unsafe](/docs/guides/unsafe_routes/#what-makes-unsafe-routes-unsafe).
 
 ```yml
 tun:
