@@ -45,18 +45,18 @@ devices that cannot run Nebula.
 Nebula encrypts traffic between hosts and uses each host's certificate to verify who is on the other end. Subnet devices
 have no certificate, so an unsafe route reaches past those guarantees:
 
-- **Nebula's protection ends at the subnet gateway.** Between the gateway and a subnet device, traffic crosses the
-  subnet without Nebula's encryption or authentication. Anyone who can read or tamper with traffic on that subnet, for
-  example by ARP spoofing, can read or tamper with it.
-- **Subnet devices have no Nebula identity.** Firewall rules can match a subnet device only by address, using `cidr` or
-  `local_cidr`. When traffic from the subnet reaches an overlay host, `host` and `group` rules are checked against the
-  subnet gateway's certificate, not against the device that sent it.
-- **The subnet gateway is trusted for the whole subnet.** A host whose certificate lists a subnet in `unsafeNetworks`
-  can send and receive traffic as any address in it, and other hosts cannot tell which device, if any, is behind a
-  packet. Sign `unsafeNetworks` only into certificates of hosts you trust with that entire range.
-- **Subnet devices cannot tell overlay hosts apart.** With the NAT configured in this guide, every connection from the
-  overlay network appears to the subnet device to come from the subnet gateway. The Nebula firewall on the subnet
-  gateway is the only place to control which overlay hosts reach which devices.
+- Nebula's encryption and authentication end at the subnet gateway. Between the gateway and a subnet device, traffic
+  crosses the subnet unprotected, so anyone who can read or tamper with traffic on that subnet, for example by ARP
+  spoofing, can read or tamper with it.
+- Firewall rules can match a subnet device only by address, using `cidr` or `local_cidr`. When traffic from the subnet
+  reaches an overlay host, `host` and `group` rules are checked against the subnet gateway's certificate, not against
+  the device that sent it.
+- A host whose certificate lists a subnet in `unsafeNetworks` is trusted for that whole subnet. It can send and receive
+  traffic as any address in it, and other hosts cannot tell which device, if any, is behind a packet. Sign
+  `unsafeNetworks` only into certificates of hosts you trust with that entire range.
+- With the NAT configured in this guide, every connection from the overlay network appears to the subnet device to come
+  from the subnet gateway, so the device cannot tell overlay hosts apart. The Nebula firewall on the subnet gateway is
+  the only place to control which overlay hosts reach which devices.
 
 :::note
 
