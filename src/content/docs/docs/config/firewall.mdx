@@ -80,6 +80,11 @@ all is accepted and matches any host. Write `host: any` when that is what you me
   networks assigned via the certificate networks field unless `default_local_cidr_any` is set to true. If there are
   unsafe_routes present in this config file, `local_cidr` should be set appropriately for the intended use case.
 
+  On an outbound rule, `local_cidr` matches the packet's source address. On a subnet gateway, traffic that a subnet
+  device sends into the overlay network has the device's address as its source, so an outbound rule without `local_cidr`
+  does not match it. See
+  [Allow subnet devices to start connections](/docs/guides/unsafe_routes/#allow-subnet-devices-to-start-connections).
+
 :::note
 
 Logical evaluation of these rules changed in Nebula v1.9.0. Previously, a match on `local_cidr` meant that a rule did

@@ -533,6 +533,63 @@ example the printer's IPP port with `nc -zv 192.168.1.25 631`.
 
 Add the same `unsafe_routes` section to other overlay hosts that need access to subnet devices.
 
+## Allow subnet devices to start connections
+
+With the configuration above, overlay hosts can start connections to subnet devices, and the replies are allowed back.
+Subnet devices cannot start connections to overlay hosts. When a subnet device sends a packet into the overlay network,
+the subnet gateway checks it against its outbound firewall rules with the device's address as the local address. An
+outbound rule without [`local_cidr`](/docs/config/firewall/#firewallinbound) matches only the subnet gateway's own
+overlay address, so the usual `port: any, proto: any, host: any` rule does not match. The host firewall's forward rules
+in Step 3 also allow only replies from the subnet.
+
+:::caution
+
+Once subnet devices can start connections, every device on the subnet can reach any overlay host whose inbound rules
+allow the subnet gateway's certificate or groups. Nebula cannot tell those devices apart. Allow only the ports and
+destinations that subnet devices need.
+
+:::
+
+To let the printer send scan results to `nebula-roaming` over SMB, for example:
+
+1. On the subnet gateway, add an outbound rule with `local_cidr` set to the subnet devices that need to start
+   connections:
+
+   ```yaml
+   firewall:
+     outbound:
+       - port: 445
+         proto: tcp
+         host: nebula-roaming
+         local_cidr: 192.168.1.25/32
+   ```
+
+   Avoid setting [`firewall.default_local_cidr_any`](/docs/config/firewall/#firewalldefault_local_cidr_any) to `true`
+   for this. It applies every rule without `local_cidr` to the whole subnet.
+
+1. On the subnet gateway, allow new connections from the subnet to the overlay network in the host firewall's forward
+   rules, scoped the same way. With iptables, for example:
+
+   ```sh
+   sudo iptables -I FORWARD 3 -i eth0 -o nebula1 -s 192.168.1.25 -d 10.0.0.11 -p tcp --dport 445 -j ACCEPT
+   ```
+
+1. Give the subnet device a route to the overlay network through the subnet gateway, for example a static route for
+   `10.0.0.0/24` via the subnet gateway's LAN address on the device or on the subnet's router.
+
+1. On the overlay host, keep the [`tun.unsafe_routes`](/docs/config/tun/#tununsafe_routes) entry from
+   [Step 4](#step-4-roaming-host-configure-traffic-routing) so replies to the subnet go back through the subnet gateway,
+   and add an inbound rule that allows the connection. The overlay host sees the connection as coming from the subnet
+   device's address, so match it with `cidr` or by the subnet gateway's certificate:
+
+   ```yaml
+   firewall:
+     inbound:
+       - port: 445
+         proto: tcp
+         cidr: 192.168.1.25/32
+   ```
+
 ## Tips
 
 ### Avoid IP conflicts with underlay networks
