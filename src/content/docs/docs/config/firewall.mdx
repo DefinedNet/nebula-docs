@@ -69,16 +69,19 @@ types are rejected.
 
 An empty `group:` or `groups:` is read as null, and is rejected unless `host`, `cidr`, or another group limits the rule.
 An empty list (`groups: []`), an empty string (`group: ''`), or a rule with no `host`, `group`, `groups`, or `cidr` at
-all is accepted and matches any host. Write `host: any` when that is what you mean.
+all matches any host. Such a rule loads only if it sets `local_cidr`, `ca_name`, or `ca_sha`. Otherwise Nebula rejects
+it. Write `host: any` when that is what you mean.
 
 :::
 
 - `cidr`: a remote CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
 
 - `local_cidr`: a local CIDR, `0.0.0.0/0` is any ipv4 and `::/0` is any ipv6. `any` means any ip family and address.
-  This can be used to filter destinations when using unsafe_routes. By default, this is set to only the VPN (overlay)
-  networks assigned via the certificate networks field unless `default_local_cidr_any` is set to true. If there are
-  unsafe_routes present in this config file, `local_cidr` should be set appropriately for the intended use case.
+  When using unsafe_routes, on `inbound` rules this filters the destination, such as a subnet device reached through
+  this host. On `outbound` rules it filters the source, such as a subnet device starting a connection through this host.
+  By default, this is set to only the VPN (overlay) networks assigned via the certificate networks field unless
+  `default_local_cidr_any` is set to true. If there are unsafe_routes present in this config file, `local_cidr` should
+  be set appropriately for the intended use case.
 
 :::note
 

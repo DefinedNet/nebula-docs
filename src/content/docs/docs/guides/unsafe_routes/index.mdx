@@ -49,9 +49,12 @@ have no certificate, so an unsafe route reaches past those guarantees:
   crosses the subnet unprotected. Anyone on that subnet can read or alter it, or pose as a subnet device, for example by
   ARP spoofing.
 - Firewall rules can match a subnet device only by address, using `cidr` or `local_cidr`. When traffic from the subnet
-  reaches an overlay host, `host` and `group` rules are checked against the subnet gateway's certificate, so a rule that
-  allows the gateway also allows every device behind it. A `cidr` rule for a subnet address allows any host whose
-  certificate covers that address, and adding `host` or `group` to the rule widens it rather than narrowing it.
+  reaches an overlay host (for connections a subnet device starts, this requires an outbound rule, and usually a
+  forwarding rule, on the subnet gateway, see
+  [Allow subnet devices to start connections](#allow-subnet-devices-to-start-connections)), `host` and `group` rules are
+  checked against the subnet gateway's certificate, so a rule that allows the gateway also allows every device behind
+  it. A `cidr` rule for a subnet address allows any host whose certificate covers that address, and adding `host` or
+  `group` to the rule widens it rather than narrowing it.
 - A host whose certificate lists a subnet in `unsafeNetworks` is trusted for that whole subnet. It can send and receive
   traffic as any address in it, and other hosts cannot tell which device, if any, is behind a packet. Sign
   `unsafeNetworks` only into certificates of hosts you trust with that entire range.
@@ -210,6 +213,10 @@ Besides adding the subnet to the cert's `unsafeNetworks` field, you need to add 
 gateway to regulate inbound traffic to your subnet from other overlay hosts. For this, add an inbound firewall rule with
 [local_cidr](/docs/config/firewall/#firewallinbound) for subnet devices and ports that you need to reach.
 
+These inbound rules cover connections that overlay hosts start. Since Nebula v1.10.0, subnet devices cannot start
+connections into the overlay network unless you allow it. See
+[Allow subnet devices to start connections](#allow-subnet-devices-to-start-connections).
+
 To access the printer on the home LAN, you need to add an inbound firewall rule to allow TCP port 631 on
 `192.168.1.0/24` (depending on your printer, you may need to include additional ports). On the subnet gateway, edit the
 Nebula configuration file (commonly located at `/etc/nebula/config.yml`) and add the following to existing firewall
@@ -349,9 +356,6 @@ Open `/etc/ufw/before.rules` and add the NAT configuration block at the top of t
 *nat
 :POSTROUTING ACCEPT [0:0]
 
-# flush all existing POSTROUTING rules in the nat table to avoid duplicates on reload
--F POSTROUTING
-
 # 10.0.0.0/24 is the Nebula network, 192.168.1.0/24 is the route CIDR
 -A POSTROUTING -s 10.0.0.0/24 -d 192.168.1.0/24 -j MASQUERADE
 
@@ -364,6 +368,11 @@ Reload UFW to apply the NAT configuration:
 ```sh
 sudo ufw reload
 ```
+
+ufw does not remove nat rules when it reloads, so each `ufw reload` or `ufw enable` adds another copy of this
+`MASQUERADE` rule until the next reboot. The copies are harmless. Don't flush `POSTROUTING` in `before.rules` to avoid
+them: that also deletes NAT rules other software keeps there, such as Docker's, and breaks container networking until
+Docker restarts.
 
 #### nftables
 
@@ -520,10 +529,13 @@ msg="Handshake message received" vpnAddrs=[10.0.0.1] from=<lighthouse-public-ip>
 
 As you can see in `msg="Added route"`, the unsafe route is being used.
 
-Now you should be able to successfully ping any host on the subnet from your roaming host and access subnet devices:
+Now you should be able to reach subnet devices from your roaming host. If you used the rule from Step 2 that allows any
+port and protocol, ping a subnet device. If you allowed only TCP port 631, the subnet gateway drops ping, so test with
+`nc -zv 192.168.1.25 631` instead.
 
-- **Ping working?** Great! Go ahead and add that printer, map file shares, and SSH to any host on the home LAN.
-- **Ping not working?** If both your roaming host and subnet gateway are behind NAT, they might have issues pinging each
+- **Working?** Great! Go ahead and add that printer, and reach any other subnet devices and ports your Step 2 rules
+  allow.
+- **Not working?** If both your roaming host and subnet gateway are behind NAT, they might have issues pinging each
   other. In this case, try using [punchy](/docs/config/punchy/) or [relay](/docs/config/relay/). For details, see
   [NAT traversal and firewalls](/docs/guides/nat-traversal/).
 
@@ -532,6 +544,95 @@ even without a `ufw route allow` rule. To check the routing rules, also connect 
 example the printer's IPP port with `nc -zv 192.168.1.25 631`.
 
 Add the same `unsafe_routes` section to other overlay hosts that need access to subnet devices.
+
+## Allow subnet devices to start connections
+
+The steps above let overlay hosts start connections to subnet devices, and let subnet devices reply. Since Nebula
+v1.10.0, a subnet device cannot start a connection to an overlay host, for example a printer saving scans to a file
+share on `10.0.0.20`.
+
+When a subnet device sends a packet into the overlay network, it enters Nebula on the subnet gateway, so the gateway's
+**outbound** firewall rules check it, with the subnet device's address as the local address. A rule without `local_cidr`
+matches only the gateway's own overlay addresses, so the common `outbound` rule allowing `host: any` does not match
+traffic from subnet devices.
+
+:::caution
+
+Allowing this lets the subnet reach into your overlay network. Overlay hosts authenticate this traffic by the subnet
+gateway's certificate, so any inbound `host` or `group` rule that allows the gateway also allows every subnet device the
+gateway's outbound rules let through. Keep the gateway's outbound rules as narrow as you can, and check its existing
+ones: a rule that already has `local_cidr` set to the subnet or `any`, or any rule without `local_cidr` if
+`firewall.default_local_cidr_any` is set, allows more than the example below, and adding a narrower rule does not
+restrict it.
+
+:::
+
+To let the printer save scans to a file share on `10.0.0.20` (named `file-server`), make these changes:
+
+1. On the subnet gateway, add an outbound rule with `local_cidr` set to the subnet device. On outbound rules, `host`,
+   `group`, `groups`, and `cidr` match the overlay host the subnet device is connecting to:
+
+   ```yaml
+   firewall:
+     outbound:
+       - port: 445
+         proto: tcp
+         host: file-server
+         local_cidr: 192.168.1.25/32
+   ```
+
+1. If the subnet gateway's host firewall drops forwarded traffic that no rule allows, let it forward new connections
+   from the subnet into the Nebula interface. The rules in [Step 3](#step-3-subnet-gateway-configure-traffic-routing)
+   explicitly allow only replies in that direction. ufw drops such traffic by default, and so do many iptables and
+   nftables setups.
+
+   With ufw:
+
+   ```sh
+   sudo ufw route allow in on eth0 out on nebula1 proto tcp from 192.168.1.25 to 10.0.0.20 port 445
+   sudo ufw reload
+   ```
+
+   With nftables, the `policy accept` chain from Step 3 already forwards this traffic. If a forward chain on the host
+   drops it, add this line to that chain, before any rule that drops it. An `accept` in one chain does not override a
+   `drop` in another.
+
+   ```sh
+   iifname eth0 oifname nebula1 ip saddr 192.168.1.25 ip daddr 10.0.0.20 tcp dport 445 counter accept
+   ```
+
+   With iptables, if the `FORWARD` chain drops this traffic, because its policy is `DROP` or a later rule drops or
+   rejects it:
+
+   ```sh
+   sudo iptables -I FORWARD 1 -i eth0 -o nebula1 -s 192.168.1.25 -d 10.0.0.20 -p tcp --dport 445 -j ACCEPT
+   ```
+
+   The NAT rule from Step 3 does not apply to this traffic, so the overlay host sees the subnet device's own address.
+
+1. On the subnet device, add a route for `10.0.0.20/32` via `192.168.1.5`. Route only the overlay hosts the device
+   needs: a route to the whole overlay network also reaches the subnet gateway's own overlay address, `10.0.0.5`, which
+   the gateway's operating system handles itself without checking Nebula's firewall. If the device can't take a static
+   route, you can add the route to the subnet's default router instead, but replies then return from the subnet gateway
+   directly to the device, and a stateful default router may drop the rest of the connection.
+
+1. On `file-server`, add an inbound rule for the subnet device, and an `unsafe_routes` entry so replies go back through
+   the subnet gateway. A route to the subnet device alone is enough for replies:
+
+   ```yaml
+   tun:
+     unsafe_routes:
+       - route: 192.168.1.25/32
+         via: 10.0.0.5
+
+   firewall:
+     inbound:
+       - port: 445
+         proto: tcp
+         cidr: 192.168.1.25/32
+   ```
+
+1. Restart Nebula, or reload its configuration, on the subnet gateway and on `file-server`.
 
 ## Tips
 
