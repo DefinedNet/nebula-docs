@@ -40,6 +40,31 @@ devices that cannot run Nebula.
                           ░        └─────────┘
 ```
 
+## What makes unsafe routes unsafe
+
+Nebula encrypts traffic between hosts and uses each host's certificate to verify who is on the other end. Subnet devices
+have no certificate, so an unsafe route reaches past those guarantees:
+
+- Nebula's encryption and authentication end at the subnet gateway. Between the gateway and a subnet device, traffic
+  crosses the subnet unprotected. Anyone on that subnet can read or alter it, or pose as a subnet device, for example by
+  ARP spoofing.
+- Firewall rules can match a subnet device only by address, using `cidr` or `local_cidr`. When traffic from the subnet
+  reaches an overlay host, `host` and `group` rules are checked against the subnet gateway's certificate, so a rule that
+  allows the gateway also allows every device behind it. A `cidr` rule for a subnet address allows any host whose
+  certificate covers that address, and adding `host` or `group` to the rule widens it rather than narrowing it.
+- A host whose certificate lists a subnet in `unsafeNetworks` is trusted for that whole subnet. It can send and receive
+  traffic as any address in it, and other hosts cannot tell which device, if any, is behind a packet. Sign
+  `unsafeNetworks` only into certificates of hosts you trust with that entire range.
+- With the NAT configured in this guide, every connection from the overlay network appears to the subnet device to come
+  from the subnet gateway, so the device cannot tell overlay hosts apart. The subnet gateway is the only place to
+  control which overlay hosts reach which devices, through its Nebula firewall or its host firewall's forward rules.
+
+:::note
+
+When a device can run Nebula, run Nebula on it instead.
+
+:::
+
 ## Prerequisites
 
 _Read the [Quick Start](/docs/guides/quick-start/) guide to learn how to create a basic Nebula overlay network._
