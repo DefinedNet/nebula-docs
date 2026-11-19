@@ -533,8 +533,7 @@ Now you should be able to reach subnet devices from your roaming host. If you us
 port and protocol, ping a subnet device. If you allowed only TCP port 631, the subnet gateway drops ping, so test with
 `nc -zv 192.168.1.25 631` instead.
 
-- **Working?** Great! Go ahead and add that printer, and reach any other subnet devices and ports your Step 2 rules
-  allow.
+- **Working?** Great! Go ahead and add that printer.
 - **Not working?** If both your roaming host and subnet gateway are behind NAT, they might have issues pinging each
   other. In this case, try using [punchy](/docs/config/punchy/) or [relay](/docs/config/relay/). For details, see
   [NAT traversal and firewalls](/docs/guides/nat-traversal/).
