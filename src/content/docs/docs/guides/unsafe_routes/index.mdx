@@ -370,8 +370,8 @@ sudo ufw reload
 ```
 
 ufw does not remove nat rules when it reloads, so each `ufw reload` or `ufw enable` adds another copy of this
-`MASQUERADE` rule until the next reboot. The copies are harmless. Don't flush `POSTROUTING` in `before.rules` to avoid
-them: that also deletes NAT rules other software keeps there, such as Docker's, and breaks container networking until
+`MASQUERADE` rule until the next reboot. The copies are harmless. Flushing `POSTROUTING` in `before.rules` would avoid
+them, but it also deletes NAT rules other software keeps there, such as Docker's, and breaks container networking until
 Docker restarts.
 
 #### nftables
