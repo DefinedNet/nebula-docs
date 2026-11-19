@@ -579,14 +579,14 @@ limited to the ports you intend to forward and add separate, narrower rules for 
 
 :::
 
-To remove destination restriction, change the forwarding and NAT/masquerading firewall rules shown in
+To remove the destination restriction, change the forwarding and NAT/masquerading firewall rules shown in
 [Configure packet routing](#configure-packet-routing):
 
 - **ufw**: In the `ufw route allow` rule, remove `to 192.168.1.0/24`. Change the `/etc/ufw/before.rules` NAT rule:<br />
   `-A POSTROUTING -o eth0 -s 10.0.0.0/24 -j MASQUERADE`
 - **nftables**: In the forward rules, remove `ip daddr 192.168.1.0/24` and `ip saddr 192.168.1.0/24`. Change the
   postrouting rule:<br /> `oifname eth0 ip saddr 10.0.0.0/24 counter masquerade`
-- **iptables**: In the `FORWARD` rules, remove `-d 192.168.1.0/24` and -s 192.168.1.0/24. Change the NAT `POSTROUTING`
+- **iptables**: In the `FORWARD` rules, remove `-d 192.168.1.0/24` and `-s 192.168.1.0/24`. Change the NAT `POSTROUTING`
   rule:<br /> `sudo iptables -t nat -A POSTROUTING -o eth0 -s 10.0.0.0/24 -j MASQUERADE`
 
 :::danger
@@ -603,7 +603,7 @@ internet. This includes:
 Block link-local traffic from the overlay. This rule must take precedence over the forwarding rules:
 
 - **ufw**: Add this rule before the route allow rule:<br /> `sudo ufw route deny in on nebula1 to 169.254.0.0/16`<br />
-  If the allow rule already exists, use `sudo ufw insert 1 route deny in on nebula1 to 169.254.0.0/16`<br /> Confirm the
+  If the allow rule already exists, use `sudo ufw route insert 1 deny in on nebula1 to 169.254.0.0/16`<br /> Confirm the
   order with `sudo ufw status numbered`
 - **nftables**: in the forward chain, above the forwarding rules, add:<br />
   `iifname nebula1 ip daddr 169.254.0.0/16 counter drop`
