@@ -54,7 +54,8 @@ have no certificate, so an unsafe route reaches past those guarantees:
   [Allow subnet devices to start connections](#allow-subnet-devices-to-start-connections)), `host` and `group` rules are
   checked against the subnet gateway's certificate, so a rule that allows the gateway also allows every device behind
   it. A `cidr` rule for a subnet address allows any host whose certificate covers that address, and adding `host` or
-  `group` to the rule widens it rather than narrowing it.
+  `group` to the rule widens it rather than narrowing it. Use a dedicated subnet gateway whose certificate has only
+  low-privilege groups.
 - A host whose certificate lists a subnet in `unsafeNetworks` is trusted for that whole subnet. It can send and receive
   traffic as any address in it, and other hosts cannot tell which device, if any, is behind a packet. Sign
   `unsafeNetworks` only into certificates of hosts you trust with that entire range.
@@ -558,11 +559,10 @@ traffic from subnet devices.
 :::caution
 
 Allowing this lets the subnet reach into your overlay network. Overlay hosts authenticate this traffic by the subnet
-gateway's certificate, so any inbound `host` or `group` rule that allows the gateway also allows every subnet device the
-gateway's outbound rules let through. Keep the gateway's outbound rules as narrow as you can, and check its existing
-ones: a rule that already has `local_cidr` set to the subnet or `any`, or any rule without `local_cidr` if
-`firewall.default_local_cidr_any` is set, allows more than the example below, and adding a narrower rule does not
-restrict it.
+gateway's certificate, so every subnet device the gateway lets through gets the gateway's access. Run the subnet gateway
+on a dedicated host, and give its certificate only groups that overlay hosts grant little access. Keep its outbound
+rules narrow too. Adding a narrow outbound rule does not restrict a broader existing one, such as a rule with
+`local_cidr` set to the subnet or `any`, or any rule without `local_cidr` if `firewall.default_local_cidr_any` is set.
 
 :::
 
