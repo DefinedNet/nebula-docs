@@ -610,11 +610,8 @@ To let the printer save scans to a file share on `10.0.0.20` (named `file-server
 
    The NAT rule from Step 3 does not apply to this traffic, so the overlay host sees the subnet device's own address.
 
-1. On the subnet device, add a route for `10.0.0.20/32` via `192.168.1.5`. Route only the overlay hosts the device
-   needs: a route to the whole overlay network also reaches the subnet gateway's own overlay address, `10.0.0.5`, which
-   the gateway's operating system handles itself without checking Nebula's firewall. If the device can't take a static
-   route, you can add the route to the subnet's default router instead, but replies then return from the subnet gateway
-   directly to the device, and a stateful default router may drop the rest of the connection.
+1. On the subnet device, add a route for `10.0.0.0/24` via `192.168.1.5`. If the device can't take a static route, add
+   it to the subnet's default router instead. Replies then skip the default router, which a stateful router may block.
 
 1. On `file-server`, add an inbound rule for the subnet device, and an `unsafe_routes` entry so replies go back through
    the subnet gateway. A route to the subnet device alone is enough for replies:
