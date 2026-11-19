@@ -13,7 +13,17 @@ updates:
       react-dependencies:
         patterns:
           - 'react*'
+      # Security fixes land as one PR instead of one per package
+      security:
+        applies-to: security-updates
+        patterns:
+          - '*'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - '*'
