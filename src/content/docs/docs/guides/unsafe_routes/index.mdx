@@ -592,9 +592,10 @@ To let the printer save scans to a file share on `10.0.0.20` (named `file-server
    sudo ufw reload
    ```
 
-   With nftables, the `policy accept` chain from Step 3 already forwards this traffic. If a forward chain on the host
-   drops it, add this line to that chain, before any rule that drops it. An `accept` in one chain does not override a
-   `drop` in another.
+   With nftables, the `policy accept` chain from Step 3 already forwards this traffic. If you changed its policy to
+   `drop`, add this line to the `forward` chain in `/etc/nftables/nebula.conf`, then reload it with
+   `sudo nft -f /etc/nftables/nebula.conf`. If a different forward chain on the host drops the traffic, add the line to
+   that chain instead.
 
    ```sh
    iifname eth0 oifname nebula1 ip saddr 192.168.1.25 ip daddr 10.0.0.20 tcp dport 445 counter accept
