@@ -92,7 +92,7 @@ jobs:
           GTAG_TRACKING_ID: ${{ github.ref == 'refs/heads/main' && vars.GTAG_TRACKING_ID || '' }}
         run: pnpm build
       - name: Upload site
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
           name: site
           path: build/
